@@ -1,283 +1,421 @@
 <template>
-  <view class="container" :style="{ height: heightRpx + 'rpx' }">
-	  <view :style="{ 
-		  width: unitWidth + 'rpx',
-		  height: unitHeight + 'rpx',
-		  top: state.y * unitHeight + 'rpx',
-		  left: state.x * unitWidth + 'rpx',
-		}" class="user"
-		>
-	  		<image src="/public/img/role.png" class="img"></image>
-			<!-- <image src="/public/img/left.png" class="img left"></image> -->
-			<!-- <image src="/public/img/up.png" class="img up"></image> -->
-			<!-- <image src="/public/img/left.png" class="img right"></image> -->
-			<!-- <image src="/public/img/up.png" class="img down"></image> -->
-	  </view>
-     <view class="top" :style="{ height: unitHeight + 'rpx' }">
-     	 
-     </view>
-	 <view class="center" 
-			:style="{ 
-				 height: (heightRpx - unitHeight) + 'rpx',
-				 transform: `translateX(${state.translateX * unitWidth}rpx) translateY(${state.translateY * unitHeight}rpx)`,
-			}">
-	 	  <view 
-		       v-for="item in boxList"
-			   @tap.stop="clickBox(item)"
-			  :style="{
-				  width: unitWidth + 'rpx',
-				  height: unitHeight + 'rpx',
-				  top: item.y * unitHeight + 'rpx',
-				  left: item.x * unitWidth + 'rpx',
-				  backgroundColor: item.break ? state.breakBoxColor : state.boxColor,
-				}" 
-				class="box">
-	 	  	<view class="box-inner"></view>	
-	 	  </view>
-	 </view>
+  <view class="container" ref="containerRef" @touchstart="handleTouchStart" @touchmove="handleTouchMove" :style="{ height: screenHeight + 'px' }">
+    <!-- 控制面板 -->
+    <view class="controls">
+      <button @click="zoomOut" size="mini">-</button>
+      <text class="scale-text">缩放: {{ (scale * 100).toFixed(0) }}%</text>
+      <button @click="zoomIn" size="mini">+</button>
+      <button @click="resetView" size="mini">重置视图</button>
+    </view>
+    
+    <!-- 可移动的世界容器 -->
+    <view class="world" 
+          :style="{
+            width: worldWidth + 'px',
+            height: worldHeight + 'px',
+            transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+            transition: isAnimating ? 'transform 0.3s ease' : 'none'
+          }">
+      
+      <!-- 网格背景 -->
+      <view class="grid" :style="gridStyle"></view>
+      
+      <!-- 移动的盒子 -->
+      <view class="user-box" 
+            :style="{
+              width: cellSize + 'px',
+              height: cellSize + 'px',
+              left: (state.x - worldBounds.left) * cellSize + 'px',
+              top: (state.y - worldBounds.top) * cellSize + 'px',
+              transition: isMoving ? 'left 0.2s ease, top 0.2s ease' : 'none'
+            }">
+        <view class="box-content">
+          {{ state.x }}, {{ state.y }}
+        </view>
+      </view>
+    </view>
+    
+    <!-- 虚拟方向控制 -->
+    <view class="virtual-controls">
+      <view class="control-row">
+        <button @touchstart="move('w')" class="control-btn">↑</button>
+      </view>
+      <view class="control-row">
+        <button @touchstart="move('a')" class="control-btn">←</button>
+        <button @touchstart="move('s')" class="control-btn">↓</button>
+        <button @touchstart="move('d')" class="control-btn">→</button>
+      </view>
+    </view>
+    
+    <!-- 信息显示 -->
+    <view class="info-panel">
+      <text>位置: ({{ state.x }}, {{ state.y }})</text>
+      <text>世界大小: {{ (worldWidth / cellSize).toFixed(0) }} × {{ (worldHeight / cellSize).toFixed(0) }}</text>
+    </view>
   </view>
 </template>
 
 <script setup>
-import { computed,ref,reactive } from 'vue'
-import { onShow,onLoad,onUnload } from '@dcloudio/uni-app'
-import { useStore } from 'vuex'
-import emitter from '@/utils/eventBus'
-import { createLevelDistribution,getRange } from './method.js'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 
-const store = useStore()
-const systemInfo = uni.getSystemInfoSync(); // 获取屏幕信息
+// 屏幕尺寸
+const screenHeight = ref(0)
 
-// 屏幕宽度、高度 rpx 单位
-const widthRpx = 750;
-const heightRpx = ((systemInfo.screenHeight / systemInfo.screenWidth) * 750).toFixed(2);
+// 基础参数
+const cellSize = 50
+const extendAmount = 5
 
-// 屏幕宽度、高度 px 单位
-const screenWidth = systemInfo.screenWidth;
-const screenHeight = systemInfo.screenHeight;
-
-// 单位
-const unitX = ref(5);  // 横坐标份数
-const unitY = ref(10);  // 纵坐标份数
-const unitWidth = computed(()=>{
-	return widthRpx / unitX.value;
-})
-const unitHeight = computed(()=>{
-	return heightRpx / unitY.value;
+// 世界边界
+const worldBounds = reactive({
+  left: 0,
+  right: 20,
+  top: 0,
+  bottom: 20
 })
 
-// 参数
+// 视图状态
+const scale = ref(1)
+const offsetX = ref(0)
+const offsetY = ref(0)
+const isAnimating = ref(false)
+const isMoving = ref(false)
+
+// 盒子状态
 const state = reactive({
-	x: 0,  
-	y: 0,
-	boxColor: '#0f3461',  // 方块颜色
-	breakBoxColor: '#d1e1fd', // 挖完之后颜色
-	translateX: 0,
-	translateY: 0,
+  x: 10,
+  y: 10
 })
 
-// 角色中心点
-const roleCenter = computed(()=>{
-	return {
-		x: state.x + 0.5,
-		y: state.y + 0.5
-	}
+// 触摸状态
+const startX = ref(0)
+const startY = ref(0)
+
+// 容器引用
+const containerRef = ref(null)
+
+// 计算世界尺寸
+const worldWidth = computed(() => {
+  return (worldBounds.right - worldBounds.left) * cellSize
 })
 
-// 方块
-const boxList = ref([
-	{ x: 0,y: 0,level: 0 },
-])
+const worldHeight = computed(() => {
+  return (worldBounds.bottom - worldBounds.top) * cellSize
+})
 
-// 点击区域
-const clickArea = (e) => {
-	const { x,y } = e.detail;
-	const xRpx = (x * widthRpx / screenWidth).toFixed(2);
-	const yRpx = (y * heightRpx / screenHeight).toFixed(2);
+// 网格样式
+const gridStyle = computed(() => {
+  return {
+    width: worldWidth.value + 'px',
+    height: worldHeight.value + 'px',
+    backgroundSize: `${cellSize}px ${cellSize}px`
+  }
+})
+
+onMounted(() => {
+  getSystemInfo()
+  adjustViewAfterExtension()
+})
+
+// 获取系统信息
+const getSystemInfo = () => {
+  const systemInfo = uni.getSystemInfoSync()
+  screenHeight.value = systemInfo.windowHeight
 }
 
-// 点击盒子
-const clickBox = (item) => {
-	let roleX = state.x;
-	let roleY = state.y - 1;
-	let distanceX = item.x - roleX;
-	let distanceY = item.y - roleY;
-	if(Math.abs(distanceX) === 1 && distanceY === 0) {
-		moveRole(distanceX, distanceY,item)
-	}else if(Math.abs(distanceY) === 1 && distanceX === 0) {
-		moveRole(distanceX, distanceY,item)
-	}else {
-		
-	}
-}
-
-// 移动角色
-const moveRole = (x = 0,y = 0,item = {}) => {
-	state.x += x;
-	state.y += y;
-	item.break = true;  // 挖掘成功，方块变色
-}
-
-// 生成初始方块
-function generatePatternArray(maxX, maxY, maxType) {
-  const result = [];
+// 移动控制
+const move = (direction) => {
+  let newX = state.x
+  let newY = state.y
   
-  for (let x = 0; x < maxX; x++) {
-    for (let y = 0; y < maxY; y++) {
-      // level 按照规律生成：可以使用取模运算
-      const level = (x + y) % maxType;
-      
-      result.push({
-        x,
-        y,
-        level,
-		break: false
-      });
+  switch(direction) {
+    case 'w':
+      newY = state.y - 1
+      break
+    case 'a':
+      newX = state.x - 1
+      break
+    case 's':
+      newY = state.y + 1
+      break
+    case 'd':
+      newX = state.x + 1
+      break
+  }
+  
+  moveTo(newX, newY)
+}
+
+// 移动到指定位置
+const moveTo = (x, y) => {
+  const extended = extendWorldIfNeeded(x, y)
+  
+  isMoving.value = true
+  state.x = x
+  state.y = y
+  
+  if (extended) {
+    adjustViewAfterExtension()
+  } else {
+    ensureBoxInView()
+  }
+  
+  setTimeout(() => {
+    isMoving.value = false
+  }, 200)
+}
+
+// 检查并扩展世界边界
+const extendWorldIfNeeded = (x, y) => {
+  let extended = false
+  
+  if (x < worldBounds.left) {
+    worldBounds.left -= extendAmount
+    extended = true
+  }
+  
+  if (x >= worldBounds.right) {
+    worldBounds.right += extendAmount
+    extended = true
+  }
+  
+  if (y < worldBounds.top) {
+    worldBounds.top -= extendAmount
+    extended = true
+  }
+  
+  if (y >= worldBounds.bottom) {
+    worldBounds.bottom += extendAmount
+    extended = true
+  }
+  
+  return extended
+}
+
+// 扩展后调整视图
+const adjustViewAfterExtension = () => {
+  const systemInfo = uni.getSystemInfoSync()
+  const containerWidth = systemInfo.windowWidth
+  const containerHeight = systemInfo.windowHeight
+  
+  const targetOffsetX = -((state.x - worldBounds.left) * cellSize - containerWidth / (2 * scale.value))
+  const targetOffsetY = -((state.y - worldBounds.top) * cellSize - containerHeight / (2 * scale.value))
+  
+  isAnimating.value = true
+  offsetX.value = targetOffsetX
+  offsetY.value = targetOffsetY
+  
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 300)
+}
+
+// 确保盒子在视图中
+const ensureBoxInView = () => {
+  const systemInfo = uni.getSystemInfoSync()
+  const containerWidth = systemInfo.windowWidth
+  const containerHeight = systemInfo.windowHeight
+  
+  const boxScreenX = (state.x - worldBounds.left) * cellSize * scale.value + offsetX.value * scale.value
+  const boxScreenY = (state.y - worldBounds.top) * cellSize * scale.value + offsetY.value * scale.value
+  const boxSize = cellSize * scale.value
+  const threshold = 100
+  
+  let newOffsetX = offsetX.value
+  let newOffsetY = offsetY.value
+  
+  if (boxScreenX < threshold) {
+    newOffsetX += (threshold - boxScreenX) / scale.value
+  } else if (boxScreenX + boxSize > containerWidth - threshold) {
+    newOffsetX -= (boxScreenX + boxSize - (containerWidth - threshold)) / scale.value
+  }
+  
+  if (boxScreenY < threshold) {
+    newOffsetY += (threshold - boxScreenY) / scale.value
+  } else if (boxScreenY + boxSize > containerHeight - threshold) {
+    newOffsetY -= (boxScreenY + boxSize - (containerHeight - threshold)) / scale.value
+  }
+  
+  if (newOffsetX !== offsetX.value || newOffsetY !== offsetY.value) {
+    isAnimating.value = true
+    offsetX.value = newOffsetX
+    offsetY.value = newOffsetY
+    
+    setTimeout(() => {
+      isAnimating.value = false
+    }, 300)
+  }
+}
+
+// 缩放功能
+const zoomIn = () => {
+  isAnimating.value = true
+  scale.value = Math.min(3, scale.value + 0.1)
+  setTimeout(() => {
+    isAnimating.value = false
+    ensureBoxInView()
+  }, 300)
+}
+
+const zoomOut = () => {
+  isAnimating.value = true
+  scale.value = Math.max(0.3, scale.value - 0.1)
+  setTimeout(() => {
+    isAnimating.value = false
+    ensureBoxInView()
+  }, 300)
+}
+
+// 重置视图
+const resetView = () => {
+  isAnimating.value = true
+  scale.value = 1
+  offsetX.value = 0
+  offsetY.value = 0
+  worldBounds.left = 0
+  worldBounds.right = 20
+  worldBounds.top = 0
+  worldBounds.bottom = 20
+  state.x = 10
+  state.y = 10
+  
+  setTimeout(() => {
+    isAnimating.value = false
+  }, 300)
+}
+
+// 触摸事件处理
+const handleTouchStart = (e) => {
+  startX.value = e.touches[0].clientX
+  startY.value = e.touches[0].clientY
+}
+
+const handleTouchMove = (e) => {
+  if (!startX.value || !startY.value) return
+  
+  const currentX = e.touches[0].clientX
+  const currentY = e.touches[0].clientY
+  
+  const diffX = currentX - startX.value
+  const diffY = currentY - startY.value
+  
+  // 简单的滑动控制
+  if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 10) {
+    if (diffX > 0) {
+      move('d') // 右滑
+    } else {
+      move('a') // 左滑
+    }
+  } else if (Math.abs(diffY) > 10) {
+    if (diffY > 0) {
+      move('s') // 下滑
+    } else {
+      move('w') // 上滑
     }
   }
   
-  return result;
+  startX.value = currentX
+  startY.value = currentY
 }
-
-// 生成下区域方块
-const generateDownBox = ()=> {
-	let arr = []
-	for (let y = 0; y < unitY.value - 1; y++) {
-		arr.push({
-			x: state.x + 1,
-			y,
-			level: 1,
-			break: true
-		})
-	}
-	boxList.value = boxList.value.concat(arr);
-	
-	let row = boxList.value.find(i => i.y === state.y && i.x === (state.x + 1))
-	moveRole(1,0,row);
-	state.translateX--;
-	
-}
-
-// 生成上方区域方块
-const generateUpBox = ()=> {
-	let arr = []
-	for (let y = 0; y < unitY.value - 1; y++) {
-		arr.push({
-			x: state.x + 1,
-			y,
-			level: 1,
-			break: true
-		})
-	}
-	boxList.value = boxList.value.concat(arr);
-	
-	let row = boxList.value.find(i => i.y === state.y && i.x === (state.x + 1))
-	moveRole(1,0,row);
-	state.translateX--;
-}
-
-// 生成左方区域方块
-const generateLeftBox = ()=> {
-	let range = getRange(state.y);
-	const { rate,leave } = range;
-	let boxs = createLevelDistribution(unitY.value,leave,rate);
-	console.log(boxs,'boxs')
-	if(state.y < unitY.value) { // 还处于第一屏幕 的 y
-	   
-		boxs.forEach(item =>{
-			
-		})
-	}
-}
-
-// 生成右方区域方块
-const generateRightBox = ()=> {
-	let arr = []
-	for (let y = 0; y < unitY.value - 1; y++) {
-		arr.push({
-			x: state.x + 1,
-			y,
-			level: 1,
-			break: true
-		})
-	}
-	boxList.value = boxList.value.concat(arr);
-	
-	let row = boxList.value.find(i => i.y === state.y && i.x === (state.x + 1))
-	moveRole(1,0,row);
-	state.translateX--;
-}
-
-
-// 上下左右
-const handleKeyDown = (e)=>{
-	switch(e.key) {
-		case "w" :
-		  generateUpBox()
-		break;
-		
-		case "s" :
-		  generateDownBox()
-		break;
-		
-		case "a" :
-		  generateLeftBox()
-		break;
-		
-		case "d" :
-		  generateRightBox()
-		break;
-	}
-}
-
-onLoad(() =>{
-	let arr = generatePatternArray(5, 9, 5);
-	boxList.value = arr;
-	
-	window.addEventListener('keydown', handleKeyDown);
-})
-
-onUnload(()=>{
-	window.removeEventListener('keydown', handleKeyDown);
-})
-
-
-onShow(() => {
-	
-  
-})
-
-
-
 </script>
 
-<style scoped lang="scss">
-$heightRate: 35%;
-$fontSize: 14px;
+<style scoped>
 .container {
-	position: relative;
-	.top {
-		
-	}
-	.center {
-		position: relative;
-		.box {
-			position: absolute;
-			.box-inner {
-			}
-			z-index: 5;
-		}
-	}
-	.user {
-		position: absolute;
-		z-index: 999;
-		.right {
-			transform: rotate(180deg);
-		}
-		.down {
-			transform: rotate(180deg);
-		}
-	}
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  background: #f0f2f5;
 }
 
+.controls {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.scale-text {
+  font-size: 14px;
+  color: #333;
+}
+
+.world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+}
+
+.user-box {
+  position: absolute;
+  background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.box-content {
+  transform: scale(calc(1 / v-bind(scale)));
+}
+
+.virtual-controls {
+  position: absolute;
+  bottom: 100px;
+  right: 20px;
+  z-index: 10;
+}
+
+.control-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
+}
+
+.control-btn {
+  width: 60px;
+  height: 60px;
+  margin: 0 10px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid #ddd;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-panel {
+  position: absolute;
+  bottom: 20px;
+  left: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  display: flex;
+  flex-direction: column;
+}
 </style>

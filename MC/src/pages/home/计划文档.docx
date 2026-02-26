@@ -1,0 +1,3 @@
+class="grid-cell" 为格子样式，通过动态class控制
+
+canMoveTo  盒子是否能够移动方法

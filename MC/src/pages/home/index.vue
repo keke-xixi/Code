@@ -17,8 +17,29 @@
             transition: isAnimating ? 'transform 0.3s ease' : 'none'
           }">
       
-      <!-- 网格背景 -->
-      <view class="grid" :style="gridStyle"></view>
+      <!-- 网格背景 - 改为可见的盒子网格 -->
+      <view class="grid">
+        <view v-for="row in gridRows" :key="row" class="grid-row">
+          <view v-for="col in gridCols" :key="col" 
+          class="grid-cell"
+          :class="{
+            'current-cell': currentCell.row === row && currentCell.col === col,
+            'adjacent-cell': isAdjacentCell(row, col)
+          }"
+          :style="{
+            width: cellSize + 'px',
+            height: cellSize + 'px',
+            left: (col - 1) * cellSize + 'px',
+            top: (row - 1) * cellSize + 'px'
+          }">
+            <!-- 所有格子的坐标 -->
+            <text class="cell-coord">{{ worldBounds.left + col - 1 }},{{ worldBounds.top + row - 1 }}</text>
+            <view v-if="currentCell.row === row && currentCell.col === col" class="cell-effect">
+              <text class="effect-text">当前</text>
+            </view>
+          </view>
+        </view>
+      </view>
       
       <!-- 移动的盒子 -->
       <view class="user-box" 
@@ -49,14 +70,16 @@
     
     <!-- 信息显示 -->
     <view class="info-panel">
-      <text>位置: ({{ state.x }}, {{ state.y }})</text>
-      <text>世界大小: {{ (worldWidth / cellSize).toFixed(0) }} × {{ (worldHeight / cellSize).toFixed(0) }}</text>
+      <text>当前位置: ({{ state.x }}, {{ state.y }})</text>
+      <text>世界大小: {{ worldWidth / cellSize }} × {{ worldHeight / cellSize }}</text>
+      <text>格子类型: {{ getCellType(state.x, state.y) }}</text>
+      <text>格子效果: {{ getCellEffect(state.x, state.y) }}</text>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 
 // 屏幕尺寸
 const screenHeight = ref(0)
@@ -93,6 +116,23 @@ const startY = ref(0)
 // 容器引用
 const containerRef = ref(null)
 
+// 计算网格行列
+const gridRows = computed(() => {
+  return worldBounds.bottom - worldBounds.top
+})
+
+const gridCols = computed(() => {
+  return worldBounds.right - worldBounds.left
+})
+
+// 当前格子位置（网格坐标）
+const currentCell = computed(() => {
+  return {
+    row: state.y - worldBounds.top + 1,
+    col: state.x - worldBounds.left + 1
+  }
+})
+
 // 计算世界尺寸
 const worldWidth = computed(() => {
   return (worldBounds.right - worldBounds.left) * cellSize
@@ -102,66 +142,41 @@ const worldHeight = computed(() => {
   return (worldBounds.bottom - worldBounds.top) * cellSize
 })
 
-// 网格样式
-const gridStyle = computed(() => {
-  return {
-    width: worldWidth.value + 'px',
-    height: worldHeight.value + 'px',
-    backgroundSize: `${cellSize}px ${cellSize}px`
-  }
-})
-
-onMounted(() => {
-  getSystemInfo()
-  adjustViewAfterExtension()
-})
-
-// 获取系统信息
-const getSystemInfo = () => {
-  const systemInfo = uni.getSystemInfoSync()
-  screenHeight.value = systemInfo.windowHeight
+// 格子类型映射（可以自定义不同位置的格子效果）
+const cellTypes = {
+  // 特殊位置效果
+  '10,10': { type: '起点', effect: '绿色区域，安全区', color: '#4CAF50' },
+  '5,5': { type: '森林', effect: '移动速度减半', color: '#2E7D32' },
+  '15,15': { type: '沙漠', effect: '消耗体力加倍', color: '#FFB74D' },
+  '8,12': { type: '河流', effect: '无法停留', color: '#4FC3F7' },
+  '12,8': { type: '山脉', effect: '视野受阻', color: '#8D6E63' }
 }
 
-// 移动控制
-const move = (direction) => {
-  let newX = state.x
-  let newY = state.y
-  
-  switch(direction) {
-    case 'w':
-      newY = state.y - 1
-      break
-    case 'a':
-      newX = state.x - 1
-      break
-    case 's':
-      newY = state.y + 1
-      break
-    case 'd':
-      newX = state.x + 1
-      break
-  }
-  
-  moveTo(newX, newY)
+// 判断是否为相邻格子
+const isAdjacentCell = (row, col) => {
+  const currentRow = currentCell.value.row
+  const currentCol = currentCell.value.col
+  const dx = Math.abs(col - currentCol)
+  const dy = Math.abs(row - currentRow)
+  return (dx === 1 && dy === 0) || (dx === 0 && dy === 1)
 }
 
-// 移动到指定位置
-const moveTo = (x, y) => {
-  const extended = extendWorldIfNeeded(x, y)
-  
-  isMoving.value = true
-  state.x = x
-  state.y = y
-  
-  if (extended) {
-    adjustViewAfterExtension()
-  } else {
-    ensureBoxInView()
-  }
-  
-  setTimeout(() => {
-    isMoving.value = false
-  }, 200)
+// 获取格子类型
+const getCellType = (x, y) => {
+  const key = `${x},${y}`
+  return cellTypes[key]?.type || '普通格子'
+}
+
+// 获取格子效果
+const getCellEffect = (x, y) => {
+  const key = `${x},${y}`
+  return cellTypes[key]?.effect || '无特殊效果'
+}
+
+// 获取格子颜色
+const getCellColor = (x, y) => {
+  const key = `${x},${y}`
+  return cellTypes[key]?.color || '#f0f0f0'
 }
 
 // 检查并扩展世界边界
@@ -316,6 +331,95 @@ const handleTouchMove = (e) => {
   startX.value = currentX
   startY.value = currentY
 }
+
+// 移动控制
+const move = (direction) => {
+  let newX = state.x
+  let newY = state.y
+  
+  switch(direction) {
+    case 'w':
+      newY = state.y - 1
+      break
+    case 'a':
+      newX = state.x - 1
+      break
+    case 's':
+      newY = state.y + 1
+      break
+    case 'd':
+      newX = state.x + 1
+      break
+  }
+  
+  // 检查目标格子是否可以进入
+  if (canMoveTo(newX, newY)) {
+    moveTo(newX, newY)
+    // 触发格子进入效果
+    triggerCellEffect(newX, newY)
+  } else {
+    uni.showToast({
+      title: '无法进入该格子',
+      icon: 'none'
+    })
+  }
+}
+
+// 检查是否可以移动到目标格子
+const canMoveTo = (x, y) => {
+  const key = `${x},${y}`
+  // 河流格子无法停留
+  if (cellTypes[key]?.type === '河流') {
+    return false
+  }
+  return true
+}
+
+// 触发格子效果
+const triggerCellEffect = (x, y) => {
+  const key = `${x},${y}`
+  const effect = cellTypes[key]?.effect
+  
+  if (effect) {
+    uni.showToast({
+      title: effect,
+      icon: 'none',
+      duration: 1500
+    })
+  }
+}
+
+// 移动到指定位置
+const moveTo = (x, y) => {
+  const extended = extendWorldIfNeeded(x, y)
+  
+  isMoving.value = true
+  state.x = x
+  state.y = y
+  
+  if (extended) {
+    adjustViewAfterExtension()
+  } else {
+    ensureBoxInView()
+  }
+  
+  setTimeout(() => {
+    console.log(gridRows,'gridRows')
+    isMoving.value = false
+  }, 200)
+}
+
+// 获取系统信息
+const getSystemInfo = () => {
+  const systemInfo = uni.getSystemInfoSync()
+  screenHeight.value = systemInfo.windowHeight
+}
+
+onMounted(() => {
+  getSystemInfo()
+  adjustViewAfterExtension()
+})
+
 </script>
 
 <style scoped>
@@ -323,7 +427,7 @@ const handleTouchMove = (e) => {
   width: 100%;
   position: relative;
   overflow: hidden;
-  background: #f0f2f5;
+  background: #1a1a2e;
 }
 
 .controls {
@@ -350,29 +454,75 @@ const handleTouchMove = (e) => {
   top: 0;
   left: 0;
   transform-origin: 0 0;
-  background-color: rgba(255, 255, 255, 0.8);
 }
 
 .grid {
   position: absolute;
   top: 0;
   left: 0;
-  background-image: 
-    linear-gradient(to right, rgba(0,0,0,0.1) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(0,0,0,0.1) 1px, transparent 1px);
+}
+
+.grid-cell {
+  position: absolute;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.grid-cell.current-cell {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: 2px solid #ffd700;
+  color: white;
+  transform: scale(1.02);
+  z-index: 5;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+}
+
+.grid-cell.adjacent-cell {
+  background-color: #e3f2fd;
+  border: 2px dashed #2196f3;
+  cursor: pointer;
+}
+
+.cell-coord {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.cell-effect {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 3px;
+  padding: 2px 4px;
+}
+
+.effect-text {
+  font-size: 8px;
+  color: #333;
+  font-weight: bold;
 }
 
 .user-box {
   position: absolute;
   background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
   border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-weight: bold;
   font-size: 14px;
+  z-index: 10;
+  border: 2px solid white;
 }
 
 .box-content {
@@ -409,13 +559,16 @@ const handleTouchMove = (e) => {
   position: absolute;
   bottom: 20px;
   left: 10px;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.8);
   color: white;
-  padding: 10px 15px;
-  border-radius: 5px;
+  padding: 15px;
+  border-radius: 8px;
   font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.8;
   display: flex;
   flex-direction: column;
+  min-width: 200px;
+  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 </style>

@@ -1,30 +1,26 @@
-// 矿石
-const type_map = {
+// 矿石类型映射
+export const type_map = {
     1: { name: '土', color: '#8B4513', price: 1 },
     2: { name: '石头', color: '#696969', price: 5 },
     3: { name: '铁', color: '#708090', price: 10 },
     4: { name: '黄金', color: '#FFD700', price: 30 },
     5: { name: '钻石', color: '#B9F2FF', price: 100 },
-	6: { name: '红物质', color: '#E0115F', price: 500 },
-	7: { name: '虚空水晶', color: '#9966CC', price: 1000 },
-	8: { name: '黑洞碎片', color: '#2F4F4F', price: 10000 }
+    6: { name: '红物质', color: '#E0115F', price: 500 },
+    7: { name: '虚空水晶', color: '#9966CC', price: 1000 },
+    8: { name: '黑洞碎片', color: '#2F4F4F', price: 10000 }
 }
-/*
-   根据y获取每个层级的信息
-*/
-export const getRange = (y)=> {
+
+// 根据y坐标获取层级信息
+export const getRange = (y) => {
     const ranges = [
-		/*
-		  min、max 表示范围  leave 表示最大等级多少 rate 表示矿石等级出现的概率
-		*/
-        { min: 9000, max: 10000, label: '9000-10000',leave: 9, rate: [0,0,0,0,0,0,0.4,0.3,0.3] },
-        { min: 7000, max: 9000, label: '7000-9000', leave: 8, rate: [0,0,0.3,0.2,0.2,0.1,0.1,0.1]  },
+        { min: 9000, max: 10000, label: '9000-10000', leave: 9, rate: [0,0,0,0,0,0,0.4,0.3,0.3] },
+        { min: 7000, max: 9000, label: '7000-9000', leave: 8, rate: [0,0,0.3,0.2,0.2,0.1,0.1,0.1] },
         { min: 5000, max: 7000, label: '5000-7000', leave: 7, rate: [0,0.2,0.2,0.2,0.2,0.1,0.1] },
-        { min: 2000, max: 5000, label: '2000-5000' , leave: 6, rate: [0.2,0.2,0.2,0.2,0.2]},
+        { min: 2000, max: 5000, label: '2000-5000', leave: 6, rate: [0.2,0.2,0.2,0.2,0.2] },
         { min: 500, max: 2000, label: '500-2000', leave: 5, rate: [0.3,0.3,0.2,0.1,0.1] },
-        { min: 50, max: 500, label: '100-500', leave: 4, rate: [0.4,0.3,0.2,0.1]  },
-        { min: 10, max: 50, label: '1-100', leave: 3, rate: [0.6,0.3,0.1] },
-		{ min: 1, max: 10, label: '1-10', leave: 2, rate: [0.9,0.1] }
+        { min: 50, max: 500, label: '50-500', leave: 4, rate: [0.4,0.3,0.2,0.1] },
+        { min: 10, max: 50, label: '10-50', leave: 3, rate: [0.6,0.3,0.1] },
+        { min: 1, max: 10, label: '1-10', leave: 2, rate: [0.9,0.1] }
     ];
     
     for (const range of ranges) {
@@ -32,24 +28,11 @@ export const getRange = (y)=> {
             return range;
         }
     }
-    
-    return '超出范围';
+    return { min: 0, max: 0, label: '未知', leave: 1, rate: [1] };
 }
 
-/*
-  // 使用示例
-  10 是总数量  7 是总等级 最后的1 剩余数量给等级1
-  const probabilities = [0.1, 0, 0, 0, 0, 0, 0.9];  // 0.1是等级1的概率，0.9是等级7的概率
-  const distribution = createLevelDistribution(10, 7, probabilities, 1);
-  console.log('等级分布:', distribution);
-  distribution.forEach(item => {
-      console.log(`等级 ${item.level}: 概率 ${item.probability.toFixed(2)}%, 数量 ${item.count}`);
-  });
-  
-  console.log('验证总和:', distribution.reduce((sum, item) => sum + item.count, 0));
-*/
+// 创建等级分布
 export const createLevelDistribution = (totalCount, maxLevel, probabilities, remainingLevel = 1) => {
-    // 参数验证
     if (!Array.isArray(probabilities) || probabilities.length !== maxLevel) {
         throw new Error('概率数组长度必须等于最大等级');
     }
@@ -72,7 +55,7 @@ export const createLevelDistribution = (totalCount, maxLevel, probabilities, rem
     
     // 先分配除了剩余等级之外的所有等级
     for (let level = maxLevel; level >= 1; level--) {
-        if (level === remainingLevel) continue; // 跳过剩余等级
+        if (level === remainingLevel) continue;
         
         const probability = probabilities[level - 1];
         const calculatedCount = Math.floor(totalCount * probability);
@@ -95,4 +78,70 @@ export const createLevelDistribution = (totalCount, maxLevel, probabilities, rem
     };
     
     return distribution;
+}
+
+// 生成随机矿石类型
+export const generateOreType = (y) => {
+    const range = getRange(y);
+    if (!range || !range.rate) return 1; // 默认返回土
+    
+    // 根据概率随机选择矿石等级
+    const random = Math.random();
+    let cumulative = 0;
+    
+    for (let level = 1; level <= range.leave; level++) {
+        const probability = range.rate[level - 1] || 0;
+        cumulative += probability;
+        if (random < cumulative) {
+            return level;
+        }
+    }
+    
+    return 1; // 默认返回土
+}
+
+// 初始化世界地图的矿石
+export const initializeWorldOres = (width, height, worldBounds) => {
+    const ores = {};
+    
+    // 遍历世界中的所有格子
+    for (let x = worldBounds.left; x < worldBounds.right; x++) {
+        for (let y = worldBounds.top; y < worldBounds.bottom; y++) {
+            const key = `${x},${y}`;
+            const oreLevel = generateOreType(y);
+            ores[key] = {
+                type: oreLevel,
+                name: type_map[oreLevel].name,
+                color: type_map[oreLevel].color,
+                price: type_map[oreLevel].price
+            };
+        }
+    }
+    
+    return ores;
+}
+
+// 扩展世界时生成新的矿石
+export const extendWorldOres = (ores, worldBounds, oldBounds) => {
+    const newOres = { ...ores };
+    
+    // 生成新扩展区域的矿石
+    for (let x = worldBounds.left; x < worldBounds.right; x++) {
+        for (let y = worldBounds.top; y < worldBounds.bottom; y++) {
+            const key = `${x},${y}`;
+            
+            // 如果这个格子还没有矿石，生成新的
+            if (!newOres[key]) {
+                const oreLevel = generateOreType(y);
+                newOres[key] = {
+                    type: oreLevel,
+                    name: type_map[oreLevel].name,
+                    color: type_map[oreLevel].color,
+                    price: type_map[oreLevel].price
+                };
+            }
+        }
+    }
+    
+    return newOres;
 }

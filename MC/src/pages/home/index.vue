@@ -1,12 +1,10 @@
 <template>
   <view class="container" ref="containerRef" @touchstart="handleTouchStart" @touchmove="handleTouchMove" :style="{ height: screenHeight + 'px' }">
-    <!-- 控制面板 -->
-    <view class="controls">
-      <button @click="zoomOut" size="mini">-</button>
-      <text class="scale-text">缩放: {{ (scale * 100).toFixed(0) }}%</text>
-      <button @click="zoomIn" size="mini">+</button>
-      <button @click="resetView" size="mini">重置视图</button>
-    </view>
+    
+    <!-- 设置 -->
+     <view class="settings" @tap="openConfig">
+       <uni-icons type="gear-filled" size="30"></uni-icons>
+     </view>
     
     <!-- 可移动的世界容器 -->
     <view class="world" 
@@ -68,18 +66,25 @@
       </view>
     </view>
     
-    <!-- 信息显示 -->
-    <view class="info-panel">
-      <text>当前位置: ({{ state.x }}, {{ state.y }})</text>
-      <text>世界大小: {{ worldWidth / cellSize }} × {{ worldHeight / cellSize }}</text>
-      <text>格子类型: {{ getCellType(state.x, state.y) }}</text>
-      <text>格子效果: {{ getCellEffect(state.x, state.y) }}</text>
-    </view>
+    <!-- 系统配置弹窗 -->
+     <SystemConfig 
+      ref="systemConfigRef"
+      :scale="scale"
+      :worldWidth="worldWidth"
+      :worldHeight="worldHeight"
+      :cellSize="cellSize"
+      :cellTypes="cellTypes"
+      :state="state"
+      @resetView="resetView"
+      @zoomIn="zoomIn"
+      @zoomOut="zoomOut"
+      />
   </view>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import SystemConfig from './component/systemConfig.vue'
 
 // 屏幕尺寸
 const screenHeight = ref(0)
@@ -103,6 +108,8 @@ const offsetY = ref(0)
 const isAnimating = ref(false)
 const isMoving = ref(false)
 
+// 其它参数
+
 // 盒子状态
 const state = reactive({
   x: 10,
@@ -115,6 +122,7 @@ const startY = ref(0)
 
 // 容器引用
 const containerRef = ref(null)
+const systemConfigRef = ref(null)
 
 // 计算网格行列
 const gridRows = computed(() => {
@@ -280,6 +288,12 @@ const zoomOut = () => {
   }, 300)
 }
 
+const openConfig = () => {
+    nextTick(() => {
+        systemConfigRef.value.openDialog()
+    })
+}
+
 // 重置视图
 const resetView = () => {
   isAnimating.value = true
@@ -404,7 +418,6 @@ const moveTo = (x, y) => {
   }
   
   setTimeout(() => {
-    console.log(gridRows,'gridRows')
     isMoving.value = false
   }, 200)
 }
@@ -428,20 +441,6 @@ onMounted(() => {
   position: relative;
   overflow: hidden;
   background: #1a1a2e;
-}
-
-.controls {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 10;
-  background: rgba(255, 255, 255, 0.9);
-  padding: 10px;
-  border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .scale-text {
@@ -555,20 +554,12 @@ onMounted(() => {
   justify-content: center;
 }
 
-.info-panel {
+.settings {
   position: absolute;
-  bottom: 20px;
-  left: 10px;
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  padding: 15px;
-  border-radius: 8px;
-  font-size: 12px;
-  line-height: 1.8;
-  display: flex;
-  flex-direction: column;
-  min-width: 200px;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+  border-radius: 5px;
+  padding: 10px;
 }
 </style>

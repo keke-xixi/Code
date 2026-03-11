@@ -1,3 +1,13 @@
 class="grid-cell" 为格子样式，通过动态class控制
 
 canMoveTo  盒子是否能够移动方法
+
+saveMoney 保存金钱方法
+
+openConfig 打开配置弹窗
+
+moveBox 移动盒子方法
+
+calculatePrice 计算价格方法
+
+recordMove 记录移动方法

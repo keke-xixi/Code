@@ -1,6 +1,6 @@
 <template>
     <uni-popup ref="configPopupRef" type="center" :mask-click="false">
-        <!-- 弹窗主体：透明卡通风格 -->
+        <!-- 弹窗主体：透明卡通风格 (加高以容纳保存按钮) -->
         <view class="popup-card">
             <!-- 头部装饰区 + 关闭按钮 -->
             <view class="cartoon-header">
@@ -22,7 +22,7 @@
                     <text class="bubble-text">{{ (scale * 100).toFixed(0) }}%</text>
                 </view>
                 <button class="candy-btn zoom-in" @click="zoomIn" size="mini">＋</button>
-                <button class="candy-btn reset" @click="resetView" size="mini">🔄 重置</button>
+                <button class="candy-btn reset" @click="resetView" size="mini">🔄</button>
             </view>
 
             <!-- 信息卡片区域：气泡格子风格 -->
@@ -64,6 +64,13 @@
                 </view>
             </view>
 
+            <!-- 新增：保存按钮区域 + 可爱装饰 (加高部分) -->
+            <view class="save-section">
+                <button class="candy-btn save-btn" @click="handleSave" size="mini">
+                    <span class="save-icon"></span> 保存
+                </button>
+            </view>
+
             <!-- 底部可爱小装饰 -->
             <view class="cartoon-footer">
                 <view class="footer-stars">✦ ✦ ✦</view>
@@ -75,7 +82,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const emit = defineEmits(['zoomOut', 'zoomIn', 'resetView', 'close']);
+const emit = defineEmits(['zoomOut', 'zoomIn', 'resetView', 'close', 'save']);
 const props = defineProps({
     scale: { type: Number, default: 1 },
     worldWidth: { type: Number, default: 0 },
@@ -90,6 +97,7 @@ const configPopupRef = ref(null)
 const zoomOut = () => emit('zoomOut')
 const zoomIn = () => emit('zoomIn')
 const resetView = () => emit('resetView')
+const handleSave = () => emit('save') // 保存事件
 
 const close = () => {
     configPopupRef.value.close()
@@ -307,7 +315,7 @@ $bubble-colors: (#FFB347, #6B8EFF, #FF8A80, #A5D6A5); // 四种柔和的颜色
       flex-direction: column;
       flex: 1;
       .bubble-label {
-        font-size: 11px;
+        font-size: 14px;
         color: #4A3720;
         opacity: 0.8;
         font-weight: 600;
@@ -331,7 +339,68 @@ $bubble-colors: (#FFB347, #6B8EFF, #FF8A80, #A5D6A5); // 四种柔和的颜色
   }
 }
 
-// 底部小星星装饰
+// 新增：保存按钮区域样式 (加高部分)
+.save-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px 18px 18px; // 增加上下内边距
+  margin: 5px 0 5px 0;
+  background: rgba(255, 241, 220, 0.3); // 极浅背景，区分层次
+  border-top: 2px dashed rgba(255, 255, 255, 0.8); // 与头部呼应的虚线
+  border-bottom: 2px dashed rgba(255, 255, 255, 0.8);
+
+  // 保存按钮 - 继承糖果按钮风格并适当调整
+  .save-btn {
+    width: auto;
+    min-width: 160px;
+    height: 54px; // 稍微高一点，更突出
+    line-height: 48px;
+    background: #C1E1C1; // 柔和草绿色，与第四个气泡呼应
+    box-shadow: 0 7px 0 #8CAF8C; // 稍深的阴影，增加立体感
+    border-radius: 40px 40px 25px 25px;
+    font-size: 22px;
+    font-weight: bold;
+    color: #3D5E3D;
+    padding: 0 20px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    .save-icon {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    &:active {
+      transform: translateY(5px);
+      box-shadow: 0 2px 0 #6F8F6F;
+    }
+  }
+
+  // 小装饰，让保存区域更生动
+  .save-decoration {
+    display: flex;
+    gap: 15px;
+    .decoration-char {
+      font-size: 20px;
+      color: #D9B382;
+      text-shadow: 2px 2px 0 white;
+      animation: twinkle 1.5s infinite alternate;
+    }
+  }
+}
+
+// 简单的闪烁动画
+@keyframes twinkle {
+  0% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1.1); }
+}
+
+// 底部小星星装饰 (保持不变)
 .cartoon-footer {
   text-align: center;
   padding: 8px 0 12px 0;

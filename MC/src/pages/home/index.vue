@@ -9,16 +9,9 @@
     <view class="settings" @tap="openConfig">
       <uni-icons type="gear-filled" size="30" color="#fff"></uni-icons>
     </view>
-    
-    <!-- 缩放显示 -->
-    <view class="scale-indicator">
-      <text class="scale-text">{{ Math.round(scale * 100) }}%</text>
-    </view>
-    
-    <!-- 深度显示 -->
-    <view class="depth-indicator">
-      <text class="depth-text">深度: {{ state.y }}</text>
-      <text class="depth-range">{{ currentRange.label }}</text>
+
+    <view class="settings-add" @tap="saveMoney">
+      <uni-icons type="checkmarkempty" size="30" color="#fff"></uni-icons>
     </view>
     
     <!-- 矿石信息 -->
@@ -26,9 +19,15 @@
       <view class="ore-color" :style="{ backgroundColor: currentOre.color }"></view>
       <view class="ore-details">
         <text class="ore-name">{{ currentOre.name }}</text>
-        <text class="ore-price">💰 {{ currentOre.price }}</text>
+        <text class="ore-price">{{ currentOre.price }} 💰 </text>
       </view>
     </view>
+    
+    <!-- 深度显示 -->
+    <view class="depth-indicator">
+      <view class="depth-text">💰 {{ allMoney }} </view>
+    </view>
+    
     
     <!-- 可移动的世界容器 -->
     <view class="world" 
@@ -58,7 +57,7 @@
                 @tap="tryMoveTo(worldBounds.left + col - 1, worldBounds.top + row - 1)">
             <text class="cell-coord">{{ worldBounds.left + col - 1 }},{{ worldBounds.top + row - 1 }}</text>
             <view class="ore-indicator" :style="{ backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1) }">
-              <text class="ore-symbol">{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text>
+              <!-- <text class="ore-symbol">{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text> -->
             </view>
           </view>
         </view>
@@ -82,12 +81,12 @@
     <!-- 虚拟方向控制 -->
     <view class="virtual-controls">
       <view class="control-row">
-        <button @touchstart.prevent="move('w')" class="control-btn up">↑</button>
+        <button @touchstart.prevent="moveBox('w')" class="control-btn up">↑</button>
       </view>
       <view class="control-row">
-        <button @touchstart.prevent="move('a')" class="control-btn left">←</button>
-        <button @touchstart.prevent="move('s')" class="control-btn down">↓</button>
-        <button @touchstart.prevent="move('d')" class="control-btn right">→</button>
+        <button @touchstart.prevent="moveBox('a')" class="control-btn left">←</button>
+        <button @touchstart.prevent="moveBox('s')" class="control-btn down">↓</button>
+        <button @touchstart.prevent="moveBox('d')" class="control-btn right">→</button>
       </view>
     </view>
     
@@ -104,6 +103,8 @@
       @zoomIn="zoomIn"
       @zoomOut="zoomOut"
     />
+
+    <ToastMessage ref="toastRef" :duration="2000" />
   </view>
 </template>
 
@@ -120,6 +121,7 @@ import {
 
 // 屏幕尺寸
 const screenHeight = ref(0)
+const screenWidth = ref(0)
 
 // 基础参数
 const cellSize = 50
@@ -142,6 +144,13 @@ const offsetX = ref(0)
 const offsetY = ref(0)
 const isAnimating = ref(false)
 const isMoving = ref(false)
+const toastRef = ref(null)
+
+// 总共金币
+const allMoney = ref(0)
+
+// 移动轨迹
+const moveTrackArr = ref([])
 
 // 盒子状态
 const state = reactive({
@@ -156,6 +165,8 @@ const touchState = reactive({
   isTouching: false,
   lastMoveTime: 0
 })
+
+const cellTypes = reactive({})
 
 // 容器引用
 const containerRef = ref(null)
@@ -179,7 +190,7 @@ const visibleRows = computed(() => {
 
 const visibleCols = computed(() => {
   const start = Math.max(1, Math.floor(-offsetX.value / cellSize) - 2)
-  const end = Math.min(gridCols.value, Math.ceil((uni.getSystemInfoSync().windowWidth / scale.value - offsetX.value) / cellSize) + 2)
+  const end = Math.min(gridCols.value, Math.ceil((screenWidth.value / scale.value - offsetX.value) / cellSize) + 2)
   return Array.from({ length: end - start + 1 }, (_, i) => start + i)
 })
 
@@ -218,16 +229,9 @@ const getOreSymbol = (x, y) => {
   const ore = worldOres.value[key]
   if (!ore) return '●'
   
-  // 根据矿石类型返回不同符号
   const symbols = {
-    1: '○', // 土
-    2: '◉', // 石头
-    3: '◆', // 铁
-    4: '★', // 黄金
-    5: '💎', // 钻石
-    6: '🔴', // 红物质
-    7: '🔮', // 虚空水晶
-    8: '⚫'  // 黑洞碎片
+    1: '○', 2: '◉', 3: '◆', 4: '★', 
+    5: '💎', 6: '🔴', 7: '🔮', 8: '⚫'
   }
   return symbols[ore.type] || '●'
 }
@@ -240,7 +244,8 @@ const tryMoveTo = (x, y) => {
   if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
     if (canMoveTo(x, y)) {
       moveTo(x, y)
-      showOreInfo(x, y)
+      calculatePrice(x, y)
+      recordMove(x, y)
     }
   } else if (dx !== 0 || dy !== 0) {
     uni.showToast({
@@ -252,21 +257,22 @@ const tryMoveTo = (x, y) => {
 
 // 检查是否可以移动
 const canMoveTo = (x, y) => {
-  // 所有格子都可以移动，但可以添加特殊规则
   return true
 }
 
-// 显示矿石信息
-const showOreInfo = (x, y) => {
+// 计算价格
+const calculatePrice = (x, y) => {
   const key = `${x},${y}`
   const ore = worldOres.value[key]
   if (ore) {
-    uni.showToast({
-      title: `${ore.name} 💰 ${ore.price}`,
-      icon: 'none',
-      duration: 1000
-    })
+    console.log(`当前矿石：${ore.name}，价值：${ore.price}金币`)
+    allMoney.value += ore.price
   }
+}
+
+// 记录移动位置
+const recordMove = (x, y) => {
+  moveTrackArr.value.push({ x, y })
 }
 
 // 移动到指定位置
@@ -309,7 +315,6 @@ const extendWorldIfNeeded = (x, y) => {
     extended = true
   }
   
-  // 如果世界扩展了，生成新的矿石
   if (extended) {
     worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
   }
@@ -319,27 +324,13 @@ const extendWorldIfNeeded = (x, y) => {
 
 // 调整视图
 const adjustViewAfterExtension = () => {
-  const systemInfo = uni.getSystemInfoSync()
-  const containerWidth = systemInfo.windowWidth
-  const containerHeight = systemInfo.windowHeight
-  
-  const targetOffsetX = -((state.x - worldBounds.left) * cellSize - containerWidth / (2 * scale.value))
-  const targetOffsetY = -((state.y - worldBounds.top) * cellSize - containerHeight / (2 * scale.value))
-  
-  isAnimating.value = true
-  offsetX.value = targetOffsetX
-  offsetY.value = targetOffsetY
-  
-  setTimeout(() => {
-    isAnimating.value = false
-  }, 300)
+  centerViewOnBox()
 }
 
 // 确保盒子在视野内
 const ensureBoxInView = () => {
-  const systemInfo = uni.getSystemInfoSync()
-  const containerWidth = systemInfo.windowWidth
-  const containerHeight = systemInfo.windowHeight
+  const containerWidth = screenWidth.value
+  const containerHeight = screenHeight.value
   
   const boxScreenX = (state.x - worldBounds.left) * cellSize * scale.value + offsetX.value * scale.value
   const boxScreenY = (state.y - worldBounds.top) * cellSize * scale.value + offsetY.value * scale.value
@@ -381,6 +372,25 @@ const ensureBoxInView = () => {
   }
 }
 
+// 新增：将视图中心对准盒子位置
+const centerViewOnBox = () => {
+  const containerWidth = screenWidth.value
+  const containerHeight = screenHeight.value
+  
+  // 计算让盒子居中的偏移量
+  const targetOffsetX = -((state.x - worldBounds.left) * cellSize - containerWidth / (2 * scale.value))
+  const targetOffsetY = -((state.y - worldBounds.top) * cellSize - containerHeight / (2 * scale.value))
+  
+  // 限制偏移范围
+  const maxOffsetX = 0
+  const minOffsetX = -(worldWidth.value * scale.value - containerWidth) / scale.value
+  const maxOffsetY = 0
+  const minOffsetY = -(worldHeight.value * scale.value - containerHeight) / scale.value
+  
+  offsetX.value = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX))
+  offsetY.value = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY))
+}
+
 // 缩放功能
 const zoomIn = () => {
   const newScale = Math.min(3, scale.value + 0.2)
@@ -414,16 +424,16 @@ const resetView = () => {
   state.x = 10
   state.y = 10
   
-  // 重新初始化矿石
   worldOres.value = initializeWorldOres(20, 20, worldBounds)
   
   setTimeout(() => {
     isAnimating.value = false
+    centerViewOnBox() // 重置后居中
   }, 300)
 }
 
 // 移动控制
-const move = (direction) => {
+const moveBox = (direction) => {
   let newX = state.x
   let newY = state.y
   
@@ -436,7 +446,8 @@ const move = (direction) => {
   
   if (canMoveTo(newX, newY)) {
     moveTo(newX, newY)
-    showOreInfo(newX, newY)
+    calculatePrice(newX, newY)
+    recordMove(newX, newY)
   }
 }
 
@@ -463,11 +474,11 @@ const handleTouchMove = (e) => {
   
   if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
     if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > 0) move('d')
-      else move('a')
+      if (diffX > 0) moveBox('d')
+      else moveBox('a')
     } else {
-      if (diffY > 0) move('s')
-      else move('w')
+      if (diffY > 0) moveBox('s')
+      else moveBox('w')
     }
     
     touchState.startX = currentX
@@ -486,10 +497,74 @@ const openConfig = () => {
   })
 }
 
-// 获取系统信息
+// 保存
+const saveMoney = () => {
+  if(allMoney.value) {
+    uni.setStorageSync('MC_MONEY', allMoney.value)
+    uni.setStorageSync('MC_MOVE_TRACK', moveTrackArr.value)
+    uni.setStorageSync('MC_USER_POSITION', { x: state.x, y: state.y })
+    toastRef.value?.showSuccess('保存成功')
+  } else {
+    toastRef.value?.showWarning('没有金币可保存')
+  }
+}
+
+// 获取系统信息并加载存档
 const getSystemInfo = () => {
   const systemInfo = uni.getSystemInfoSync()
   screenHeight.value = systemInfo.windowHeight
+  screenWidth.value = systemInfo.windowWidth
+
+  // 读取存档
+  const money = uni.getStorageSync('MC_MONEY')
+  const moveTrack = uni.getStorageSync('MC_MOVE_TRACK')
+  const userPosition = uni.getStorageSync('MC_USER_POSITION')
+
+  if(money) {
+    allMoney.value = money
+  }
+  
+  if(moveTrack) {
+    moveTrackArr.value = moveTrack
+  }
+
+  if(userPosition) {
+    state.x = userPosition.x
+    state.y = userPosition.y
+  }
+}
+
+// 确保世界边界包含玩家位置
+const ensureWorldBoundsContainPosition = (x, y) => {
+  let extended = false
+  const oldBounds = { ...worldBounds }
+  
+  // 向左扩展
+  if (x < worldBounds.left) {
+    worldBounds.left = Math.min(worldBounds.left, x - extendAmount)
+    extended = true
+  }
+  // 向右扩展
+  else if (x >= worldBounds.right) {
+    worldBounds.right = Math.max(worldBounds.right, x + extendAmount)
+    extended = true
+  }
+  
+  // 向上扩展
+  if (y < worldBounds.top) {
+    worldBounds.top = Math.min(worldBounds.top, y - extendAmount)
+    extended = true
+  }
+  // 向下扩展
+  else if (y >= worldBounds.bottom) {
+    worldBounds.bottom = Math.max(worldBounds.bottom, y + extendAmount)
+    extended = true
+  }
+  
+  // 如果扩展了，生成新区块的矿石
+  if (extended) {
+    worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
+  }
 }
 
 // 初始化世界
@@ -498,9 +573,18 @@ onMounted(() => {
   
   // 初始化矿石
   worldOres.value = initializeWorldOres(20, 20, worldBounds)
+
+  // 根据玩家位置扩展世界边界（如果超出基础范围）
+  ensureWorldBoundsContainPosition(state.x, state.y)
+
+  console.log('worldOres:', worldOres.value)
+  console.log('moveTrackArr:', moveTrackArr.value)
+  console.log('state:', state, cellSize)
   
+  
+  // 等待DOM更新后，将视图中心对准盒子位置
   nextTick(() => {
-    ensureBoxInView()
+    centerViewOnBox()
   })
 })
 
@@ -520,21 +604,9 @@ watch([worldWidth, worldHeight], () => {
   touch-action: none;
 }
 
-.scale-indicator {
-  position: absolute;
-  top: 20px;
-  left: 20px;
-  z-index: 20;
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(10px);
-  padding: 8px 16px;
-  border-radius: 30px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
 .depth-indicator {
   position: absolute;
-  top: 20px;
+  top: 30px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
@@ -552,17 +624,13 @@ watch([worldWidth, worldHeight], () => {
   color: #ffd700;
   font-size: 16px;
   font-weight: bold;
-}
-
-.depth-range {
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
+  height: 100%;
 }
 
 .ore-info {
   position: absolute;
   top: 20px;
-  right: 80px;
+  left: 20px;
   z-index: 20;
   background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(10px);
@@ -595,12 +663,6 @@ watch([worldWidth, worldHeight], () => {
 .ore-price {
   color: #ffd700;
   font-size: 12px;
-}
-
-.scale-text {
-  color: white;
-  font-size: 16px;
-  font-weight: bold;
 }
 
 .world {
@@ -663,12 +725,6 @@ watch([worldWidth, worldHeight], () => {
   justify-content: center;
 }
 
-.ore-symbol {
-  color: white;
-  font-size: 12px;
-  text-shadow: 0 0 5px rgba(0,0,0,0.5);
-}
-
 .user-box {
   position: absolute;
   background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
@@ -701,11 +757,8 @@ watch([worldWidth, worldHeight], () => {
   bottom: 40px;
   right: 20px;
   z-index: 20;
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
   border-radius: 80px;
   padding: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .control-row {
@@ -755,7 +808,7 @@ watch([worldWidth, worldHeight], () => {
   background: linear-gradient(135deg, #feca57 0%, #ff9f43 100%);
 }
 
-.settings {
+.settings, .settings-add {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -768,22 +821,11 @@ watch([worldWidth, worldHeight], () => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.settings:active {
+.settings, .settings-add:active {
   transform: scale(0.95);
 }
 
-@media (max-width: 768px) {
-  .control-btn {
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
-  }
-  
-  .scale-indicator,
-  .depth-indicator,
-  .ore-info {
-    padding: 6px 12px;
-    font-size: 14px;
-  }
+.settings-add {
+  right: 80px;
 }
 </style>

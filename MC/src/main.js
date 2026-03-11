@@ -9,8 +9,13 @@ import './assets/css/global.scss'
 // import { disAutoConnect } from 'vue-plugin-hiprint';
 // disAutoConnect();
 
+import ToastMessage from '@/components/toast/toastMessage.vue'
+
 export function createApp() {
   const app = createSSRApp(App)
+
+  // 注册为全局组件
+  app.component('ToastMessage', ToastMessage)
   // 关键点：使用 vuex 的 provide/inject 方式
   app.use(store)
   

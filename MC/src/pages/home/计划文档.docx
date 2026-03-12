@@ -11,3 +11,5 @@ moveBox 移动盒子方法
 calculatePrice 计算价格方法
 
 recordMove 记录移动方法
+
+getCellColor  盒子颜色

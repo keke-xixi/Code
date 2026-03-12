@@ -44,30 +44,18 @@
                         <text class="bubble-value">{{ worldWidth / cellSize }} x {{ worldHeight / cellSize }}</text>
                     </view>
                 </view>
-
-                <!-- 格子类型卡片 -->
-                <view class="bubble-item bubble-type">
-                    <view class="bubble-icon">🧩</view>
-                    <view class="bubble-content">
-                        <text class="bubble-label">格子类型</text>
-                        <text class="bubble-value">{{ getCellType(state.x, state.y) }}</text>
-                    </view>
-                </view>
-
-                <!-- 格子效果卡片 -->
-                <view class="bubble-item bubble-effect">
-                    <view class="bubble-icon">✨</view>
-                    <view class="bubble-content">
-                        <text class="bubble-label">格子效果</text>
-                        <text class="bubble-value">{{ getCellEffect(state.x, state.y) }}</text>
-                    </view>
-                </view>
             </view>
 
-            <!-- 新增：保存按钮区域 + 可爱装饰 (加高部分) -->
-            <view class="save-section">
+            <!-- 按钮区域：保存 + 重置 -->
+            <view class="button-section">
+                <!-- 保存按钮 -->
                 <button class="candy-btn save-btn" @click="handleSave" size="mini">
-                    <span class="save-icon"></span> 保存
+                    <span class="btn-text">保存</span>
+                </button>
+                
+                <!-- 新增：重置按钮（游戏重置） -->
+                <button class="candy-btn game-reset-btn" @click="handleGameReset" size="mini">
+                    <span class="btn-text">重置游戏</span>
                 </button>
             </view>
 
@@ -82,7 +70,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const emit = defineEmits(['zoomOut', 'zoomIn', 'resetView', 'close', 'save']);
+const emit = defineEmits(['zoomOut', 'zoomIn', 'resetView', 'close', 'save', 'gameReset']);
 const props = defineProps({
     scale: { type: Number, default: 1 },
     worldWidth: { type: Number, default: 0 },
@@ -96,8 +84,9 @@ const configPopupRef = ref(null)
 
 const zoomOut = () => emit('zoomOut')
 const zoomIn = () => emit('zoomIn')
-const resetView = () => emit('resetView')
+const resetView = () => emit('resetView') // 视图重置（缩放和位置）
 const handleSave = () => emit('save') // 保存事件
+const handleGameReset = () => emit('gameReset') // 新增：游戏重置事件（清除存档）
 
 const close = () => {
     configPopupRef.value.close()
@@ -293,8 +282,6 @@ $bubble-colors: (#FFB347, #6B8EFF, #FF8A80, #A5D6A5); // 四种柔和的颜色
 
     &:nth-child(1) { background: rgba($color: #FFB347, $alpha: 0.7); } // 橙色
     &:nth-child(2) { background: rgba($color: #6B8EFF, $alpha: 0.7); } // 淡蓝
-    &:nth-child(3) { background: rgba($color: #FF8A80, $alpha: 0.7); } // 珊瑚
-    &:nth-child(4) { background: rgba($color: #A5D6A5, $alpha: 0.7); } // 草绿
 
     .bubble-icon {
       font-size: 28px;
@@ -339,68 +326,79 @@ $bubble-colors: (#FFB347, #6B8EFF, #FF8A80, #A5D6A5); // 四种柔和的颜色
   }
 }
 
-// 新增：保存按钮区域样式 (加高部分)
-.save-section {
+// 按钮区域：保存 + 重置
+.button-section {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 8px 18px 18px 18px; // 增加上下内边距
+  gap: 15px;
+  padding: 8px 18px 18px 18px;
   margin: 5px 0 5px 0;
-  background: rgba(255, 241, 220, 0.3); // 极浅背景，区分层次
-  border-top: 2px dashed rgba(255, 255, 255, 0.8); // 与头部呼应的虚线
+  background: rgba(255, 241, 220, 0.3);
+  border-top: 2px dashed rgba(255, 255, 255, 0.8);
   border-bottom: 2px dashed rgba(255, 255, 255, 0.8);
 
-  // 保存按钮 - 继承糖果按钮风格并适当调整
-  .save-btn {
-    width: auto;
-    min-width: 160px;
-    height: 54px; // 稍微高一点，更突出
+  // 通用按钮样式
+  .candy-btn {
+    flex: 1;
+    min-width: 120px;
+    height: 54px;
     line-height: 48px;
-    background: #C1E1C1; // 柔和草绿色，与第四个气泡呼应
-    box-shadow: 0 7px 0 #8CAF8C; // 稍深的阴影，增加立体感
     border-radius: 40px 40px 25px 25px;
-    font-size: 22px;
+    font-size: 20px;
     font-weight: bold;
-    color: #3D5E3D;
-    padding: 0 20px;
-    margin-bottom: 8px;
+    padding: 0 15px;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-
-    .save-icon {
-      font-size: 26px;
+    gap: 8px;
+    border: 3px solid white;
+    transition: all 0.05s linear;
+    
+    &::after {
+      border: none;
+    }
+    
+    .btn-icon {
+      font-size: 24px;
       line-height: 1;
     }
-
+    
+    .btn-text {
+      font-size: 18px;
+    }
+    
     &:active {
       transform: translateY(5px);
+    }
+  }
+
+  // 保存按钮 - 草绿色
+  .save-btn {
+    background: #C1E1C1;
+    color: #3D5E3D;
+    box-shadow: 0 7px 0 #8CAF8C;
+    
+    &:active {
       box-shadow: 0 2px 0 #6F8F6F;
     }
   }
-
-  // 小装饰，让保存区域更生动
-  .save-decoration {
-    display: flex;
-    gap: 15px;
-    .decoration-char {
-      font-size: 20px;
-      color: #D9B382;
-      text-shadow: 2px 2px 0 white;
-      animation: twinkle 1.5s infinite alternate;
+  
+  // 重置按钮 - 橙红色（警示色）
+  .game-reset-btn {
+    background: #FFB6B6;
+    color: #8B3D3D;
+    box-shadow: 0 7px 0 #D28B8B;
+    
+    &:active {
+      box-shadow: 0 2px 0 #B06666;
     }
   }
 }
 
-// 简单的闪烁动画
-@keyframes twinkle {
-  0% { opacity: 0.5; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.1); }
-}
-
-// 底部小星星装饰 (保持不变)
+// 底部小星星装饰
 .cartoon-footer {
   text-align: center;
   padding: 8px 0 12px 0;

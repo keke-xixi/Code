@@ -1,10 +1,7 @@
 <template>
-  <view class="container" ref="containerRef" 
-        @touchstart="handleTouchStart" 
-        @touchmove="handleTouchMove" 
-        @touchend="handleTouchEnd"
-        :style="{ height: screenHeight + 'px' }">
-    
+  <view class="container" ref="containerRef" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd" :style="{ height: screenHeight + 'px' }">
+
     <!-- 设置按钮 -->
     <view class="settings" @tap="openConfig">
       <uni-icons type="gear-filled" size="30" color="#fff"></uni-icons>
@@ -13,7 +10,7 @@
     <view class="settings-add" @tap="saveMoney">
       <uni-icons type="checkmarkempty" size="30" color="#fff"></uni-icons>
     </view>
-    
+
     <!-- 矿石信息 -->
     <view class="ore-info" v-if="currentOre">
       <view class="ore-color" :style="{ backgroundColor: currentOre.color }"></view>
@@ -22,62 +19,59 @@
         <text class="ore-price">{{ currentOre.price }} 💰 </text>
       </view>
     </view>
-    
+
     <!-- 深度显示 -->
     <view class="depth-indicator">
       <view class="depth-text">💰 {{ allMoney }} </view>
     </view>
-    
-    
+
+
     <!-- 可移动的世界容器 -->
-    <view class="world" 
-          :style="{
-            width: worldWidth + 'px',
-            height: worldHeight + 'px',
-            transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
-            transition: isAnimating ? 'transform 0.3s ease' : 'none'
-          }">
-      
+    <view class="world" :style="{
+      width: worldWidth + 'px',
+      height: worldHeight + 'px',
+      transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+      transition: isAnimating ? 'transform 0.3s ease' : 'none'
+    }">
+
       <!-- 网格背景 - 矿石显示 -->
       <view class="grid">
         <view v-for="row in visibleRows" :key="row" class="grid-row">
-          <view v-for="col in visibleCols" :key="col" 
-                class="grid-cell"
-                :class="{
-                  'current-cell': currentCell.row === row && currentCell.col === col,
-                  'adjacent-cell': isAdjacentCell(row, col)
-                }"
-                :style="{
-                  width: cellSize + 'px',
-                  height: cellSize + 'px',
-                  left: (col - 1) * cellSize + 'px',
-                  top: (row - 1) * cellSize + 'px',
-                  backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1)
-                }"
-                @tap="tryMoveTo(worldBounds.left + col - 1, worldBounds.top + row - 1)">
-            <text class="cell-coord">{{ worldBounds.left + col - 1 }},{{ worldBounds.top + row - 1 }}</text>
-            <view class="ore-indicator" :style="{ backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1) }">
-              <!-- <text class="ore-symbol">{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text> -->
+          <view v-for="col in visibleCols" :key="col" class="grid-cell" :class="{
+            'current-cell': currentCell.row === row && currentCell.col === col,
+            'adjacent-cell': isAdjacentCell(row, col)
+          }" :style="{
+            width: cellSize + 'px',
+            height: cellSize + 'px',
+            left: (col - 1) * cellSize + 'px',
+            top: (row - 1) * cellSize + 'px',
+            backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1)
+          }" @tap="tryMoveTo(worldBounds.left + col - 1, worldBounds.top + row - 1)">
+            <!-- <text class="cell-coord">{{ worldBounds.left + col - 1 }},{{ worldBounds.top + row - 1 }}</text> -->
+            <view class="ore-indicator"
+              :style="{ backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1) }">
+              <text class="ore-symbol" 
+               v-show="isBreak(worldBounds.left + col - 1, worldBounds.top + row - 1)"
+              >{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text>
             </view>
           </view>
         </view>
       </view>
-      
+
       <!-- 移动的盒子 -->
-      <view class="user-box" 
-            :style="{
-              width: cellSize + 'px',
-              height: cellSize + 'px',
-              left: (state.x - worldBounds.left) * cellSize + 'px',
-              top: (state.y - worldBounds.top) * cellSize + 'px',
-              transition: isMoving ? 'left 0.2s ease, top 0.2s ease' : 'none'
-            }">
-        <view class="box-content" :style="{ transform: `scale(${1/scale})` }">
+      <view class="user-box" :style="{
+        width: cellSize + 'px',
+        height: cellSize + 'px',
+        left: (state.x - worldBounds.left) * cellSize + 'px',
+        top: (state.y - worldBounds.top) * cellSize + 'px',
+        transition: isMoving ? 'left 0.2s ease, top 0.2s ease' : 'none'
+      }">
+        <view class="box-content" :style="{ transform: `scale(${1 / scale})` }">
           ⛏️
         </view>
       </view>
     </view>
-    
+
     <!-- 虚拟方向控制 -->
     <view class="virtual-controls">
       <view class="control-row">
@@ -89,20 +83,11 @@
         <button @touchstart.prevent="moveBox('d')" class="control-btn right">→</button>
       </view>
     </view>
-    
+
     <!-- 系统配置弹窗 -->
-    <SystemConfig 
-      ref="systemConfigRef"
-      :scale="scale"
-      :worldWidth="worldWidth"
-      :worldHeight="worldHeight"
-      :cellSize="cellSize"
-      :cellTypes="cellTypes"
-      :state="state"
-      @resetView="resetView"
-      @zoomIn="zoomIn"
-      @zoomOut="zoomOut"
-    />
+    <SystemConfig ref="systemConfigRef" :scale="scale" :worldWidth="worldWidth" :worldHeight="worldHeight"
+      :cellSize="cellSize" :cellTypes="cellTypes" :state="state" @resetView="resetView" @zoomIn="zoomIn"
+      @zoomOut="zoomOut" @gameReset="gameReset" />
 
     <ToastMessage ref="toastRef" :duration="2000" />
   </view>
@@ -111,12 +96,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
 import SystemConfig from './component/systemConfig.vue'
-import { 
-  type_map, 
-  getRange, 
-  generateOreType, 
-  initializeWorldOres, 
-  extendWorldOres 
+import {
+  type_map,
+  getRange,
+  generateOreType,
+  initializeWorldOres,
+  extendWorldOres
 } from './method.js'
 
 // 屏幕尺寸
@@ -220,7 +205,20 @@ const isAdjacentCell = (row, col) => {
 // 获取格子颜色
 const getCellColor = (x, y) => {
   const key = `${x},${y}`
-  return worldOres.value[key]?.color || type_map[1].color
+  const row = worldOres.value[key]
+  if (row?.break === false) {  // 未挖掘
+    return '#1f0a0c'
+  } else if (row?.break === true) {  // 已挖掘
+    return worldOres.value[key]?.color
+  } else {
+    return type_map[1].color
+  }
+}
+
+// 判断是否挖掘
+const isBreak = (x, y) => {
+  const key = `${x},${y}`
+  return worldOres.value[key]?.break
 }
 
 // 获取矿石符号
@@ -228,9 +226,9 @@ const getOreSymbol = (x, y) => {
   const key = `${x},${y}`
   const ore = worldOres.value[key]
   if (!ore) return '●'
-  
+
   const symbols = {
-    1: '○', 2: '◉', 3: '◆', 4: '★', 
+    1: '○', 2: '◉', 3: '◆', 4: '★',
     5: '💎', 6: '🔴', 7: '🔮', 8: '⚫'
   }
   return symbols[ore.type] || '●'
@@ -240,7 +238,7 @@ const getOreSymbol = (x, y) => {
 const tryMoveTo = (x, y) => {
   const dx = Math.abs(x - state.x)
   const dy = Math.abs(y - state.y)
-  
+
   if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
     if (canMoveTo(x, y)) {
       moveTo(x, y)
@@ -278,15 +276,20 @@ const recordMove = (x, y) => {
 // 移动到指定位置
 const moveTo = (x, y) => {
   const extended = extendWorldIfNeeded(x, y)
-  
+
   isMoving.value = true
   state.x = x
   state.y = y
-  
+
   if (extended) {
     adjustViewAfterExtension()
   } else {
     ensureBoxInView()
+  }
+
+  const box = worldOres.value[`${x},${y}`]
+  if (box) {
+    box.break = true
   }
   
   setTimeout(() => {
@@ -298,7 +301,7 @@ const moveTo = (x, y) => {
 const extendWorldIfNeeded = (x, y) => {
   let extended = false
   const oldBounds = { ...worldBounds }
-  
+
   if (x < worldBounds.left) {
     worldBounds.left -= extendAmount
     extended = true
@@ -306,7 +309,7 @@ const extendWorldIfNeeded = (x, y) => {
     worldBounds.right += extendAmount
     extended = true
   }
-  
+
   if (y < worldBounds.top) {
     worldBounds.top -= extendAmount
     extended = true
@@ -314,11 +317,11 @@ const extendWorldIfNeeded = (x, y) => {
     worldBounds.bottom += extendAmount
     extended = true
   }
-  
+
   if (extended) {
     worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
   }
-  
+
   return extended
 }
 
@@ -331,41 +334,41 @@ const adjustViewAfterExtension = () => {
 const ensureBoxInView = () => {
   const containerWidth = screenWidth.value
   const containerHeight = screenHeight.value
-  
+
   const boxScreenX = (state.x - worldBounds.left) * cellSize * scale.value + offsetX.value * scale.value
   const boxScreenY = (state.y - worldBounds.top) * cellSize * scale.value + offsetY.value * scale.value
   const boxSize = cellSize * scale.value
   const threshold = 50
-  
+
   let newOffsetX = offsetX.value
   let newOffsetY = offsetY.value
-  
+
   if (boxScreenX < threshold) {
     newOffsetX += (threshold - boxScreenX) / scale.value
   } else if (boxScreenX + boxSize > containerWidth - threshold) {
     newOffsetX -= (boxScreenX + boxSize - (containerWidth - threshold)) / scale.value
   }
-  
+
   if (boxScreenY < threshold) {
     newOffsetY += (threshold - boxScreenY) / scale.value
   } else if (boxScreenY + boxSize > containerHeight - threshold) {
     newOffsetY -= (boxScreenY + boxSize - (containerHeight - threshold)) / scale.value
   }
-  
+
   // 限制偏移范围
   const maxOffsetX = 0
   const minOffsetX = -(worldWidth.value * scale.value - containerWidth) / scale.value
   const maxOffsetY = 0
   const minOffsetY = -(worldHeight.value * scale.value - containerHeight) / scale.value
-  
+
   newOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, newOffsetX))
   newOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, newOffsetY))
-  
+
   if (Math.abs(newOffsetX - offsetX.value) > 0.1 || Math.abs(newOffsetY - offsetY.value) > 0.1) {
     isAnimating.value = true
     offsetX.value = newOffsetX
     offsetY.value = newOffsetY
-    
+
     setTimeout(() => {
       isAnimating.value = false
     }, 300)
@@ -376,17 +379,17 @@ const ensureBoxInView = () => {
 const centerViewOnBox = () => {
   const containerWidth = screenWidth.value
   const containerHeight = screenHeight.value
-  
+
   // 计算让盒子居中的偏移量
   const targetOffsetX = -((state.x - worldBounds.left) * cellSize - containerWidth / (2 * scale.value))
   const targetOffsetY = -((state.y - worldBounds.top) * cellSize - containerHeight / (2 * scale.value))
-  
+
   // 限制偏移范围
   const maxOffsetX = 0
   const minOffsetX = -(worldWidth.value * scale.value - containerWidth) / scale.value
   const maxOffsetY = 0
   const minOffsetY = -(worldHeight.value * scale.value - containerHeight) / scale.value
-  
+
   offsetX.value = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX))
   offsetY.value = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY))
 }
@@ -423,9 +426,9 @@ const resetView = () => {
   worldBounds.bottom = 20
   state.x = 10
   state.y = 10
-  
+
   worldOres.value = initializeWorldOres(20, 20, worldBounds)
-  
+
   setTimeout(() => {
     isAnimating.value = false
     centerViewOnBox() // 重置后居中
@@ -436,14 +439,14 @@ const resetView = () => {
 const moveBox = (direction) => {
   let newX = state.x
   let newY = state.y
-  
-  switch(direction) {
+
+  switch (direction) {
     case 'w': newY = state.y - 1; break
     case 'a': newX = state.x - 1; break
     case 's': newY = state.y + 1; break
     case 'd': newX = state.x + 1; break
   }
-  
+
   if (canMoveTo(newX, newY)) {
     moveTo(newX, newY)
     calculatePrice(newX, newY)
@@ -461,17 +464,17 @@ const handleTouchStart = (e) => {
 const handleTouchMove = (e) => {
   if (!touchState.isTouching) return
   e.preventDefault()
-  
+
   const currentX = e.touches[0].clientX
   const currentY = e.touches[0].clientY
   const now = Date.now()
-  
+
   if (now - touchState.lastMoveTime < 100) return
   touchState.lastMoveTime = now
-  
+
   const diffX = currentX - touchState.startX
   const diffY = currentY - touchState.startY
-  
+
   if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
     if (Math.abs(diffX) > Math.abs(diffY)) {
       if (diffX > 0) moveBox('d')
@@ -480,7 +483,7 @@ const handleTouchMove = (e) => {
       if (diffY > 0) moveBox('s')
       else moveBox('w')
     }
-    
+
     touchState.startX = currentX
     touchState.startY = currentY
   }
@@ -499,7 +502,7 @@ const openConfig = () => {
 
 // 保存
 const saveMoney = () => {
-  if(allMoney.value) {
+  if (allMoney.value) {
     uni.setStorageSync('MC_MONEY', allMoney.value)
     uni.setStorageSync('MC_MOVE_TRACK', moveTrackArr.value)
     uni.setStorageSync('MC_USER_POSITION', { x: state.x, y: state.y })
@@ -520,25 +523,28 @@ const getSystemInfo = () => {
   const moveTrack = uni.getStorageSync('MC_MOVE_TRACK')
   const userPosition = uni.getStorageSync('MC_USER_POSITION')
 
-  if(money) {
+  if (money) {
     allMoney.value = money
   }
-  
-  if(moveTrack) {
+
+  if (moveTrack) {
     moveTrackArr.value = moveTrack
   }
 
-  if(userPosition) {
+  if (userPosition) {
     state.x = userPosition.x
     state.y = userPosition.y
   }
+
+  // 初始化矿石
+  worldOres.value = initializeWorldOres(20, 20, worldBounds)
 }
 
 // 确保世界边界包含玩家位置
 const ensureWorldBoundsContainPosition = (x, y) => {
   let extended = false
   const oldBounds = { ...worldBounds }
-  
+
   // 向左扩展
   if (x < worldBounds.left) {
     worldBounds.left = Math.min(worldBounds.left, x - extendAmount)
@@ -549,7 +555,7 @@ const ensureWorldBoundsContainPosition = (x, y) => {
     worldBounds.right = Math.max(worldBounds.right, x + extendAmount)
     extended = true
   }
-  
+
   // 向上扩展
   if (y < worldBounds.top) {
     worldBounds.top = Math.min(worldBounds.top, y - extendAmount)
@@ -560,19 +566,43 @@ const ensureWorldBoundsContainPosition = (x, y) => {
     worldBounds.bottom = Math.max(worldBounds.bottom, y + extendAmount)
     extended = true
   }
-  
+
   // 如果扩展了，生成新区块的矿石
   if (extended) {
     worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
   }
 }
 
+// 计算已经挖掘的 
+const calculateBreak = (x, y) => {
+    if(moveTrackArr.value.length > 0) {
+      moveTrackArr.value.forEach((item) => {
+         const position = item.x + ',' + item.y;
+         if(worldOres.value.hasOwnProperty(position)) {
+            worldOres.value[position].break = true;
+         }
+      })
+    }
+}
+
+// 重置游戏
+const gameReset = () => {
+    moveTrackArr.value = []
+    allMoney.value = 0
+    state.x = 10
+    state.y = 10
+
+    uni.setStorageSync('MC_MONEY', 0)
+    uni.setStorageSync('MC_MOVE_TRACK', [])
+    uni.setStorageSync('MC_USER_POSITION', { x: 10, y: 10 })
+
+    getSystemInfo()
+    toastRef.value?.showSuccess('重置成功')
+}
+
 // 初始化世界
 onMounted(() => {
   getSystemInfo()
-  
-  // 初始化矿石
-  worldOres.value = initializeWorldOres(20, 20, worldBounds)
 
   // 根据玩家位置扩展世界边界（如果超出基础范围）
   ensureWorldBoundsContainPosition(state.x, state.y)
@@ -580,11 +610,12 @@ onMounted(() => {
   console.log('worldOres:', worldOres.value)
   console.log('moveTrackArr:', moveTrackArr.value)
   console.log('state:', state, cellSize)
-  
-  
+
+
   // 等待DOM更新后，将视图中心对准盒子位置
   nextTick(() => {
     centerViewOnBox()
+    calculateBreak()
   })
 })
 
@@ -703,9 +734,17 @@ watch([worldWidth, worldHeight], () => {
 }
 
 @keyframes pulse {
-  0% { opacity: 0.7; }
-  50% { opacity: 1; }
-  100% { opacity: 0.7; }
+  0% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.7;
+  }
 }
 
 .cell-coord {
@@ -742,9 +781,17 @@ watch([worldWidth, worldHeight], () => {
 }
 
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-5px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 .box-content {
@@ -808,7 +855,8 @@ watch([worldWidth, worldHeight], () => {
   background: linear-gradient(135deg, #feca57 0%, #ff9f43 100%);
 }
 
-.settings, .settings-add {
+.settings,
+.settings-add {
   position: absolute;
   top: 20px;
   right: 20px;
@@ -821,7 +869,8 @@ watch([worldWidth, worldHeight], () => {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
-.settings, .settings-add:active {
+.settings,
+.settings-add:active {
   transform: scale(0.95);
 }
 

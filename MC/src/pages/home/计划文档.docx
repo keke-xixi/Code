@@ -6,10 +6,12 @@ saveMoney 保存金钱方法
 
 openConfig 打开配置弹窗
 
-moveBox 移动盒子方法
+moveBox tryMoveTo(直接点击盒子移动) 移动盒子方法
 
 calculatePrice 计算价格方法
 
 recordMove 记录移动方法
 
 getCellColor  盒子颜色
+
+symbols 矿石图标

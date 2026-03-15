@@ -114,7 +114,8 @@ export const initializeWorldOres = (width, height, worldBounds) => {
                 name: type_map[oreLevel].name,
                 color: type_map[oreLevel].color,
                 price: type_map[oreLevel].price,
-                break: false
+                break: false,
+                take: false
             };
         }
     }
@@ -139,7 +140,8 @@ export const extendWorldOres = (ores, worldBounds, oldBounds) => {
                     name: type_map[oreLevel].name,
                     color: type_map[oreLevel].color,
                     price: type_map[oreLevel].price,
-                    break: false
+                    break: false,
+                    take: false
                 };
             }
         }

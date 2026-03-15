@@ -209,7 +209,7 @@ const getCellColor = (x, y) => {
   if (row?.break === false) {  // 未挖掘
     return '#1f0a0c'
   } else if (row?.break === true) {  // 已挖掘
-    return worldOres.value[key]?.color
+    return worldOres.value[key]?.color // #B8B5A8 #6A5C4E
   } else {
     return type_map[1].color
   }
@@ -228,7 +228,7 @@ const getOreSymbol = (x, y) => {
   if (!ore) return '●'
 
   const symbols = {
-    1: '○', 2: '◉', 3: '◆', 4: '★',
+    1: '🟫', 2: '🪨', 3: '⛓️', 4: '🪙',
     5: '💎', 6: '🔴', 7: '🔮', 8: '⚫'
   }
   return symbols[ore.type] || '●'

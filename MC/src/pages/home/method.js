@@ -140,8 +140,8 @@ export const extendWorldOres = (ores, worldBounds, oldBounds) => {
                     name: type_map[oreLevel].name,
                     color: type_map[oreLevel].color,
                     price: type_map[oreLevel].price,
-                    break: false,
-                    take: false
+                    break: false, // 默认未破坏
+                    take: false // 默认未采集
                 };
             }
         }

@@ -51,7 +51,7 @@
             <view class="ore-indicator"
               :style="{ backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1) }">
               <text class="ore-symbol" 
-               v-show="isBreak(worldBounds.left + col - 1, worldBounds.top + row - 1)"
+               v-show="showCoal(worldBounds.left + col - 1, worldBounds.top + row - 1)"
               >{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text>
             </view>
           </view>
@@ -206,13 +206,19 @@ const isAdjacentCell = (row, col) => {
 const getCellColor = (x, y) => {
   const key = `${x},${y}`
   const row = worldOres.value[key]
-  if (row?.break === false) {  // 未挖掘
+  if(!row) return type_map[1].color
+  if (row.break === false) {  // 未挖掘
     return '#1f0a0c'
-  } else if (row?.break === true) {  // 已挖掘
+  } else if (row.break === true) {  // 已挖掘
     return worldOres.value[key]?.color // #B8B5A8 #6A5C4E
-  } else {
-    return type_map[1].color
   }
+}
+
+// 是否显示矿石
+const showCoal = (x, y) => {
+  const key = `${x},${y}`
+  const row = worldOres.value[key]
+  return row && row.break === true && row.take === false
 }
 
 // 判断是否挖掘
@@ -234,6 +240,13 @@ const getOreSymbol = (x, y) => {
   return symbols[ore.type] || '●'
 }
 
+// 移动需要调用事件
+const moveMethod = (x, y) => {
+    moveTo(x, y)  // 移动
+    isBreakOre(x, y) // 是否挖掘 是否拿走矿石
+    recordMove(x, y) // 记录移动位置
+}
+
 // 尝试移动到目标格子
 const tryMoveTo = (x, y) => {
   const dx = Math.abs(x - state.x)
@@ -241,21 +254,36 @@ const tryMoveTo = (x, y) => {
 
   if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
     if (canMoveTo(x, y)) {
-      moveTo(x, y)
-      calculatePrice(x, y)
-      recordMove(x, y)
+        moveMethod(x, y)
     }
   } else if (dx !== 0 || dy !== 0) {
-    uni.showToast({
-      title: '只能移动到相邻格子',
-      icon: 'none'
-    })
+    // 只能移动到相邻盒子
   }
 }
 
 // 检查是否可以移动
 const canMoveTo = (x, y) => {
   return true
+}
+
+// 是否挖掘和拿走矿石
+const isBreakOre = (x, y) => {
+  const key = `${x},${y}`
+  const row = worldOres.value[key]
+  if(row && row.break === false) {
+    row.break = true // 挖掘
+    return
+  }
+  if(row && row.break === true && row.take === false) {
+    row.take = true // 拿走矿石
+    calculatePrice(x, y) // 计算价格
+    return
+  }
+}
+
+// 记录移动位置
+const recordMove = (x, y) => {
+  moveTrackArr.value.push({ x, y })
 }
 
 // 计算价格
@@ -266,11 +294,6 @@ const calculatePrice = (x, y) => {
     console.log(`当前矿石：${ore.name}，价值：${ore.price}金币`)
     allMoney.value += ore.price
   }
-}
-
-// 记录移动位置
-const recordMove = (x, y) => {
-  moveTrackArr.value.push({ x, y })
 }
 
 // 移动到指定位置
@@ -285,11 +308,6 @@ const moveTo = (x, y) => {
     adjustViewAfterExtension()
   } else {
     ensureBoxInView()
-  }
-
-  const box = worldOres.value[`${x},${y}`]
-  if (box) {
-    box.break = true
   }
   
   setTimeout(() => {
@@ -448,9 +466,7 @@ const moveBox = (direction) => {
   }
 
   if (canMoveTo(newX, newY)) {
-    moveTo(newX, newY)
-    calculatePrice(newX, newY)
-    recordMove(newX, newY)
+    moveMethod(newX, newY)
   }
 }
 

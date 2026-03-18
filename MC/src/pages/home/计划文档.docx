@@ -15,3 +15,5 @@ recordMove 记录移动方法
 getCellColor  盒子颜色
 
 symbols 矿石图标
+
+moveMethod 移动

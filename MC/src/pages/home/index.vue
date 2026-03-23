@@ -1,7 +1,12 @@
 <template>
-  <view class="container" ref="containerRef" @touchstart="handleTouchStart" @touchmove="handleTouchMove"
-    @touchend="handleTouchEnd" :style="{ height: screenHeight + 'px' }">
-
+  <view
+    class="container"
+    ref="containerRef"
+    @touchstart="handleTouchStart"
+    @touchmove="handleTouchMove"
+    @touchend="handleTouchEnd"
+    :style="{ height: screenHeight + 'px' }"
+  >
     <!-- 设置按钮 -->
     <view class="settings" @tap="openConfig">
       <uni-icons type="gear-filled" size="30" color="#fff"></uni-icons>
@@ -13,7 +18,10 @@
 
     <!-- 矿石信息 -->
     <view class="ore-info" v-if="currentOre">
-      <view class="ore-color" :style="{ backgroundColor: currentOre.color }"></view>
+      <view
+        class="ore-color"
+        :style="{ backgroundColor: currentOre.color }"
+      ></view>
       <view class="ore-details">
         <text class="ore-name">{{ currentOre.name }}</text>
         <text class="ore-price">{{ currentOre.price }} 💰 </text>
@@ -25,47 +33,38 @@
       <view class="depth-text">💰 {{ allMoney }} </view>
     </view>
 
-
     <!-- 可移动的世界容器 -->
-    <view class="world" :style="{
-      width: worldWidth + 'px',
-      height: worldHeight + 'px',
-      transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
-      transition: isAnimating ? 'transform 0.3s ease' : 'none'
-    }">
-
+    <view
+      class="world"
+      :style="{
+        width: worldWidth + 'px',
+        height: worldHeight + 'px',
+        transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+        transition: isAnimating ? 'transform 0.3s ease' : 'none',
+      }"
+    >
       <!-- 网格背景 - 矿石显示 -->
-      <view class="grid">
-        <view v-for="row in visibleRows" :key="row" class="grid-row">
-          <view v-for="col in visibleCols" :key="col" class="grid-cell" :class="{
-            'current-cell': currentCell.row === row && currentCell.col === col,
-            'adjacent-cell': isAdjacentCell(row, col)
-          }" :style="{
-            width: cellSize + 'px',
-            height: cellSize + 'px',
-            left: (col - 1) * cellSize + 'px',
-            top: (row - 1) * cellSize + 'px',
-            backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1)
-          }" @tap="tryMoveTo(worldBounds.left + col - 1, worldBounds.top + row - 1)">
-            <!-- <text class="cell-coord">{{ worldBounds.left + col - 1 }},{{ worldBounds.top + row - 1 }}</text> -->
-            <view class="ore-indicator"
-              :style="{ backgroundColor: getCellColor(worldBounds.left + col - 1, worldBounds.top + row - 1) }">
-              <text class="ore-symbol" 
-               v-show="showCoal(worldBounds.left + col - 1, worldBounds.top + row - 1)"
-              >{{ getOreSymbol(worldBounds.left + col - 1, worldBounds.top + row - 1) }}</text>
-            </view>
-          </view>
-        </view>
-      </view>
+      <GridBox
+        :worldOres="worldOres"
+        :visibleRows="visibleRows"
+        :visibleCols="visibleCols"
+        :worldBounds="worldBounds"
+        :state="state"
+        :cellSize="cellSize"
+        @tryMoveTo="tryMoveTo"
+      ></GridBox>
 
       <!-- 移动的盒子 -->
-      <view class="user-box" :style="{
-        width: cellSize + 'px',
-        height: cellSize + 'px',
-        left: (state.x - worldBounds.left) * cellSize + 'px',
-        top: (state.y - worldBounds.top) * cellSize + 'px',
-        transition: isMoving ? 'left 0.2s ease, top 0.2s ease' : 'none'
-      }">
+      <view
+        class="user-box"
+        :style="{
+          width: cellSize + 'px',
+          height: cellSize + 'px',
+          left: (state.x - worldBounds.left) * cellSize + 'px',
+          top: (state.y - worldBounds.top) * cellSize + 'px',
+          transition: isMoving ? 'left 0.2s ease, top 0.2s ease' : 'none',
+        }"
+      >
         <view class="box-content" :style="{ transform: `scale(${1 / scale})` }">
           ⛏️
         </view>
@@ -75,570 +74,567 @@
     <!-- 虚拟方向控制 -->
     <view class="virtual-controls">
       <view class="control-row">
-        <button @touchstart.prevent="moveBox('w')" class="control-btn up">↑</button>
+        <button @touchstart.prevent="moveBox('w')" class="control-btn up">
+          ↑
+        </button>
       </view>
       <view class="control-row">
-        <button @touchstart.prevent="moveBox('a')" class="control-btn left">←</button>
-        <button @touchstart.prevent="moveBox('s')" class="control-btn down">↓</button>
-        <button @touchstart.prevent="moveBox('d')" class="control-btn right">→</button>
+        <button @touchstart.prevent="moveBox('a')" class="control-btn left">
+          ←
+        </button>
+        <button @touchstart.prevent="moveBox('s')" class="control-btn down">
+          ↓
+        </button>
+        <button @touchstart.prevent="moveBox('d')" class="control-btn right">
+          →
+        </button>
       </view>
     </view>
 
     <!-- 系统配置弹窗 -->
-    <SystemConfig ref="systemConfigRef" :scale="scale" :worldWidth="worldWidth" :worldHeight="worldHeight"
-      :cellSize="cellSize" :cellTypes="cellTypes" :state="state" @resetView="resetView" @zoomIn="zoomIn"
-      @zoomOut="zoomOut" @gameReset="gameReset" />
+    <SystemConfig
+      ref="systemConfigRef"
+      :scale="scale"
+      :worldWidth="worldWidth"
+      :worldHeight="worldHeight"
+      :cellSize="cellSize"
+      :cellTypes="cellTypes"
+      :state="state"
+      @resetView="resetView"
+      @zoomIn="zoomIn"
+      @zoomOut="zoomOut"
+      @gameReset="gameReset"
+    />
 
-    <ToastMessage ref="toastRef" :duration="2000" />
+    <ToastMessage ref="toastRef" :duration="1000" />
   </view>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
-import SystemConfig from './component/systemConfig.vue'
-import {
-  type_map,
-  getRange,
-  generateOreType,
-  initializeWorldOres,
-  extendWorldOres
-} from './method.js'
+import { ref, reactive, computed, onMounted, nextTick, watch } from "vue";
+import SystemConfig from "./component/systemConfig.vue";
+import GridBox from "./component/gridBox.vue";
+import { getRange, initializeWorldOres, extendWorldOres } from "./method.js";
 
 // 屏幕尺寸
-const screenHeight = ref(0)
-const screenWidth = ref(0)
+const screenHeight = ref(0);
+const screenWidth = ref(0);
 
 // 基础参数
-const cellSize = 50
-const extendAmount = 5
+const cellSize = 50;
+const extendAmount = 5;
 
 // 世界边界
 const worldBounds = reactive({
   left: 0,
   right: 20,
   top: 0,
-  bottom: 20
-})
+  bottom: 20,
+});
 
 // 矿石数据存储
-const worldOres = ref({})
+const worldOres = ref({});
 
 // 视图状态
-const scale = ref(1)
-const offsetX = ref(0)
-const offsetY = ref(0)
-const isAnimating = ref(false)
-const isMoving = ref(false)
-const toastRef = ref(null)
+const scale = ref(1);
+const offsetX = ref(0);
+const offsetY = ref(0);
+const isAnimating = ref(false);
+const isMoving = ref(false);
+const toastRef = ref(null);
 
 // 总共金币
-const allMoney = ref(0)
+const allMoney = ref(0);
 
 // 移动轨迹
-const moveTrackArr = ref([])
+const moveTrackArr = ref([]);
 
 // 盒子状态
 const state = reactive({
   x: 10,
-  y: 10
-})
+  y: 10,
+});
 
 // 触摸状态
 const touchState = reactive({
   startX: 0,
   startY: 0,
   isTouching: false,
-  lastMoveTime: 0
-})
+  lastMoveTime: 0,
+});
 
-const cellTypes = reactive({})
+const cellTypes = reactive({});
 
 // 容器引用
-const containerRef = ref(null)
-const systemConfigRef = ref(null)
+const containerRef = ref(null);
+const systemConfigRef = ref(null);
 
 // 计算当前深度范围
-const currentRange = computed(() => getRange(state.y))
+const currentRange = computed(() => getRange(state.y));
 
 // 计算当前格子的矿石
 const currentOre = computed(() => {
-  const key = `${state.x},${state.y}`
-  return worldOres.value[key] || { name: '未知', color: '#ccc', price: 0 }
-})
+  const key = `${state.x},${state.y}`;
+  return worldOres.value[key] || { name: "未知", color: "#ccc", price: 0 };
+});
 
 // 计算可见区域
 const visibleRows = computed(() => {
-  const start = Math.max(1, Math.floor(-offsetY.value / cellSize) - 2)
-  const end = Math.min(gridRows.value, Math.ceil((screenHeight.value / scale.value - offsetY.value) / cellSize) + 2)
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-})
+  const start = Math.max(1, Math.floor(-offsetY.value / cellSize) - 2);
+  const end = Math.min(
+    gridRows.value,
+    Math.ceil((screenHeight.value / scale.value - offsetY.value) / cellSize) +
+      2,
+  );
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+});
 
 const visibleCols = computed(() => {
-  const start = Math.max(1, Math.floor(-offsetX.value / cellSize) - 2)
-  const end = Math.min(gridCols.value, Math.ceil((screenWidth.value / scale.value - offsetX.value) / cellSize) + 2)
-  return Array.from({ length: end - start + 1 }, (_, i) => start + i)
-})
+  const start = Math.max(1, Math.floor(-offsetX.value / cellSize) - 2);
+  const end = Math.min(
+    gridCols.value,
+    Math.ceil((screenWidth.value / scale.value - offsetX.value) / cellSize) + 2,
+  );
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+});
 
 // 计算网格行列
-const gridRows = computed(() => worldBounds.bottom - worldBounds.top)
-const gridCols = computed(() => worldBounds.right - worldBounds.left)
-
-// 当前格子位置
-const currentCell = computed(() => ({
-  row: state.y - worldBounds.top + 1,
-  col: state.x - worldBounds.left + 1
-}))
+const gridRows = computed(() => worldBounds.bottom - worldBounds.top);
+const gridCols = computed(() => worldBounds.right - worldBounds.left);
 
 // 计算世界尺寸
-const worldWidth = computed(() => (worldBounds.right - worldBounds.left) * cellSize)
-const worldHeight = computed(() => (worldBounds.bottom - worldBounds.top) * cellSize)
-
-// 判断相邻格子
-const isAdjacentCell = (row, col) => {
-  const currentRow = currentCell.value.row
-  const currentCol = currentCell.value.col
-  const dx = Math.abs(col - currentCol)
-  const dy = Math.abs(row - currentRow)
-  return (dx === 1 && dy === 0) || (dx === 0 && dy === 1)
-}
-
-// 获取格子颜色
-const getCellColor = (x, y) => {
-  const key = `${x},${y}`
-  const row = worldOres.value[key]
-  if(!row) return type_map[1].color
-  if (row.break === false) {  // 未挖掘
-    return '#1f0a0c'
-  } else if (row.break === true) {  // 已挖掘
-    return worldOres.value[key]?.color // #B8B5A8 #6A5C4E
-  }
-}
-
-// 是否显示矿石
-const showCoal = (x, y) => {
-  const key = `${x},${y}`
-  const row = worldOres.value[key]
-  return row && row.break === true && row.take === false
-}
-
-// 判断是否挖掘
-const isBreak = (x, y) => {
-  const key = `${x},${y}`
-  return worldOres.value[key]?.break
-}
-
-// 获取矿石符号
-const getOreSymbol = (x, y) => {
-  const key = `${x},${y}`
-  const ore = worldOres.value[key]
-  if (!ore) return '●'
-
-  const symbols = {
-    1: '🟫', 2: '🪨', 3: '⛓️', 4: '🪙',
-    5: '💎', 6: '🔴', 7: '🔮', 8: '⚫'
-  }
-  return symbols[ore.type] || '●'
-}
+const worldWidth = computed(
+  () => (worldBounds.right - worldBounds.left) * cellSize,
+);
+const worldHeight = computed(
+  () => (worldBounds.bottom - worldBounds.top) * cellSize,
+);
 
 // 移动需要调用事件
 const moveMethod = (x, y) => {
-    moveTo(x, y)  // 移动
-    isBreakOre(x, y) // 是否挖掘 是否拿走矿石
-    recordMove(x, y) // 记录移动位置
-}
+  moveTo(x, y); // 移动
+  isBreakOre(x, y); // 是否挖掘 是否拿走矿石
+  recordMove(x, y); // 记录移动位置
+};
 
 // 尝试移动到目标格子
 const tryMoveTo = (x, y) => {
-  const dx = Math.abs(x - state.x)
-  const dy = Math.abs(y - state.y)
+  const dx = Math.abs(x - state.x);
+  const dy = Math.abs(y - state.y);
 
   if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
     if (canMoveTo(x, y)) {
-        moveMethod(x, y)
+      moveMethod(x, y);
     }
   } else if (dx !== 0 || dy !== 0) {
     // 只能移动到相邻盒子
   }
-}
+};
 
 // 检查是否可以移动
 const canMoveTo = (x, y) => {
-  return true
-}
+  return true;
+};
 
 // 是否挖掘和拿走矿石
 const isBreakOre = (x, y) => {
-  const key = `${x},${y}`
-  const row = worldOres.value[key]
-  if(row && row.break === false) {
-    row.break = true // 挖掘
-    return
+  const key = `${x},${y}`;
+  const row = worldOres.value[key];
+  if (row && row.break === false) {
+    row.break = true; // 挖掘
+    return;
   }
-  if(row && row.break === true && row.take === false) {
-    row.take = true // 拿走矿石
-    calculatePrice(x, y) // 计算价格
-    return
+  if (row && row.break === true && row.take === false) {
+    row.take = true; // 拿走矿石
+    calculatePrice(x, y); // 计算价格
+    return;
   }
-}
+};
 
 // 记录移动位置
 const recordMove = (x, y) => {
-  moveTrackArr.value.push({ x, y })
-}
+  moveTrackArr.value.push({ x, y });
+};
 
 // 计算价格
 const calculatePrice = (x, y) => {
-  const key = `${x},${y}`
-  const ore = worldOres.value[key]
+  const key = `${x},${y}`;
+  const ore = worldOres.value[key];
   if (ore) {
-    console.log(`当前矿石：${ore.name}，价值：${ore.price}金币`)
-    allMoney.value += ore.price
+    console.log(`当前矿石：${ore.name}，价值：${ore.price}金币`);
+    allMoney.value += ore.price;
   }
-}
+};
 
 // 移动到指定位置
 const moveTo = (x, y) => {
-  const extended = extendWorldIfNeeded(x, y)
+  const extended = extendWorldIfNeeded(x, y);
 
-  isMoving.value = true
-  state.x = x
-  state.y = y
+  isMoving.value = true;
+  state.x = x;
+  state.y = y;
 
   if (extended) {
-    adjustViewAfterExtension()
+    adjustViewAfterExtension();
   } else {
-    ensureBoxInView()
+    ensureBoxInView();
   }
-  
+
   setTimeout(() => {
-    isMoving.value = false
-  }, 200)
-}
+    isMoving.value = false;
+  }, 200);
+};
 
 // 扩展世界边界
 const extendWorldIfNeeded = (x, y) => {
-  let extended = false
-  const oldBounds = { ...worldBounds }
+  let extended = false;
+  const oldBounds = { ...worldBounds };
 
   if (x < worldBounds.left) {
-    worldBounds.left -= extendAmount
-    extended = true
+    worldBounds.left -= extendAmount;
+    extended = true;
   } else if (x >= worldBounds.right) {
-    worldBounds.right += extendAmount
-    extended = true
+    worldBounds.right += extendAmount;
+    extended = true;
   }
 
   if (y < worldBounds.top) {
-    worldBounds.top -= extendAmount
-    extended = true
+    worldBounds.top -= extendAmount;
+    extended = true;
   } else if (y >= worldBounds.bottom) {
-    worldBounds.bottom += extendAmount
-    extended = true
+    worldBounds.bottom += extendAmount;
+    extended = true;
   }
 
   if (extended) {
-    worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
+    worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds);
   }
 
-  return extended
-}
+  return extended;
+};
 
 // 调整视图
 const adjustViewAfterExtension = () => {
-  centerViewOnBox()
-}
+  centerViewOnBox();
+};
 
 // 确保盒子在视野内
 const ensureBoxInView = () => {
-  const containerWidth = screenWidth.value
-  const containerHeight = screenHeight.value
+  const containerWidth = screenWidth.value;
+  const containerHeight = screenHeight.value;
 
-  const boxScreenX = (state.x - worldBounds.left) * cellSize * scale.value + offsetX.value * scale.value
-  const boxScreenY = (state.y - worldBounds.top) * cellSize * scale.value + offsetY.value * scale.value
-  const boxSize = cellSize * scale.value
-  const threshold = 50
+  const boxScreenX =
+    (state.x - worldBounds.left) * cellSize * scale.value +
+    offsetX.value * scale.value;
+  const boxScreenY =
+    (state.y - worldBounds.top) * cellSize * scale.value +
+    offsetY.value * scale.value;
+  const boxSize = cellSize * scale.value;
+  const threshold = 50;
 
-  let newOffsetX = offsetX.value
-  let newOffsetY = offsetY.value
+  let newOffsetX = offsetX.value;
+  let newOffsetY = offsetY.value;
 
   if (boxScreenX < threshold) {
-    newOffsetX += (threshold - boxScreenX) / scale.value
+    newOffsetX += (threshold - boxScreenX) / scale.value;
   } else if (boxScreenX + boxSize > containerWidth - threshold) {
-    newOffsetX -= (boxScreenX + boxSize - (containerWidth - threshold)) / scale.value
+    newOffsetX -=
+      (boxScreenX + boxSize - (containerWidth - threshold)) / scale.value;
   }
 
   if (boxScreenY < threshold) {
-    newOffsetY += (threshold - boxScreenY) / scale.value
+    newOffsetY += (threshold - boxScreenY) / scale.value;
   } else if (boxScreenY + boxSize > containerHeight - threshold) {
-    newOffsetY -= (boxScreenY + boxSize - (containerHeight - threshold)) / scale.value
+    newOffsetY -=
+      (boxScreenY + boxSize - (containerHeight - threshold)) / scale.value;
   }
 
   // 限制偏移范围
-  const maxOffsetX = 0
-  const minOffsetX = -(worldWidth.value * scale.value - containerWidth) / scale.value
-  const maxOffsetY = 0
-  const minOffsetY = -(worldHeight.value * scale.value - containerHeight) / scale.value
+  const maxOffsetX = 0;
+  const minOffsetX =
+    -(worldWidth.value * scale.value - containerWidth) / scale.value;
+  const maxOffsetY = 0;
+  const minOffsetY =
+    -(worldHeight.value * scale.value - containerHeight) / scale.value;
 
-  newOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, newOffsetX))
-  newOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, newOffsetY))
+  newOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, newOffsetX));
+  newOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, newOffsetY));
 
-  if (Math.abs(newOffsetX - offsetX.value) > 0.1 || Math.abs(newOffsetY - offsetY.value) > 0.1) {
-    isAnimating.value = true
-    offsetX.value = newOffsetX
-    offsetY.value = newOffsetY
+  if (
+    Math.abs(newOffsetX - offsetX.value) > 0.1 ||
+    Math.abs(newOffsetY - offsetY.value) > 0.1
+  ) {
+    isAnimating.value = true;
+    offsetX.value = newOffsetX;
+    offsetY.value = newOffsetY;
 
     setTimeout(() => {
-      isAnimating.value = false
-    }, 300)
+      isAnimating.value = false;
+    }, 300);
   }
-}
+};
 
 // 新增：将视图中心对准盒子位置
 const centerViewOnBox = () => {
-  const containerWidth = screenWidth.value
-  const containerHeight = screenHeight.value
+  const containerWidth = screenWidth.value;
+  const containerHeight = screenHeight.value;
 
   // 计算让盒子居中的偏移量
-  const targetOffsetX = -((state.x - worldBounds.left) * cellSize - containerWidth / (2 * scale.value))
-  const targetOffsetY = -((state.y - worldBounds.top) * cellSize - containerHeight / (2 * scale.value))
+  const targetOffsetX = -(
+    (state.x - worldBounds.left) * cellSize -
+    containerWidth / (2 * scale.value)
+  );
+  const targetOffsetY = -(
+    (state.y - worldBounds.top) * cellSize -
+    containerHeight / (2 * scale.value)
+  );
 
   // 限制偏移范围
-  const maxOffsetX = 0
-  const minOffsetX = -(worldWidth.value * scale.value - containerWidth) / scale.value
-  const maxOffsetY = 0
-  const minOffsetY = -(worldHeight.value * scale.value - containerHeight) / scale.value
+  const maxOffsetX = 0;
+  const minOffsetX =
+    -(worldWidth.value * scale.value - containerWidth) / scale.value;
+  const maxOffsetY = 0;
+  const minOffsetY =
+    -(worldHeight.value * scale.value - containerHeight) / scale.value;
 
-  offsetX.value = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX))
-  offsetY.value = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY))
-}
+  offsetX.value = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX));
+  offsetY.value = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY));
+};
 
 // 缩放功能
 const zoomIn = () => {
-  const newScale = Math.min(3, scale.value + 0.2)
-  zoomTo(newScale)
-}
+  const newScale = Math.min(3, scale.value + 0.2);
+  zoomTo(newScale);
+};
 
 const zoomOut = () => {
-  const newScale = Math.max(0.5, scale.value - 0.2)
-  zoomTo(newScale)
-}
+  const newScale = Math.max(0.5, scale.value - 0.2);
+  zoomTo(newScale);
+};
 
 const zoomTo = (newScale) => {
-  isAnimating.value = true
-  scale.value = newScale
+  isAnimating.value = true;
+  scale.value = newScale;
   setTimeout(() => {
-    isAnimating.value = false
-    ensureBoxInView()
-  }, 300)
-}
+    isAnimating.value = false;
+    ensureBoxInView();
+  }, 300);
+};
 
 // 重置视图
 const resetView = () => {
-  isAnimating.value = true
-  scale.value = 1
-  offsetX.value = 0
-  offsetY.value = 0
-  worldBounds.left = 0
-  worldBounds.right = 20
-  worldBounds.top = 0
-  worldBounds.bottom = 20
-  state.x = 10
-  state.y = 10
+  isAnimating.value = true;
+  scale.value = 1;
+  offsetX.value = 0;
+  offsetY.value = 0;
+  worldBounds.left = 0;
+  worldBounds.right = 20;
+  worldBounds.top = 0;
+  worldBounds.bottom = 20;
+  state.x = 10;
+  state.y = 10;
 
-  worldOres.value = initializeWorldOres(20, 20, worldBounds)
+  worldOres.value = initializeWorldOres(20, 20, worldBounds);
 
   setTimeout(() => {
-    isAnimating.value = false
-    centerViewOnBox() // 重置后居中
-  }, 300)
-}
+    isAnimating.value = false;
+    centerViewOnBox(); // 重置后居中
+  }, 300);
+};
 
 // 移动控制
 const moveBox = (direction) => {
-  let newX = state.x
-  let newY = state.y
+  let newX = state.x;
+  let newY = state.y;
 
   switch (direction) {
-    case 'w': newY = state.y - 1; break
-    case 'a': newX = state.x - 1; break
-    case 's': newY = state.y + 1; break
-    case 'd': newX = state.x + 1; break
+    case "w":
+      newY = state.y - 1;
+      break;
+    case "a":
+      newX = state.x - 1;
+      break;
+    case "s":
+      newY = state.y + 1;
+      break;
+    case "d":
+      newX = state.x + 1;
+      break;
   }
 
   if (canMoveTo(newX, newY)) {
-    moveMethod(newX, newY)
+    moveMethod(newX, newY);
   }
-}
+};
 
 // 触摸事件
 const handleTouchStart = (e) => {
-  touchState.startX = e.touches[0].clientX
-  touchState.startY = e.touches[0].clientY
-  touchState.isTouching = true
-}
+  touchState.startX = e.touches[0].clientX;
+  touchState.startY = e.touches[0].clientY;
+  touchState.isTouching = true;
+};
 
 const handleTouchMove = (e) => {
-  if (!touchState.isTouching) return
-  e.preventDefault()
+  if (!touchState.isTouching) return;
+  e.preventDefault();
 
-  const currentX = e.touches[0].clientX
-  const currentY = e.touches[0].clientY
-  const now = Date.now()
+  const currentX = e.touches[0].clientX;
+  const currentY = e.touches[0].clientY;
+  const now = Date.now();
 
-  if (now - touchState.lastMoveTime < 100) return
-  touchState.lastMoveTime = now
+  if (now - touchState.lastMoveTime < 100) return;
+  touchState.lastMoveTime = now;
 
-  const diffX = currentX - touchState.startX
-  const diffY = currentY - touchState.startY
+  const diffX = currentX - touchState.startX;
+  const diffY = currentY - touchState.startY;
 
   if (Math.abs(diffX) > 30 || Math.abs(diffY) > 30) {
     if (Math.abs(diffX) > Math.abs(diffY)) {
-      if (diffX > 0) moveBox('d')
-      else moveBox('a')
+      if (diffX > 0) moveBox("d");
+      else moveBox("a");
     } else {
-      if (diffY > 0) moveBox('s')
-      else moveBox('w')
+      if (diffY > 0) moveBox("s");
+      else moveBox("w");
     }
 
-    touchState.startX = currentX
-    touchState.startY = currentY
+    touchState.startX = currentX;
+    touchState.startY = currentY;
   }
-}
+};
 
 const handleTouchEnd = () => {
-  touchState.isTouching = false
-}
+  touchState.isTouching = false;
+};
 
 // 打开配置弹窗
 const openConfig = () => {
   nextTick(() => {
-    systemConfigRef.value?.openDialog()
-  })
-}
+    systemConfigRef.value?.openDialog();
+  });
+};
 
 // 保存
 const saveMoney = () => {
   if (allMoney.value) {
-    uni.setStorageSync('MC_MONEY', allMoney.value)
-    uni.setStorageSync('MC_MOVE_TRACK', moveTrackArr.value)
-    uni.setStorageSync('MC_USER_POSITION', { x: state.x, y: state.y })
-    toastRef.value?.showSuccess('保存成功')
+    uni.setStorageSync("MC_MONEY", allMoney.value);
+    uni.setStorageSync("MC_MOVE_TRACK", moveTrackArr.value);
+    uni.setStorageSync("MC_USER_POSITION", { x: state.x, y: state.y });
+    toastRef.value?.showSuccess("保存成功");
   } else {
-    toastRef.value?.showWarning('没有金币可保存')
+    toastRef.value?.showWarning("没有金币可保存");
   }
-}
+};
 
 // 获取系统信息并加载存档
 const getSystemInfo = () => {
-  const systemInfo = uni.getSystemInfoSync()
-  screenHeight.value = systemInfo.windowHeight
-  screenWidth.value = systemInfo.windowWidth
+  const systemInfo = uni.getSystemInfoSync();
+  screenHeight.value = systemInfo.windowHeight;
+  screenWidth.value = systemInfo.windowWidth;
 
   // 读取存档
-  const money = uni.getStorageSync('MC_MONEY')
-  const moveTrack = uni.getStorageSync('MC_MOVE_TRACK')
-  const userPosition = uni.getStorageSync('MC_USER_POSITION')
+  const money = uni.getStorageSync("MC_MONEY");
+  const moveTrack = uni.getStorageSync("MC_MOVE_TRACK");
+  const userPosition = uni.getStorageSync("MC_USER_POSITION");
 
   if (money) {
-    allMoney.value = money
+    allMoney.value = money;
   }
 
   if (moveTrack) {
-    moveTrackArr.value = moveTrack
+    moveTrackArr.value = moveTrack;
   }
 
   if (userPosition) {
-    state.x = userPosition.x
-    state.y = userPosition.y
+    state.x = userPosition.x;
+    state.y = userPosition.y;
   }
 
   // 初始化矿石
-  worldOres.value = initializeWorldOres(20, 20, worldBounds)
-}
+  worldOres.value = initializeWorldOres(20, 20, worldBounds);
+};
 
 // 确保世界边界包含玩家位置
 const ensureWorldBoundsContainPosition = (x, y) => {
-  let extended = false
-  const oldBounds = { ...worldBounds }
+  let extended = false;
+  const oldBounds = { ...worldBounds };
 
   // 向左扩展
   if (x < worldBounds.left) {
-    worldBounds.left = Math.min(worldBounds.left, x - extendAmount)
-    extended = true
+    worldBounds.left = Math.min(worldBounds.left, x - extendAmount);
+    extended = true;
   }
   // 向右扩展
   else if (x >= worldBounds.right) {
-    worldBounds.right = Math.max(worldBounds.right, x + extendAmount)
-    extended = true
+    worldBounds.right = Math.max(worldBounds.right, x + extendAmount);
+    extended = true;
   }
 
   // 向上扩展
   if (y < worldBounds.top) {
-    worldBounds.top = Math.min(worldBounds.top, y - extendAmount)
-    extended = true
+    worldBounds.top = Math.min(worldBounds.top, y - extendAmount);
+    extended = true;
   }
   // 向下扩展
   else if (y >= worldBounds.bottom) {
-    worldBounds.bottom = Math.max(worldBounds.bottom, y + extendAmount)
-    extended = true
+    worldBounds.bottom = Math.max(worldBounds.bottom, y + extendAmount);
+    extended = true;
   }
 
   // 如果扩展了，生成新区块的矿石
   if (extended) {
-    worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds)
+    worldOres.value = extendWorldOres(worldOres.value, worldBounds, oldBounds);
   }
-}
+};
 
-// 计算已经挖掘的 
+// 计算已经挖掘的
 const calculateBreak = (x, y) => {
-    if(moveTrackArr.value.length > 0) {
-      moveTrackArr.value.forEach((item) => {
-         const position = item.x + ',' + item.y;
-         if(worldOres.value.hasOwnProperty(position)) {
-            worldOres.value[position].break = true;
-         }
-      })
-    }
-}
+  if (moveTrackArr.value.length > 0) {
+    moveTrackArr.value.forEach((item) => {
+      const position = item.x + "," + item.y;
+      if (worldOres.value.hasOwnProperty(position)) {
+        worldOres.value[position].break = true;
+      }
+    });
+  }
+};
 
 // 重置游戏
 const gameReset = () => {
-    moveTrackArr.value = []
-    allMoney.value = 0
-    state.x = 10
-    state.y = 10
+  moveTrackArr.value = [];
+  allMoney.value = 0;
+  state.x = 10;
+  state.y = 10;
 
-    uni.setStorageSync('MC_MONEY', 0)
-    uni.setStorageSync('MC_MOVE_TRACK', [])
-    uni.setStorageSync('MC_USER_POSITION', { x: 10, y: 10 })
+  uni.setStorageSync("MC_MONEY", 0);
+  uni.setStorageSync("MC_MOVE_TRACK", []);
+  uni.setStorageSync("MC_USER_POSITION", { x: 10, y: 10 });
 
-    getSystemInfo()
-    toastRef.value?.showSuccess('重置成功')
-}
+  getSystemInfo();
+  toastRef.value?.showSuccess("重置成功");
+};
 
 // 初始化世界
 onMounted(() => {
-  getSystemInfo()
+  getSystemInfo();
 
   // 根据玩家位置扩展世界边界（如果超出基础范围）
-  ensureWorldBoundsContainPosition(state.x, state.y)
+  ensureWorldBoundsContainPosition(state.x, state.y);
 
-  console.log('worldOres:', worldOres.value)
-  console.log('moveTrackArr:', moveTrackArr.value)
-  console.log('state:', state, cellSize)
-
+  console.log("worldOres:", worldOres.value);
+  console.log("moveTrackArr:", moveTrackArr.value);
+  console.log("state:", state, cellSize);
 
   // 等待DOM更新后，将视图中心对准盒子位置
   nextTick(() => {
-    centerViewOnBox()
-    calculateBreak()
-  })
-})
+    centerViewOnBox();
+    calculateBreak();
+  });
+});
 
 // 监听世界大小变化
 watch([worldWidth, worldHeight], () => {
-  ensureBoxInView()
-})
+  ensureBoxInView();
+});
 </script>
 
 <style scoped>
@@ -720,64 +716,12 @@ watch([worldWidth, worldHeight], () => {
   will-change: transform;
 }
 
-.grid {
-  position: absolute;
-  top: 0;
-  left: 0;
-}
-
-.grid-cell {
-  position: absolute;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  cursor: pointer;
-}
-
-.grid-cell.current-cell {
-  border: 3px solid #ffd700;
-  transform: scale(1.02);
-  z-index: 5;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-}
-
-.grid-cell.adjacent-cell {
-  border: 2px dashed rgba(255, 255, 255, 0.5);
-  animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.7;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0.7;
-  }
-}
-
-.cell-coord {
+.f {
   position: absolute;
   top: 2px;
   left: 2px;
   font-size: 8px;
   color: rgba(255, 255, 255, 0.5);
-}
-
-.ore-indicator {
-  width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .user-box {

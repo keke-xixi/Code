@@ -16,6 +16,7 @@
           top: (row - 1) * cellSize + 'px',
           backgroundColor: getCellColor(
             worldBounds.left + col - 1,
+            
             worldBounds.top + row - 1,
           ),
         }"

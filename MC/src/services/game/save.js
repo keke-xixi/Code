@@ -9,6 +9,7 @@ export const loadSave = () => {
   const maxDepth = uni.getStorageSync(STORAGE_KEYS.MAX_DEPTH)
   const totalCollected = uni.getStorageSync(STORAGE_KEYS.TOTAL_COLLECTED)
   const upgrades = uni.getStorageSync(STORAGE_KEYS.UPGRADES)
+  const disabledUpgrades = uni.getStorageSync(STORAGE_KEYS.DISABLED_UPGRADES)
   const diamonds = uni.getStorageSync(STORAGE_KEYS.DIAMONDS)
   const gachaPity = uni.getStorageSync(STORAGE_KEYS.GACHA_PITY)
 
@@ -23,6 +24,10 @@ export const loadSave = () => {
     maxDepth: maxDepth ? Number(maxDepth) : 0,
     totalCollected: totalCollected ? Number(totalCollected) : 0,
     upgrades: upgrades && typeof upgrades === 'object' ? upgrades : {},
+    disabledUpgrades:
+      disabledUpgrades && typeof disabledUpgrades === 'object'
+        ? disabledUpgrades
+        : {},
     diamonds: diamonds ? Number(diamonds) : 0,
     gachaPity:
       gachaPity && typeof gachaPity === 'object'
@@ -40,6 +45,7 @@ export const persistSave = (payload) => {
     maxDepth,
     totalCollected,
     upgrades,
+    disabledUpgrades,
     diamonds,
     gachaPity,
   } = payload
@@ -59,6 +65,9 @@ export const persistSave = (payload) => {
   if (upgrades != null) {
     uni.setStorageSync(STORAGE_KEYS.UPGRADES, upgrades)
   }
+  if (disabledUpgrades != null) {
+    uni.setStorageSync(STORAGE_KEYS.DISABLED_UPGRADES, disabledUpgrades)
+  }
   if (diamonds != null) {
     uni.setStorageSync(STORAGE_KEYS.DIAMONDS, diamonds)
   }
@@ -76,6 +85,7 @@ export const clearSave = () => {
     maxDepth: 0,
     totalCollected: 0,
     upgrades: {},
+    disabledUpgrades: {},
     diamonds: 0,
     gachaPity: { streak: 0, redStreak: 0 },
   })

@@ -8,7 +8,7 @@
             <text class="shop-panel__title">⚔️ 装备铺</text>
             <view class="shop-panel__close" @tap="close">✕</view>
           </view>
-          <text class="shop-panel__sub">永久强化 · 越挖越强</text>
+          <text class="shop-panel__sub">购买后可卸下，避免特效挡矿石</text>
           <view class="shop-panel__wallet">
             <text class="shop-panel__gold">💰 {{ formatMoney(money) }}</text>
             <text class="shop-panel__dia">💎 {{ diamonds }}</text>
@@ -38,14 +38,32 @@
 
         <text class="shop-panel__section">装备强化</text>
 
-        <view v-for="item in shopList" :key="item.id" class="gear-card">
+        <view
+          v-for="item in shopList"
+          :key="item.id"
+          class="gear-card"
+          :class="{ 'gear-card--stored': item.level > 0 && !item.equipped }"
+        >
           <view class="gear-card__icon-wrap">
             <text class="gear-card__icon">{{ item.icon }}</text>
           </view>
           <view class="gear-card__body">
             <text class="gear-card__name">{{ item.name }}</text>
             <text class="gear-card__desc">{{ item.desc }}</text>
-            <text class="gear-card__lv">{{ item.currentName }} · Lv.{{ item.level }}/{{ item.maxLevel }}</text>
+            <text class="gear-card__lv">
+              {{ item.currentName }} · Lv.{{ item.level }}/{{ item.maxLevel }}
+              <text v-if="item.level > 0" class="gear-card__status">
+                {{ item.equipped ? ' · 已装备' : ' · 已卸下' }}
+              </text>
+            </text>
+          </view>
+          <view v-if="item.level > 0" class="gear-card__equip-row">
+            <view
+              class="gear-card__btn gear-card__btn--ghost"
+              @tap="onToggle(item.id)"
+            >
+              {{ item.equipped ? '卸下' : '装备' }}
+            </view>
           </view>
           <view v-if="item.nextTier" class="gear-card__action">
             <text class="gear-card__price">💰 {{ formatMoney(item.nextTier.price) }}</text>
@@ -73,12 +91,13 @@ const props = defineProps({
   money: { type: Number, default: 0 },
   diamonds: { type: Number, default: 0 },
   owned: { type: Object, default: () => ({}) },
+  disabled: { type: Object, default: () => ({}) },
 })
 
-const emit = defineEmits(['buy', 'exchange'])
+const emit = defineEmits(['buy', 'exchange', 'toggle'])
 
 const popupRef = ref(null)
-const shopList = computed(() => buildShopList(props.owned))
+const shopList = computed(() => buildShopList(props.owned, props.disabled))
 const exchangePacks = getExchangePacks()
 
 const formatMoney = (n) => {
@@ -90,6 +109,7 @@ const formatMoney = (n) => {
 const open = () => popupRef.value?.open()
 const close = () => popupRef.value?.close()
 const onBuy = (id) => emit('buy', id)
+const onToggle = (id) => emit('toggle', id)
 const onExchange = (id) => emit('exchange', id)
 
 defineExpose({ open, close })
@@ -260,6 +280,11 @@ defineExpose({ open, close })
   border: 1px solid rgba(255, 215, 0, 0.12);
 }
 
+.gear-card--stored {
+  opacity: 0.72;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .gear-card__icon-wrap {
   width: 44px;
   height: 44px;
@@ -297,6 +322,21 @@ defineExpose({ open, close })
   margin-top: 2px;
 }
 
+.gear-card__status {
+  color: #9ae6b0;
+}
+
+.gear-card--stored .gear-card__status {
+  color: #6b7a8f;
+}
+
+.gear-card__equip-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
 .gear-card__action {
   width: 100%;
   display: flex;
@@ -321,6 +361,12 @@ defineExpose({ open, close })
 
 .gear-card__btn--off {
   opacity: 0.45;
+}
+
+.gear-card__btn--ghost {
+  background: rgba(255, 255, 255, 0.1);
+  color: #c8d0dc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .gear-card__max {

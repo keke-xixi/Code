@@ -19,6 +19,8 @@ import {
 import {
   computeUpgradeEffects,
   purchaseUpgrade,
+  equipAfterPurchase,
+  toggleEquipment,
 } from '@/services/game/upgrades.js'
 
 let floatId = 0
@@ -48,8 +50,10 @@ export function useMiningGame({ toastRef } = {}) {
   const totalCollected = ref(0)
   const comboCount = ref(0)
   const lastCollectAt = ref(0)
+  const lastAbsorbAt = ref(0)
   const floatingItems = ref([])
   const ownedUpgrades = ref({})
+  const disabledUpgrades = ref({})
   const diamonds = ref(0)
   const gachaPity = ref({ streak: 0, redStreak: 0 })
 
@@ -69,8 +73,10 @@ export function useMiningGame({ toastRef } = {}) {
   const shopModalRef = ref(null)
 
   const upgradeEffects = computed(() =>
-    computeUpgradeEffects(ownedUpgrades.value),
+    computeUpgradeEffects(ownedUpgrades.value, disabledUpgrades.value),
   )
+
+  const canAbsorbOres = computed(() => upgradeEffects.value.absorbRadius > 0)
 
   const currentOre = computed(() => {
     const key = `${state.x},${state.y}`
@@ -184,13 +190,55 @@ export function useMiningGame({ toastRef } = {}) {
   const manhattan = (x1, y1, x2, y2) =>
     Math.abs(x1 - x2) + Math.abs(y1 - y2)
 
-  const collectExposedInRadius = (cx, cy, radius) => {
+  const collectExposedInRadius = (cx, cy, radius, includeCenter = false) => {
     for (let x = cx - radius; x <= cx + radius; x++) {
       for (let y = cy - radius; y <= cy + radius; y++) {
         if (manhattan(cx, cy, x, y) > radius) continue
-        if (x === cx && y === cy) continue
+        if (!includeCenter && x === cx && y === cy) continue
         collectOre(x, y, true)
       }
+    }
+  }
+
+  /** 吸收已凿开、未拾取的矿石（残矿吸纳器） */
+  const absorbExposedOres = () => {
+    const fx = upgradeEffects.value
+    if (fx.absorbRadius <= 0) {
+      toastRef?.value?.showWarning('请先在商店购买并装备残矿吸纳器')
+      return
+    }
+
+    const now = Date.now()
+    const wait = fx.absorbCooldownMs - (now - lastAbsorbAt.value)
+    if (lastAbsorbAt.value && wait > 0) {
+      toastRef?.value?.showWarning(`冷却中 ${Math.ceil(wait / 1000)} 秒`)
+      return
+    }
+
+    const cx = state.x
+    const cy = state.y
+    const r = fx.absorbRadius
+    let totalGain = 0
+    let count = 0
+
+    for (const key of Object.keys(worldOres.value)) {
+      const [x, y] = key.split(',').map(Number)
+      if (r < 999 && manhattan(cx, cy, x, y) > r) continue
+      const gain = collectOre(x, y, true)
+      if (gain > 0) {
+        totalGain += gain
+        count += 1
+      }
+    }
+
+    lastAbsorbAt.value = now
+
+    if (count > 0) {
+      addFloating(`吸收 ${count} 块 +${totalGain}`, 'gold')
+      toastRef?.value?.showSuccess(`吸收了 ${count} 块残矿`)
+      persistAll()
+    } else {
+      toastRef?.value?.showWarning('范围内没有可吸收的残矿')
     }
   }
 
@@ -467,9 +515,28 @@ export function useMiningGame({ toastRef } = {}) {
       return
     }
     ownedUpgrades.value = result.owned
+    disabledUpgrades.value = equipAfterPurchase(
+      disabledUpgrades.value,
+      categoryId,
+    )
     allMoney.value = result.moneyLeft
     persistAll()
     toastRef?.value?.showSuccess(`获得 ${result.boughtName}`)
+  }
+
+  const toggleUpgrade = (categoryId) => {
+    const result = toggleEquipment(
+      disabledUpgrades.value,
+      categoryId,
+      ownedUpgrades.value,
+    )
+    if (!result.ok) {
+      toastRef?.value?.showWarning(result.message)
+      return
+    }
+    disabledUpgrades.value = result.disabled
+    persistAll()
+    toastRef?.value?.showSuccess(result.equipped ? '已装备' : '已卸下')
   }
 
   const persistAll = () => {
@@ -481,6 +548,7 @@ export function useMiningGame({ toastRef } = {}) {
       maxDepth: maxDepth.value,
       totalCollected: totalCollected.value,
       upgrades: ownedUpgrades.value,
+      disabledUpgrades: disabledUpgrades.value,
       diamonds: diamonds.value,
       gachaPity: gachaPity.value,
     })
@@ -496,6 +564,7 @@ export function useMiningGame({ toastRef } = {}) {
     allMoney.value = save.money
     diamonds.value = save.diamonds || 0
     ownedUpgrades.value = save.upgrades || {}
+    disabledUpgrades.value = save.disabledUpgrades || {}
     gachaPity.value = save.gachaPity || { streak: 0, redStreak: 0 }
   }
 
@@ -511,6 +580,7 @@ export function useMiningGame({ toastRef } = {}) {
     maxDepth.value = Math.max(save.maxDepth || 0, state.y)
     totalCollected.value = save.totalCollected || 0
     ownedUpgrades.value = save.upgrades || {}
+    disabledUpgrades.value = save.disabledUpgrades || {}
     diamonds.value = save.diamonds || 0
     gachaPity.value = save.gachaPity || { streak: 0, redStreak: 0 }
     if (save.worldOres && Object.keys(save.worldOres).length > 0) {
@@ -555,7 +625,9 @@ export function useMiningGame({ toastRef } = {}) {
     maxDepth.value = 0
     totalCollected.value = 0
     comboCount.value = 0
+    lastAbsorbAt.value = 0
     ownedUpgrades.value = {}
+    disabledUpgrades.value = {}
     diamonds.value = 0
     gachaPity.value = { streak: 0, redStreak: 0 }
     state.x = WORLD_DEFAULT.spawnX
@@ -618,7 +690,10 @@ export function useMiningGame({ toastRef } = {}) {
     totalCollected,
     floatingItems,
     ownedUpgrades,
+    disabledUpgrades,
     upgradeEffects,
+    canAbsorbOres,
+    absorbExposedOres,
     visibleRows,
     visibleCols,
     worldWidth,
@@ -633,6 +708,7 @@ export function useMiningGame({ toastRef } = {}) {
     openSettings,
     openShop,
     buyUpgrade,
+    toggleUpgrade,
     exchangeDiamond,
     reloadFromSave,
     openGacha,

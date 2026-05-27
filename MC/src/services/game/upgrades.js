@@ -4,13 +4,19 @@ import {
   TIER_NAMES,
 } from '@/config/shop.js'
 
-/** 合并已购等级 → 最终效果（同类取最高级条目） */
-export const computeUpgradeEffects = (owned = {}) => {
+/** 是否已装备（已购且未在卸下列表中） */
+export const isCategoryEquipped = (disabled = {}, categoryId, level) => {
+  if (!level || level < 1) return false
+  return !disabled[categoryId]
+}
+
+/** 合并已购且已装备 → 最终效果 */
+export const computeUpgradeEffects = (owned = {}, disabled = {}) => {
   const effects = { ...DEFAULT_EFFECTS }
 
   for (const cat of SHOP_CATALOG) {
     const level = owned[cat.id] || 0
-    if (level < 1) continue
+    if (level < 1 || disabled[cat.id]) continue
     const tier = cat.tiers[Math.min(level - 1, cat.tiers.length - 1)]
     if (!tier) continue
 
@@ -55,6 +61,15 @@ export const computeUpgradeEffects = (owned = {}) => {
     if (tier.depthGoldPct != null) {
       effects.depthGoldPct = Math.max(effects.depthGoldPct, tier.depthGoldPct)
     }
+    if (tier.absorbRadius != null) {
+      effects.absorbRadius = Math.max(effects.absorbRadius, tier.absorbRadius)
+    }
+    if (tier.absorbCooldownMs != null) {
+      effects.absorbCooldownMs =
+        effects.absorbCooldownMs > 0
+          ? Math.min(effects.absorbCooldownMs, tier.absorbCooldownMs)
+          : tier.absorbCooldownMs
+    }
   }
 
   return effects
@@ -76,15 +91,17 @@ export const getTierDisplayName = (cat, tierIndex) => {
   return `${t.tierName}${cat.suffix}`
 }
 
-export const buildShopList = (owned = {}) =>
+export const buildShopList = (owned = {}, disabled = {}) =>
   SHOP_CATALOG.map((cat) => {
     const level = getCategoryLevel(owned, cat.id)
     const next = getNextTier(owned, cat.id)
+    const equipped = isCategoryEquipped(disabled, cat.id, level)
     const currentName =
-      level > 0 ? getTierDisplayName(cat, level - 1) : '未装备'
+      level > 0 ? getTierDisplayName(cat, level - 1) : '未购买'
     return {
       ...cat,
       level,
+      equipped,
       maxLevel: cat.tiers.length,
       currentName,
       nextTier: next
@@ -118,6 +135,29 @@ export const purchaseUpgrade = (owned, categoryId, money) => {
       newOwned[categoryId] - 1,
     ),
   }
+}
+
+/** 购买后自动装备（从卸下列表移除） */
+export const equipAfterPurchase = (disabled, categoryId) => {
+  if (!disabled[categoryId]) return disabled
+  const next = { ...disabled }
+  delete next[categoryId]
+  return next
+}
+
+/** 切换装备 / 卸下 */
+export const toggleEquipment = (disabled, categoryId, owned) => {
+  const level = getCategoryLevel(owned, categoryId)
+  if (level < 1) {
+    return { ok: false, message: '尚未购买该装备' }
+  }
+  const next = { ...disabled }
+  if (next[categoryId]) {
+    delete next[categoryId]
+    return { ok: true, disabled: next, equipped: true }
+  }
+  next[categoryId] = true
+  return { ok: true, disabled: next, equipped: false }
 }
 
 export { SHOP_CATALOG, TIER_NAMES }

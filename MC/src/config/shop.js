@@ -153,6 +153,24 @@ export const SHOP_CATALOG = [
     ],
   },
   {
+    id: 'ore_absorber',
+    name: '残矿吸纳',
+    icon: '🧲',
+    suffix: '吸纳器',
+    desc: '点击顶栏「吸」吸收已凿开、未拾取的矿石（可卸下）',
+    tiers: [
+      tier(0, { absorbRadius: 2, absorbCooldownMs: 12000 }, 400),
+      tier(1, { absorbRadius: 4, absorbCooldownMs: 10000 }, 2200),
+      tier(2, { absorbRadius: 6, absorbCooldownMs: 8000 }, 9000),
+      tier(3, { absorbRadius: 10, absorbCooldownMs: 6500 }, 35000),
+      tier(4, { absorbRadius: 15, absorbCooldownMs: 5000 }, 140000),
+      tier(5, { absorbRadius: 22, absorbCooldownMs: 4000 }, 520000),
+      tier(6, { absorbRadius: 32, absorbCooldownMs: 3000 }, 1900000),
+      tier(7, { absorbRadius: 50, absorbCooldownMs: 2500 }, 7000000),
+      tier(8, { absorbRadius: 999, absorbCooldownMs: 2000 }, 28000000),
+    ],
+  },
+  {
     id: 'depth_bonus',
     name: '深潜',
     icon: '🌊',
@@ -187,6 +205,8 @@ export const DEFAULT_EFFECTS = {
   critChance: 0,
   critMultiplier: 2,
   depthGoldPct: 0,
+  absorbRadius: 0,
+  absorbCooldownMs: 0,
 }
 
 const RARITY_RANK = {

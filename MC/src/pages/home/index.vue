@@ -13,13 +13,14 @@
       :next-hint="nextHint"
       :money="allMoney"
       :diamonds="diamonds"
-      :combo="comboCount"
       :max-depth="maxDepth"
       :total-collected="totalCollected"
       :current-ore="currentOre"
       @save="saveGame"
       @settings="openSettings"
+      :show-absorb="canAbsorbOres"
       @gacha="openGacha"
+      @absorb="absorbExposedOres"
       @shop="openShop"
     />
 
@@ -56,7 +57,9 @@
       :money="allMoney"
       :diamonds="diamonds"
       :owned="ownedUpgrades"
+      :disabled="disabledUpgrades"
       @buy="buyUpgrade"
+      @toggle="toggleUpgrade"
       @exchange="exchangeDiamond"
     />
 
@@ -107,12 +110,14 @@ const {
   layerInfo,
   layerProgress,
   nextHint,
-  comboCount,
   maxDepth,
   totalCollected,
   floatingItems,
   ownedUpgrades,
+  disabledUpgrades,
   upgradeEffects,
+  canAbsorbOres,
+  absorbExposedOres,
   visibleRows,
   visibleCols,
   worldWidth,
@@ -128,6 +133,7 @@ const {
   openGacha,
   openShop,
   buyUpgrade,
+  toggleUpgrade,
   exchangeDiamond,
   saveGame,
   gameReset,

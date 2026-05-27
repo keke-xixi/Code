@@ -8,10 +8,16 @@
       <view class="hud__money">
         <text class="hud__money-icon">💰</text>
         <text class="hud__money-val">{{ formatMoney(money) }}</text>
-        <text class="hud__dia">💎{{ diamonds }}</text>
-        <text class="hud__combo" v-if="combo > 1">×{{ combo }}</text>
+        <text class="hud__dia" v-if="diamonds > 0">💎{{ diamonds }}</text>
       </view>
       <view class="hud__actions">
+        <view
+          v-if="showAbsorb"
+          class="hud__btn hud__btn--absorb"
+          @tap="$emit('absorb')"
+        >
+          吸
+        </view>
         <view class="hud__btn hud__btn--gacha" @tap="$emit('gacha')">抽</view>
         <view class="hud__btn hud__btn--shop" @tap="$emit('shop')">店</view>
         <view class="hud__btn" @tap="$emit('save')">存</view>
@@ -45,13 +51,13 @@ defineProps({
   nextHint: { type: String, default: '' },
   money: { type: Number, default: 0 },
   diamonds: { type: Number, default: 0 },
-  combo: { type: Number, default: 0 },
+  showAbsorb: { type: Boolean, default: false },
   maxDepth: { type: Number, default: 0 },
   totalCollected: { type: Number, default: 0 },
   currentOre: { type: Object, default: null },
 })
 
-defineEmits(['save', 'settings', 'shop', 'gacha'])
+defineEmits(['save', 'settings', 'shop', 'gacha', 'absorb'])
 
 const formatMoney = (n) => {
   if (n >= 10000) return (n / 10000).toFixed(1) + '万'
@@ -126,12 +132,6 @@ const formatMoney = (n) => {
   font-weight: 600;
 }
 
-.hud__combo {
-  font-size: 12px;
-  color: #7ee8ff;
-  font-weight: 700;
-}
-
 .hud__actions {
   display: flex;
   gap: 6px;
@@ -147,6 +147,12 @@ const formatMoney = (n) => {
   color: #1a1408;
   background: linear-gradient(180deg, #ffe566, #c9a227);
   border-radius: 10px;
+}
+
+.hud__btn--absorb {
+  background: linear-gradient(180deg, #b366ff, #7c3aed);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(180, 100, 255, 0.45);
 }
 
 .hud__btn--gacha {

@@ -1,14 +1,27 @@
-// 容器
-.container {
-	height: 100%;
+/* 全局 CSS 变量（与 src/config/theme.js 保持一致） */
+page,
+.uni-app {
+  --mc-bg-start: #0f1419;
+  --mc-bg-end: #1a2332;
+  --mc-surface: rgba(15, 20, 28, 0.96);
+  --mc-border: rgba(255, 215, 0, 0.22);
+  --mc-text: #e8edf4;
+  --mc-text-muted: #8b9cb3;
+  --mc-gold: #ffd700;
+  --mc-grid-line: rgba(255, 255, 255, 0.06);
+  --mc-shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --mc-shadow-glow: 0 0 16px rgba(255, 215, 0, 0.35);
+  background-color: var(--mc-bg-start);
+  color: var(--mc-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
 }
 
-// 图片
-.img {
-	width: 100%;
-	height: 100%;
+.container {
+  height: 100%;
 }
-.img-box {
-	width: 100px;
-	height: 100px;
+
+.img {
+  width: 100%;
+  height: 100%;
 }

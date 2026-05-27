@@ -25,7 +25,6 @@ const safeArea = computed(() => {
 
 // 屏幕高度 rpx 单位
 const screenHeightRpx = ((systemInfo.screenHeight - store.state.navigationBarHeight) / systemInfo.screenWidth) * 750;
-const screenHeightRpx2 = (systemInfo.screenHeight - / systemInfo.screenWidth) * 750;
 
 
 onShow(() => {

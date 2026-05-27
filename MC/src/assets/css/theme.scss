@@ -1,0 +1,30 @@
+$color-bg-deep: #0d1117;
+$color-bg-mid: #1a2332;
+$color-panel: rgba(22, 28, 40, 0.94);
+$color-border: rgba(255, 255, 255, 0.1);
+$color-text: #e8edf5;
+$color-text-muted: #8b9cb3;
+$color-gold: #f5b942;
+$color-mint: #3dd68c;
+$color-danger: #f07178;
+$color-blue: #6cb6ff;
+$radius-sm: 8px;
+$radius-md: 12px;
+$radius-lg: 16px;
+$shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+@mixin glass-panel {
+  background: $color-panel;
+  border: 1px solid $color-border;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: $shadow-panel;
+}
+
+@mixin tap-scale {
+  transition: transform 0.12s ease, opacity 0.12s ease;
+  &:active {
+    transform: scale(0.96);
+    opacity: 0.88;
+  }
+}

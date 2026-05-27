@@ -1,0 +1,13 @@
+/** 组件统一导出（可按需 import） */
+export { default as McModal } from './ui/McModal.vue'
+export { default as McButton } from './ui/McButton.vue'
+export { default as McInfoCard } from './ui/McInfoCard.vue'
+export { default as McStatPill } from './ui/McStatPill.vue'
+export { default as McIconButton } from './ui/McIconButton.vue'
+export { default as GameGrid } from './game/GameGrid.vue'
+export { default as GameHud } from './game/GameHud.vue'
+export { default as DirectionalPad } from './game/DirectionalPad.vue'
+export { default as GameSettingsModal } from './game/GameSettingsModal.vue'
+export { default as MinerCharacter } from './game/MinerCharacter.vue'
+export { default as FloatingRewards } from './game/FloatingRewards.vue'
+export { default as GameShop } from './game/GameShop.vue'

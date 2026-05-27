@@ -9,6 +9,8 @@ export const loadSave = () => {
   const maxDepth = uni.getStorageSync(STORAGE_KEYS.MAX_DEPTH)
   const totalCollected = uni.getStorageSync(STORAGE_KEYS.TOTAL_COLLECTED)
   const upgrades = uni.getStorageSync(STORAGE_KEYS.UPGRADES)
+  const diamonds = uni.getStorageSync(STORAGE_KEYS.DIAMONDS)
+  const gachaPity = uni.getStorageSync(STORAGE_KEYS.GACHA_PITY)
 
   return {
     money: money ? Number(money) : 0,
@@ -21,6 +23,11 @@ export const loadSave = () => {
     maxDepth: maxDepth ? Number(maxDepth) : 0,
     totalCollected: totalCollected ? Number(totalCollected) : 0,
     upgrades: upgrades && typeof upgrades === 'object' ? upgrades : {},
+    diamonds: diamonds ? Number(diamonds) : 0,
+    gachaPity:
+      gachaPity && typeof gachaPity === 'object'
+        ? gachaPity
+        : { streak: 0, redStreak: 0 },
   }
 }
 
@@ -33,6 +40,8 @@ export const persistSave = (payload) => {
     maxDepth,
     totalCollected,
     upgrades,
+    diamonds,
+    gachaPity,
   } = payload
 
   uni.setStorageSync(STORAGE_KEYS.MONEY, money)
@@ -50,6 +59,12 @@ export const persistSave = (payload) => {
   if (upgrades != null) {
     uni.setStorageSync(STORAGE_KEYS.UPGRADES, upgrades)
   }
+  if (diamonds != null) {
+    uni.setStorageSync(STORAGE_KEYS.DIAMONDS, diamonds)
+  }
+  if (gachaPity != null) {
+    uni.setStorageSync(STORAGE_KEYS.GACHA_PITY, gachaPity)
+  }
 }
 
 export const clearSave = () => {
@@ -61,6 +76,8 @@ export const clearSave = () => {
     maxDepth: 0,
     totalCollected: 0,
     upgrades: {},
+    diamonds: 0,
+    gachaPity: { streak: 0, redStreak: 0 },
   })
   uni.removeStorageSync(STORAGE_KEYS.WORLD_ORES)
 }

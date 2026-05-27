@@ -14,6 +14,13 @@
 			}
 		},
 		{
+			"path": "pages/gacha/index",
+			"style": {
+			    "navigationBarTitleText": "召唤",
+			    "navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/template/note",
 			"style": {
 			    "navigationBarTitleText": "笔记",

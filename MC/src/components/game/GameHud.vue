@@ -8,9 +8,11 @@
       <view class="hud__money">
         <text class="hud__money-icon">💰</text>
         <text class="hud__money-val">{{ formatMoney(money) }}</text>
+        <text class="hud__dia">💎{{ diamonds }}</text>
         <text class="hud__combo" v-if="combo > 1">×{{ combo }}</text>
       </view>
       <view class="hud__actions">
+        <view class="hud__btn hud__btn--gacha" @tap="$emit('gacha')">抽</view>
         <view class="hud__btn hud__btn--shop" @tap="$emit('shop')">店</view>
         <view class="hud__btn" @tap="$emit('save')">存</view>
         <view class="hud__btn hud__btn--ghost" @tap="$emit('settings')">设</view>
@@ -42,13 +44,14 @@ defineProps({
   layerProgress: { type: Number, default: 0 },
   nextHint: { type: String, default: '' },
   money: { type: Number, default: 0 },
+  diamonds: { type: Number, default: 0 },
   combo: { type: Number, default: 0 },
   maxDepth: { type: Number, default: 0 },
   totalCollected: { type: Number, default: 0 },
   currentOre: { type: Object, default: null },
 })
 
-defineEmits(['save', 'settings', 'shop'])
+defineEmits(['save', 'settings', 'shop', 'gacha'])
 
 const formatMoney = (n) => {
   if (n >= 10000) return (n / 10000).toFixed(1) + '万'
@@ -117,6 +120,12 @@ const formatMoney = (n) => {
   color: #ffd700;
 }
 
+.hud__dia {
+  font-size: 12px;
+  color: #7ee8ff;
+  font-weight: 600;
+}
+
 .hud__combo {
   font-size: 12px;
   color: #7ee8ff;
@@ -138,6 +147,12 @@ const formatMoney = (n) => {
   color: #1a1408;
   background: linear-gradient(180deg, #ffe566, #c9a227);
   border-radius: 10px;
+}
+
+.hud__btn--gacha {
+  background: linear-gradient(180deg, #ff8e53, #e85d5d);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(255, 120, 80, 0.45);
 }
 
 .hud__btn--shop {

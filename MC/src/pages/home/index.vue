@@ -12,12 +12,14 @@
       :layer-progress="layerProgress"
       :next-hint="nextHint"
       :money="allMoney"
+      :diamonds="diamonds"
       :combo="comboCount"
       :max-depth="maxDepth"
       :total-collected="totalCollected"
       :current-ore="currentOre"
       @save="saveGame"
       @settings="openSettings"
+      @gacha="openGacha"
       @shop="openShop"
     />
 
@@ -52,8 +54,10 @@
     <GameShop
       ref="shopModalRef"
       :money="allMoney"
+      :diamonds="diamonds"
       :owned="ownedUpgrades"
       @buy="buyUpgrade"
+      @exchange="exchangeDiamond"
     />
 
     <GameSettingsModal
@@ -70,6 +74,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import GameHud from '@/components/game/GameHud.vue'
 import GameGrid from '@/components/game/GameGrid.vue'
 import MinerCharacter from '@/components/game/MinerCharacter.vue'
@@ -94,6 +99,8 @@ const {
   isMoving,
   isMining,
   allMoney,
+  diamonds,
+  reloadFromSave,
   state,
   currentOre,
   depth,
@@ -118,13 +125,19 @@ const {
   handleTouchMove,
   handleTouchEnd,
   openSettings,
+  openGacha,
   openShop,
   buyUpgrade,
+  exchangeDiamond,
   saveGame,
   gameReset,
   zoomIn,
   zoomOut,
 } = useMiningGame({ toastRef })
+
+onShow(() => {
+  reloadFromSave()
+})
 
 const worldStyle = computed(() => ({
   width: worldWidth.value + 'px',

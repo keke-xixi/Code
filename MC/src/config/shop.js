@@ -11,10 +11,13 @@ export const TIER_NAMES = [
   '无穷',
 ]
 
+/** 装备铺金币价格倍率（相对基础数值） */
+export const SHOP_PRICE_SCALE = 5
+
 const tier = (i, effects, price) => ({
   level: i + 1,
   tierName: TIER_NAMES[i],
-  price,
+  price: Math.round(price * SHOP_PRICE_SCALE),
   ...effects,
 })
 

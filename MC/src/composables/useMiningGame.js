@@ -6,9 +6,9 @@ import {
   ZOOM,
   COMBO,
   ORE_TYPES,
-  DEPTH_MILESTONES,
 } from '@/config/game.js'
 import { meetsRarity } from '@/config/shop.js'
+import { exchangeDiamondForGold } from '@/services/game/exchange.js'
 import { initializeWorldOres, extendWorldOres } from '@/services/game/world.js'
 import { loadSave, persistSave, clearSave } from '@/services/game/save.js'
 import {
@@ -48,9 +48,10 @@ export function useMiningGame({ toastRef } = {}) {
   const totalCollected = ref(0)
   const comboCount = ref(0)
   const lastCollectAt = ref(0)
-  const achievedMilestones = ref([])
   const floatingItems = ref([])
   const ownedUpgrades = ref({})
+  const diamonds = ref(0)
+  const gachaPity = ref({ streak: 0, redStreak: 0 })
 
   const state = reactive({
     x: WORLD_DEFAULT.spawnX,
@@ -130,18 +131,8 @@ export function useMiningGame({ toastRef } = {}) {
     }, upgradeEffects.value.mineMs)
   }
 
-  const checkMilestones = () => {
-    const y = state.y
-    if (y > maxDepth.value) maxDepth.value = y
-
-    for (const m of DEPTH_MILESTONES) {
-      if (y >= m && !achievedMilestones.value.includes(m)) {
-        achievedMilestones.value.push(m)
-        const layer = getLayerInfo(m)
-        toastRef?.value?.showSuccess(`抵达 ${m} 层 · ${layer.title}`)
-        addFloating(`🏆 ${m} 层`, 'milestone')
-      }
-    }
+  const updateMaxDepth = () => {
+    if (state.y > maxDepth.value) maxDepth.value = state.y
   }
 
   const collectOre = (x, y, silent = false) => {
@@ -263,7 +254,7 @@ export function useMiningGame({ toastRef } = {}) {
     processCell(x, y)
     afterMoveEffects(x, y)
     recordMove(x, y)
-    checkMilestones()
+    updateMaxDepth()
   }
 
   const tryMoveTo = (xOrPayload, y) => {
@@ -445,6 +436,26 @@ export function useMiningGame({ toastRef } = {}) {
     nextTick(() => shopModalRef.value?.open())
   }
 
+  const exchangeDiamond = (packId) => {
+    const result = exchangeDiamondForGold(diamonds.value, packId)
+    if (!result.ok) {
+      toastRef?.value?.showWarning(result.message)
+      return
+    }
+    diamonds.value = result.diamondsLeft
+    allMoney.value += result.gold
+    persistAll()
+    toastRef?.value?.showSuccess(
+      `兑换 +${formatGold(result.gold)} 金币`,
+    )
+  }
+
+  const formatGold = (n) => {
+    if (n >= 10000) return `${(n / 10000).toFixed(1)}万`
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
+    return String(n)
+  }
+
   const buyUpgrade = (categoryId) => {
     const result = purchaseUpgrade(
       ownedUpgrades.value,
@@ -457,19 +468,11 @@ export function useMiningGame({ toastRef } = {}) {
     }
     ownedUpgrades.value = result.owned
     allMoney.value = result.moneyLeft
-    persistSave({
-      money: allMoney.value,
-      moveTrack: moveTrackArr.value,
-      position: { x: state.x, y: state.y },
-      worldOres: worldOres.value,
-      maxDepth: maxDepth.value,
-      totalCollected: totalCollected.value,
-      upgrades: ownedUpgrades.value,
-    })
+    persistAll()
     toastRef?.value?.showSuccess(`获得 ${result.boughtName}`)
   }
 
-  const saveGame = () => {
+  const persistAll = () => {
     persistSave({
       money: allMoney.value,
       moveTrack: moveTrackArr.value,
@@ -478,8 +481,26 @@ export function useMiningGame({ toastRef } = {}) {
       maxDepth: maxDepth.value,
       totalCollected: totalCollected.value,
       upgrades: ownedUpgrades.value,
+      diamonds: diamonds.value,
+      gachaPity: gachaPity.value,
     })
+  }
+
+  const saveGame = () => {
+    persistAll()
     toastRef?.value?.showSuccess('已存档')
+  }
+
+  const reloadFromSave = () => {
+    const save = loadSave()
+    allMoney.value = save.money
+    diamonds.value = save.diamonds || 0
+    ownedUpgrades.value = save.upgrades || {}
+    gachaPity.value = save.gachaPity || { streak: 0, redStreak: 0 }
+  }
+
+  const openGacha = () => {
+    uni.navigateTo({ url: '/pages/gacha/index' })
   }
 
   const applySave = (save) => {
@@ -490,6 +511,8 @@ export function useMiningGame({ toastRef } = {}) {
     maxDepth.value = Math.max(save.maxDepth || 0, state.y)
     totalCollected.value = save.totalCollected || 0
     ownedUpgrades.value = save.upgrades || {}
+    diamonds.value = save.diamonds || 0
+    gachaPity.value = save.gachaPity || { streak: 0, redStreak: 0 }
     if (save.worldOres && Object.keys(save.worldOres).length > 0) {
       worldOres.value = save.worldOres
     } else {
@@ -532,8 +555,9 @@ export function useMiningGame({ toastRef } = {}) {
     maxDepth.value = 0
     totalCollected.value = 0
     comboCount.value = 0
-    achievedMilestones.value = []
     ownedUpgrades.value = {}
+    diamonds.value = 0
+    gachaPity.value = { streak: 0, redStreak: 0 }
     state.x = WORLD_DEFAULT.spawnX
     state.y = WORLD_DEFAULT.spawnY
     Object.assign(worldBounds, {
@@ -562,7 +586,7 @@ export function useMiningGame({ toastRef } = {}) {
     nextTick(() => {
       centerViewOnBox()
       restoreBreakState()
-      checkMilestones()
+      updateMaxDepth()
     })
   }
 
@@ -581,6 +605,8 @@ export function useMiningGame({ toastRef } = {}) {
     isMoving,
     isMining,
     allMoney,
+    diamonds,
+    gachaPity,
     state,
     currentOre,
     depth,
@@ -607,6 +633,9 @@ export function useMiningGame({ toastRef } = {}) {
     openSettings,
     openShop,
     buyUpgrade,
+    exchangeDiamond,
+    reloadFromSave,
+    openGacha,
     saveGame,
     gameReset,
     zoomIn,

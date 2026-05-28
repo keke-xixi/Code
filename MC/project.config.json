@@ -2,7 +2,7 @@
   "description": "微信小程序（非小游戏），编译时合并到 dist/dev/mp-weixin",
   "compileType": "miniprogram",
   "miniprogramRoot": "./",
-  "appid": "wx9430aecf60877fad",
+  "appid": "wxdb70767113810f88",
   "projectname": "MC-miniprogram",
   "setting": {
     "urlCheck": false,

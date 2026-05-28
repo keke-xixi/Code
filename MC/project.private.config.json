@@ -1,0 +1,10 @@
+{
+  "description": "本地私有配置，勿设为 game",
+  "projectname": "MC-miniprogram",
+  "setting": {
+    "urlCheck": false,
+    "preloadBackgroundData": false,
+    "skylineRenderEnable": false,
+    "compileHotReLoad": true
+  }
+}

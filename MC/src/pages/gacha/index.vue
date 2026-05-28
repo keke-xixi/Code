@@ -123,6 +123,7 @@ import { loadSave, persistSave } from '@/services/game/save.js'
 import { pullGacha as runPull } from '@/services/game/gacha.js'
 import GachaEffectOverlay from '@/components/game/GachaEffectOverlay.vue'
 import ToastMessage from '@/components/toast/toastMessage.vue'
+import { getSystemMetrics } from '@/utils/system.js'
 
 const toastRef = ref(null)
 const pageHeight = ref(600)
@@ -248,7 +249,7 @@ const doPull = (count, payWith) => {
 const goBack = () => uni.navigateBack()
 
 onMounted(() => {
-  const sys = uni.getSystemInfoSync()
+  const sys = getSystemMetrics()
   pageHeight.value = sys.windowHeight
   loadWallet()
 })

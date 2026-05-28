@@ -42,6 +42,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { getAnimTheme, createParticleBatch } from '@/utils/drawCard.js'
+import { getSystemMetrics } from '@/utils/system.js'
 
 const props = defineProps({
   rarity: { type: String, default: 'white' },
@@ -83,7 +84,7 @@ const particleStyle = (p) => ({
 })
 
 const play = () => {
-  const sys = uni.getSystemInfoSync()
+  const sys = getSystemMetrics()
   const cx = sys.windowWidth / 2
   const cy = sys.windowHeight / 2
 

@@ -37,7 +37,7 @@ const retryRequest = async (config) => {
 // 跳转到登录页面
 const gotoLogin = () => {
   uni.navigateTo({
-    url: '/pages/index/index'
+    url: '/pages/home/index'
   })
 }
 

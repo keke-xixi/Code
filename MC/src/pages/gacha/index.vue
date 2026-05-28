@@ -7,9 +7,18 @@
         <text class="gacha-page__title">深渊召唤</text>
         <text class="gacha-page__sub">白 · 蓝 · 紫 · 金 · 红</text>
       </view>
-      <view class="gacha-page__wallet">
-        <text>💰 {{ formatMoney(money) }}</text>
-        <text>💎 {{ diamonds }}</text>
+      <view class="gacha-page__header-right">
+        <view
+          class="gacha-page__pity-btn"
+          aria-label="保底详情"
+          @tap="pityOpen = true"
+        >
+          <text class="gacha-page__pity-btn-icon">👁</text>
+        </view>
+        <view class="gacha-page__wallet">
+          <text>💰 {{ formatMoney(money) }}</text>
+          <text v-if="diamonds > 0">💎 {{ diamonds }}</text>
+        </view>
       </view>
     </view>
 
@@ -17,20 +26,10 @@
     <view class="gacha-page__stage">
       <view class="gacha-page__ring gacha-page__ring--1" />
       <view class="gacha-page__ring gacha-page__ring--2" />
-      <view class="gacha-page__portal">
-        <text class="gacha-page__portal-icon">✨</text>
+      <view class="gacha-page__portal" :class="{ 'gacha-page__portal--busy': animating }">
+        <text class="gacha-page__portal-icon">{{ animating ? '…' : '✨' }}</text>
       </view>
-      <view
-        ref="summonBtnRef"
-        class="gacha-page__summon-btn"
-        :class="{ 'gacha-page__summon-btn--busy': animating }"
-        @tap="onSummonTap"
-      >
-        <text class="gacha-page__summon-text">{{ animating ? '召唤中...' : '点击召唤' }}</text>
-      </view>
-      <text class="gacha-page__pity">
-        保底 紫+ {{ pityPurpleLeft }} 抽 · 红 {{ pityRedLeft }} 抽
-      </text>
+      <text v-if="animating" class="gacha-page__stage-hint">召唤中</text>
     </view>
 
     <!-- 操作按钮 -->
@@ -95,6 +94,24 @@
       </view>
     </view>
 
+    <view v-if="pityOpen" class="pity-mask" @tap="pityOpen = false">
+      <view class="pity-panel" @tap.stop>
+        <text class="pity-panel__title">保底详情</text>
+        <view class="pity-panel__row">
+          <text class="pity-panel__name">史诗及以上（紫+）</text>
+          <text class="pity-panel__val">还差 {{ pityPurpleLeft }} 抽必出</text>
+          <text class="pity-panel__sub">已 {{ gachaPity.streak || 0 }} / {{ GACHA_PITY.purpleMin }} 抽未出紫+</text>
+        </view>
+        <view class="pity-panel__row pity-panel__row--red">
+          <text class="pity-panel__name">神话（红）</text>
+          <text class="pity-panel__val">还差 {{ pityRedLeft }} 抽必出</text>
+          <text class="pity-panel__sub">已 {{ gachaPity.redStreak || 0 }} / {{ GACHA_PITY.redMin }} 抽未出红</text>
+        </view>
+        <text class="pity-panel__tip">使用下方单抽 / 十连进行召唤</text>
+        <view class="pity-panel__ok" @tap="pityOpen = false">知道了</view>
+      </view>
+    </view>
+
     <ToastMessage ref="toastRef" :duration="1400" />
   </view>
 </template>
@@ -108,8 +125,8 @@ import GachaEffectOverlay from '@/components/game/GachaEffectOverlay.vue'
 import ToastMessage from '@/components/toast/toastMessage.vue'
 
 const toastRef = ref(null)
-const summonBtnRef = ref(null)
 const pageHeight = ref(600)
+const pityOpen = ref(false)
 
 const money = ref(0)
 const diamonds = ref(0)
@@ -228,8 +245,6 @@ const doPull = (count, payWith) => {
   }
 }
 
-const onSummonTap = () => doPull(1, 'gold')
-
 const goBack = () => uni.navigateBack()
 
 onMounted(() => {
@@ -282,6 +297,13 @@ onMounted(() => {
   color: #8b7aa8;
 }
 
+.gacha-page__header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
 .gacha-page__wallet {
   display: flex;
   flex-direction: column;
@@ -290,6 +312,23 @@ onMounted(() => {
   font-size: 12px;
   font-weight: 600;
   color: #ffd700;
+}
+
+.gacha-page__pity-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(126, 232, 255, 0.12);
+  border: 1px solid rgba(126, 232, 255, 0.35);
+}
+
+.gacha-page__pity-btn-icon {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.9;
 }
 
 .gacha-page__stage {
@@ -335,8 +374,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 24px;
   animation: portal-pulse 2s ease-in-out infinite;
+}
+
+.gacha-page__portal--busy {
+  animation: portal-pulse 0.8s ease-in-out infinite;
+  opacity: 0.85;
+}
+
+.gacha-page__stage-hint {
+  margin-top: 12px;
+  font-size: 12px;
+  color: #8b7aa8;
+  letter-spacing: 2px;
 }
 
 .gacha-page__portal-icon {
@@ -353,31 +403,6 @@ onMounted(() => {
     transform: scale(1.08);
     opacity: 1;
   }
-}
-
-.gacha-page__summon-btn {
-  padding: 16px 48px;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e53);
-  border-radius: 40px;
-  box-shadow: 0 6px 28px rgba(255, 107, 107, 0.45);
-  margin-bottom: 16px;
-}
-
-.gacha-page__summon-btn--busy {
-  opacity: 0.7;
-  transform: scale(0.96);
-}
-
-.gacha-page__summon-text {
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: 2px;
-}
-
-.gacha-page__pity {
-  font-size: 11px;
-  color: #7ee8ff;
 }
 
 .gacha-page__actions {
@@ -427,8 +452,11 @@ onMounted(() => {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  align-items: center;
   gap: 8px;
-  padding: 0 16px calc(16px + env(safe-area-inset-bottom));
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
 }
 
 .rate-tag {
@@ -437,6 +465,97 @@ onMounted(() => {
   border-radius: 20px;
   border: 1px solid;
   background: rgba(0, 0, 0, 0.35);
+}
+
+.pity-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: calc(56px + env(safe-area-inset-top)) 16px 16px;
+}
+
+.pity-panel {
+  width: 100%;
+  max-width: 360px;
+  padding: 18px 16px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #1e2838, #121820);
+  border: 1px solid rgba(126, 232, 255, 0.3);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.pity-panel__title {
+  display: block;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  margin-bottom: 14px;
+}
+
+.pity-panel__row {
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: rgba(126, 184, 255, 0.08);
+  border: 1px solid rgba(126, 184, 255, 0.2);
+}
+
+.pity-panel__row--red {
+  background: rgba(255, 80, 100, 0.08);
+  border-color: rgba(255, 80, 100, 0.25);
+}
+
+.pity-panel__name {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #d4a5ff;
+}
+
+.pity-panel__row--red .pity-panel__name {
+  color: #ff8e9e;
+}
+
+.pity-panel__val {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #7ee8ff;
+}
+
+.pity-panel__row--red .pity-panel__val {
+  color: #ffb3c1;
+}
+
+.pity-panel__sub {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #6b7a8f;
+}
+
+.pity-panel__tip {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #5a6a7f;
+  margin: 4px 0 12px;
+}
+
+.pity-panel__ok {
+  text-align: center;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  color: #c8d0dc;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .result-mask {

@@ -1,26 +1,14 @@
 import Bullet from './bullet';
-import {
-  WEAPON_CONFIG,
-  WEAPON_TYPES,
-  AUTO_WEAPONS,
-  SKILL_CONFIG,
-} from '../config/weapons';
+import { WEAPON_CONFIG, WEAPON_TYPES, SKILL_CONFIG } from '../config/weapons';
+import { PICKUP_TYPES, PICKUP_WEAPON_CONFIG } from '../config/pickupWeapons';
 
-/**
- * 武器系统 - 管理5种子弹的发射逻辑
- */
 export default class WeaponSystem {
   constructor(player) {
     this.player = player;
-    this.autoWeaponIndex = 0;
-    this.autoWeapon = AUTO_WEAPONS[0];
+    this.pickupWeapon = null;
     this.shootTimer = 0;
     this.skillCooldowns = {
-      laser: 0,
-      missile: 0,
-      shield: 0,
-      bomb: 0,
-      overdrive: 0,
+      laser: 0, missile: 0, shield: 0, bomb: 0, overdrive: 0,
     };
     this.shieldActive = false;
     this.shieldTimer = 0;
@@ -29,30 +17,46 @@ export default class WeaponSystem {
   }
 
   reset() {
-    this.autoWeaponIndex = 0;
-    this.autoWeapon = AUTO_WEAPONS[0];
+    this.pickupWeapon = null;
     this.shootTimer = 0;
-    Object.keys(this.skillCooldowns).forEach((k) => {
-      this.skillCooldowns[k] = 0;
-    });
+    Object.keys(this.skillCooldowns).forEach((k) => { this.skillCooldowns[k] = 0; });
     this.shieldActive = false;
     this.shieldTimer = 0;
     this.overdriveActive = false;
     this.overdriveTimer = 0;
   }
 
-  upgradeWeapon() {
-    this.autoWeaponIndex = Math.min(
-      this.autoWeaponIndex + 1,
-      AUTO_WEAPONS.length - 1
-    );
-    this.autoWeapon = AUTO_WEAPONS[this.autoWeaponIndex];
+  setPickupWeapon(type) {
+    this.pickupWeapon = type;
+    const name = PICKUP_WEAPON_CONFIG[type]?.name || '';
+    GameGlobal.databus.weaponSwitchMsg = `获得 ${name}`;
+    GameGlobal.databus.weaponSwitchTimer = 100;
+  }
+
+  getActiveWeapon() {
+    return this.pickupWeapon || WEAPON_TYPES.PULSE;
+  }
+
+  getWeaponName() {
+    const w = this.getActiveWeapon();
+    if (PICKUP_WEAPON_CONFIG[w]) return PICKUP_WEAPON_CONFIG[w].name;
+    return WEAPON_CONFIG[w]?.name || '脉冲弹';
+  }
+
+  /** 根据火力等级生成横向弹道偏移（最多6条） */
+  getLaneOffsets() {
+    const lanes = 1 + Math.min(5, this.player.attackLevel);
+    if (lanes === 1) return [0];
+    const spacing = 12;
+    const total = (lanes - 1) * spacing;
+    return Array.from({ length: lanes }, (_, i) => -total / 2 + i * spacing);
   }
 
   getShootInterval() {
-    const cfg = WEAPON_CONFIG[this.autoWeapon];
+    const w = this.getActiveWeapon();
+    const cfg = PICKUP_WEAPON_CONFIG[w] || WEAPON_CONFIG[w] || WEAPON_CONFIG[WEAPON_TYPES.PULSE];
     const base = cfg.interval || 8;
-    return this.overdriveActive ? Math.floor(base / 2) : base;
+    return this.overdriveActive ? Math.max(3, Math.floor(base / 2)) : base;
   }
 
   spawnBullet(x, y, type, options = {}) {
@@ -61,77 +65,99 @@ export default class WeaponSystem {
     GameGlobal.databus.bullets.push(bullet);
   }
 
-  /** 自动射击 - 前三种武器 */
+  /** 按弹道数发射 */
+  firePattern(shootFn) {
+    this.getLaneOffsets().forEach((offset) => shootFn(offset));
+  }
+
   autoShoot() {
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y;
-    const cfg = WEAPON_CONFIG[this.autoWeapon];
+    const weapon = this.getActiveWeapon();
 
-    switch (this.autoWeapon) {
-      case WEAPON_TYPES.PULSE:
-        this.spawnBullet(px - cfg.size / 2, py - 10, WEAPON_TYPES.PULSE);
-        break;
-
-      case WEAPON_TYPES.TWIN: {
-        const offset = cfg.offset || 14;
-        this.spawnBullet(px - offset, py - 10, WEAPON_TYPES.TWIN);
-        this.spawnBullet(px + offset - cfg.size, py - 10, WEAPON_TYPES.TWIN);
-        break;
-      }
-
-      case WEAPON_TYPES.SPREAD: {
-        const angles = cfg.angles || [-0.25, 0, 0.25];
-        angles.forEach((angle) => {
-          const speed = cfg.speed;
-          this.spawnBullet(px - cfg.size / 2, py - 10, WEAPON_TYPES.SPREAD, {
-            vx: Math.sin(angle) * speed,
-            vy: -Math.cos(angle) * speed,
-          });
+    switch (weapon) {
+      case PICKUP_TYPES.LASER: {
+        const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.LASER];
+        this.firePattern((off) => {
+          this.spawnBullet(px + off - cfg.width / 2, py - 10, PICKUP_TYPES.LASER);
         });
         break;
       }
-      default:
+      case PICKUP_TYPES.EXPLODE: {
+        const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.EXPLODE];
+        this.firePattern((off) => {
+          this.spawnBullet(px + off - cfg.size / 2, py - 10, PICKUP_TYPES.EXPLODE);
+        });
         break;
+      }
+      case PICKUP_TYPES.BLADE: {
+        const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.BLADE];
+        this.firePattern((off) => {
+          this.spawnBullet(px + off - cfg.size / 2, py - 10, PICKUP_TYPES.BLADE);
+        });
+        break;
+      }
+      case PICKUP_TYPES.QI: {
+        const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.QI];
+        this.firePattern((off) => {
+          this.spawnBullet(px + off - cfg.size / 2, py - 10, PICKUP_TYPES.QI);
+        });
+        break;
+      }
+      case PICKUP_TYPES.SHOTGUN: {
+        const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.SHOTGUN];
+        const count = cfg.pelletCount || 5;
+        const spread = cfg.spreadAngle || 0.5;
+        this.firePattern((off) => {
+          for (let i = 0; i < count; i++) {
+            const angle = -spread / 2 + (spread / (count - 1)) * i;
+            this.spawnBullet(px + off - cfg.size / 2, py - 10, PICKUP_TYPES.SHOTGUN, {
+              vx: Math.sin(angle) * cfg.speed,
+              vy: -Math.cos(angle) * cfg.speed,
+            });
+          }
+        });
+        break;
+      }
+      default: {
+        const cfg = WEAPON_CONFIG[WEAPON_TYPES.PULSE];
+        this.firePattern((off) => {
+          this.spawnBullet(px + off - cfg.size / 2, py - 10, WEAPON_TYPES.PULSE);
+        });
+        break;
+      }
     }
 
     GameGlobal.musicManager.playShoot();
   }
 
-  /** 技能1: 穿透镭射 - 从战机位置向上发射宽激光 */
   fireLaser() {
     if (this.skillCooldowns.laser > 0) return false;
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y;
     const cfg = WEAPON_CONFIG[WEAPON_TYPES.LASER];
     this.spawnBullet(px - cfg.width / 2, py - 10, WEAPON_TYPES.LASER, {
-      vy: -cfg.speed,
-      vx: 0,
-      beamHeight: py + 20,
+      vy: -cfg.speed, vx: 0, beamHeight: py + 20,
     });
     this.skillCooldowns.laser = SKILL_CONFIG.laser.cooldown;
     GameGlobal.musicManager.playShoot();
     return true;
   }
 
-  /** 技能2: 追踪导弹 */
   fireMissiles() {
     if (this.skillCooldowns.missile > 0) return false;
     const px = this.player.x + this.player.width / 2;
     const py = this.player.y;
     const cfg = WEAPON_CONFIG[WEAPON_TYPES.MISSILE];
-    const count = cfg.count || 5;
-
-    for (let i = 0; i < count; i++) {
-      const spread = (i - (count - 1) / 2) * 20;
+    for (let i = 0; i < (cfg.count || 5); i++) {
+      const spread = (i - 2) * 20;
       this.spawnBullet(px + spread - cfg.size / 2, py - 10, WEAPON_TYPES.MISSILE);
     }
-
     this.skillCooldowns.missile = SKILL_CONFIG.missile.cooldown;
     GameGlobal.musicManager.playShoot();
     return true;
   }
 
-  /** 技能3: 能量护盾 */
   activateShield() {
     if (this.skillCooldowns.shield > 0 || this.shieldActive) return false;
     this.shieldActive = true;
@@ -140,26 +166,19 @@ export default class WeaponSystem {
     return true;
   }
 
-  /** 技能4: 全屏轰炸 */
   activateBomb() {
     if (this.skillCooldowns.bomb > 0) return false;
-    GameGlobal.databus.enemies.forEach((enemy) => {
-      if (enemy.isActive) {
-        enemy.takeDamage(SKILL_CONFIG.bomb.damage);
-      }
-    });
+    GameGlobal.databus.enemies.forEach((e) => { if (e.isActive) e.takeDamage(SKILL_CONFIG.bomb.damage); });
     GameGlobal.databus.addExplosion(
       this.player.x + this.player.width / 2,
       this.player.y + this.player.height / 2,
-      '#fab1a0',
-      40
+      '#fab1a0', 40
     );
     this.skillCooldowns.bomb = SKILL_CONFIG.bomb.cooldown;
     GameGlobal.musicManager.playExplosion();
     return true;
   }
 
-  /** 技能5: 超速射击 */
   activateOverdrive() {
     if (this.skillCooldowns.overdrive > 0 || this.overdriveActive) return false;
     this.overdriveActive = true;
@@ -168,7 +187,6 @@ export default class WeaponSystem {
     return true;
   }
 
-  /** 尝试释放技能 */
   useSkill(skillKey) {
     switch (skillKey) {
       case 'laser': return this.fireLaser();
@@ -181,22 +199,17 @@ export default class WeaponSystem {
   }
 
   update() {
-    // 冷却计时
     Object.keys(this.skillCooldowns).forEach((key) => {
       if (this.skillCooldowns[key] > 0) this.skillCooldowns[key]--;
     });
-
     if (this.shieldActive) {
       this.shieldTimer--;
       if (this.shieldTimer <= 0) this.shieldActive = false;
     }
-
     if (this.overdriveActive) {
       this.overdriveTimer--;
       if (this.overdriveTimer <= 0) this.overdriveActive = false;
     }
-
-    // 自动射击
     this.shootTimer++;
     if (this.shootTimer >= this.getShootInterval()) {
       this.shootTimer = 0;
@@ -204,13 +217,10 @@ export default class WeaponSystem {
     }
   }
 
-  isShielded() {
-    return this.shieldActive;
-  }
+  isShielded() { return this.shieldActive; }
 
   getSkillCooldownRatio(skillKey) {
     const max = SKILL_CONFIG[skillKey]?.cooldown || 1;
-    const current = this.skillCooldowns[skillKey] || 0;
-    return Math.max(0, 1 - current / max);
+    return Math.max(0, 1 - (this.skillCooldowns[skillKey] || 0) / max);
   }
 }

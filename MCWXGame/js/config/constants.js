@@ -10,13 +10,7 @@ export const PLAYER_SPEED = 8;
 export const PLAYER_MAX_HP = 100;
 export const PLAYER_SHOOT_INTERVAL = 8;
 
-// 敌机
-export const ENEMY_TYPES = {
-  SCOUT: { hp: 1, speed: 3, score: 10, size: 28, color: '#ff6b6b' },
-  FIGHTER: { hp: 3, speed: 2.5, score: 30, size: 36, color: '#ffa502' },
-  TANK: { hp: 8, speed: 1.5, score: 80, size: 48, color: '#a55eea' },
-  ELITE: { hp: 15, speed: 2, score: 150, size: 44, color: '#ff4757' },
-};
+// 敌机配置见 js/config/enemies.js
 
 // 背景
 export const STAR_COUNT = 80;

@@ -1,18 +1,25 @@
 import Pool from './base/pool';
 import Particle from './runtime/particles';
+import WeaponPickup from './item/weaponPickup';
+import EquipmentPickup from './item/equipmentPickup';
+import { getCurrentLevelCfg } from './config/levels';
+import { PICKUP_TYPE_LIST } from './config/pickupWeapons';
+import { EQUIP_TYPE_LIST } from './config/equipment';
+import ScoreBoard from './runtime/scoreBoard';
 
 let instance;
 
-/**
- * 全局状态管理
- */
 export default class DataBus {
   bullets = [];
   enemies = [];
   particles = [];
+  pickups = [];
   frame = 0;
   score = 0;
   isGameOver = false;
+  isPaused = false;
+  scoreSaved = false;
+  topScores = [];
   pool = new Pool();
   player = null;
   spawner = null;
@@ -21,6 +28,7 @@ export default class DataBus {
   constructor() {
     if (instance) return instance;
     instance = this;
+    this.topScores = ScoreBoard.load();
   }
 
   reset() {
@@ -29,11 +37,40 @@ export default class DataBus {
     this.bullets = [];
     this.enemies = [];
     this.particles = [];
+    this.pickups = [];
     this.isGameOver = false;
+    this.gameCleared = false;
+    this.isPaused = false;
+    this.scoreSaved = false;
+    this.topScores = ScoreBoard.load();
+    this.currentLevel = 1;
+    this.levelKillCount = 0;
+    this.bossActive = false;
+    this.showBossWarning = 0;
+    this.levelClearTimer = 0;
+    this.levelClearMsg = '';
+    this.weaponSwitchTimer = 0;
+    this.weaponSwitchMsg = '';
+    this.bossTitle = '';
   }
 
   gameOver() {
     this.isGameOver = true;
+    this.isPaused = false;
+    this.saveRunScore(false);
+  }
+
+  /** 失败或通关时保存积分到排行榜 */
+  saveRunScore(cleared = false) {
+    if (this.scoreSaved) return this.topScores;
+    this.scoreSaved = true;
+    this.topScores = ScoreBoard.save(this.score, this.currentLevel, cleared);
+    return this.topScores;
+  }
+
+  togglePause() {
+    if (this.isGameOver || this.gameCleared) return;
+    this.isPaused = !this.isPaused;
   }
 
   addExplosion(x, y, color, size) {
@@ -44,7 +81,8 @@ export default class DataBus {
     const idx = this.enemies.indexOf(enemy);
     if (idx !== -1) {
       this.enemies.splice(idx, 1);
-      this.pool.recover('enemy', enemy);
+      const poolKey = enemy.isBoss ? 'boss' : 'enemy';
+      this.pool.recover(poolKey, enemy);
     }
   }
 
@@ -54,5 +92,52 @@ export default class DataBus {
       this.bullets.splice(idx, 1);
       this.pool.recover('bullet', bullet);
     }
+  }
+
+  removePickup(pickup) {
+    const idx = this.pickups.indexOf(pickup);
+    if (idx !== -1) {
+      this.pickups.splice(idx, 1);
+      const poolKey = pickup.pickupKind === 'equip' ? 'equipPickup' : 'pickup';
+      this.pool.recover(poolKey, pickup);
+    }
+  }
+
+  /** 敌机击毁掉落：武器 / 装备随机 */
+  /** Boss 掉落：必出武器 + 随机装备 */
+  trySpawnBossDrops(x, y) {
+    const wType = PICKUP_TYPE_LIST[Math.floor(Math.random() * PICKUP_TYPE_LIST.length)];
+    const weapon = this.pool.getItemByClass('pickup', WeaponPickup);
+    weapon.init(wType, x - 20, y);
+    this.pickups.push(weapon);
+
+    const eType = EQUIP_TYPE_LIST[Math.floor(Math.random() * EQUIP_TYPE_LIST.length)];
+    const equip = this.pool.getItemByClass('equipPickup', EquipmentPickup);
+    equip.init(eType, x + 20, y);
+    this.pickups.push(equip);
+  }
+
+  trySpawnDrop(x, y, force = false) {
+    const lvCfg = getCurrentLevelCfg();
+    const rate = lvCfg.dropRate ?? 0.28;
+    if (!force && Math.random() > rate) return;
+
+    const roll = Math.random();
+    if (roll < 0.55 || force) {
+      const type = PICKUP_TYPE_LIST[Math.floor(Math.random() * PICKUP_TYPE_LIST.length)];
+      const pickup = this.pool.getItemByClass('pickup', WeaponPickup);
+      pickup.init(type, x, y);
+      this.pickups.push(pickup);
+    } else {
+      const type = EQUIP_TYPE_LIST[Math.floor(Math.random() * EQUIP_TYPE_LIST.length)];
+      const pickup = this.pool.getItemByClass('equipPickup', EquipmentPickup);
+      pickup.init(type, x, y);
+      this.pickups.push(pickup);
+    }
+  }
+
+  /** @deprecated 兼容旧调用 */
+  trySpawnWeaponPickup(x, y, force = false) {
+    this.trySpawnDrop(x, y, force);
   }
 }

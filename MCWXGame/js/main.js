@@ -5,6 +5,8 @@ import Background from './runtime/background';
 import HUD from './runtime/hud';
 import Music from './runtime/music';
 import DataBus from './databus';
+import { getCurrentLevelCfg } from './config/levels';
+import ScoreBoard from './runtime/scoreBoard';
 
 const ctx = canvas.getContext('2d');
 
@@ -25,15 +27,19 @@ export default class Main {
     GameGlobal.databus.player = this.player;
     GameGlobal.databus.spawner = this.spawner;
     GameGlobal.databus.hud = this.hud;
+    GameGlobal.databus.bg = this.bg;
 
     this.hud.on('restart', this.start.bind(this));
+    GameGlobal.databus.topScores = ScoreBoard.load();
     this.start();
   }
 
   start() {
     GameGlobal.databus.reset();
+    GameGlobal.databus.hud.showRankPanel = false;
     this.player.init();
     this.spawner.reset();
+    this.bg.setLevel(1);
     cancelAnimationFrame(this.aniId);
     this.aniId = requestAnimationFrame(this.loop.bind(this));
   }
@@ -54,6 +60,8 @@ export default class Main {
           : bullet.isCollideWith(enemy);
 
         if (hit) {
+          if (bullet.onHitEnemy(enemy)) break;
+
           enemy.takeDamage(bullet.damage);
 
           if (bullet.pierce) {
@@ -68,20 +76,31 @@ export default class Main {
 
     if (!this.player.isActive) return;
 
+    // 拾取道具
+    GameGlobal.databus.pickups.forEach((pickup) => {
+      if (!pickup.isActive || !this.player.isCollideWith(pickup)) return;
+
+      if (pickup.pickupKind === 'equip') {
+        this.player.applyEquipment(pickup.equipType);
+      } else {
+        this.player.weaponSystem.setPickupWeapon(pickup.weaponType);
+      }
+      pickup.destroy();
+    });
+
     for (let i = 0; i < enemies.length; i++) {
       const enemy = enemies[i];
       if (enemy.isActive && this.player.isCollideWith(enemy)) {
-        this.player.takeDamage(20);
-        enemy.takeDamage(999);
+        const lvCfg = getCurrentLevelCfg();
+        const dmg = enemy.isBoss
+          ? (lvCfg.bossContactDamage || 35)
+          : (lvCfg.contactDamage || 18);
+        this.player.takeDamage(dmg);
+        if (!enemy.isBoss) {
+          enemy.takeDamage(999);
+        }
         break;
       }
-    }
-  }
-
-  /** 随机掉落武器升级 */
-  checkPowerUp() {
-    if (GameGlobal.databus.frame % 600 === 0 && GameGlobal.databus.score > 0) {
-      this.player.weaponSystem.upgradeWeapon();
     }
   }
 
@@ -90,6 +109,7 @@ export default class Main {
 
     this.bg.render(ctx);
     GameGlobal.databus.enemies.forEach((e) => e.render(ctx));
+    GameGlobal.databus.pickups.forEach((p) => p.render(ctx));
     GameGlobal.databus.bullets.forEach((b) => b.render(ctx));
     this.player.render(ctx);
     GameGlobal.databus.particles.forEach((p) => p.render(ctx));
@@ -99,20 +119,18 @@ export default class Main {
   update() {
     GameGlobal.databus.frame++;
 
-    if (GameGlobal.databus.isGameOver) return;
+    if (GameGlobal.databus.isGameOver || GameGlobal.databus.gameCleared || GameGlobal.databus.isPaused) return;
 
     this.bg.update();
     this.player.update();
     this.spawner.update();
     GameGlobal.databus.bullets.forEach((b) => b.update());
     GameGlobal.databus.enemies.forEach((e) => e.update());
+    GameGlobal.databus.pickups.forEach((p) => p.update());
 
-    GameGlobal.databus.particles = GameGlobal.databus.particles.filter((p) => {
-      return p.update();
-    });
+    GameGlobal.databus.particles = GameGlobal.databus.particles.filter((p) => p.update());
 
     this.collisionDetection();
-    this.checkPowerUp();
   }
 
   loop() {

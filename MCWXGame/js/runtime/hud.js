@@ -54,15 +54,22 @@ export default class HUD extends Emitter {
     };
 
     this.resumeBtn = {
-      x: SCREEN_WIDTH / 2 - 70,
+      x: SCREEN_WIDTH / 2 - 145,
       y: SCREEN_HEIGHT / 2 - 10,
-      w: 140,
+      w: 130,
+      h: 40,
+    };
+
+    this.pauseRestartBtn = {
+      x: SCREEN_WIDTH / 2 + 15,
+      y: SCREEN_HEIGHT / 2 - 10,
+      w: 130,
       h: 40,
     };
 
     this.rankBtn = {
       x: SCREEN_WIDTH / 2 - 70,
-      y: SCREEN_HEIGHT / 2 + 40,
+      y: SCREEN_HEIGHT / 2 + 45,
       w: 140,
       h: 36,
     };
@@ -100,6 +107,7 @@ export default class HUD extends Emitter {
 
     if (GameGlobal.databus.isPaused) {
       if (this.hitRect(x, y, this.resumeBtn)) return 'resume';
+      if (this.hitRect(x, y, this.pauseRestartBtn)) return 'restart';
       if (this.hitRect(x, y, this.rankBtn)) return 'rank';
       return 'paused';
     }
@@ -340,10 +348,11 @@ export default class HUD extends Emitter {
     ctx.fillText(`当前得分 ${GameGlobal.databus.score}`, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.34);
 
     this.drawBtn(ctx, this.resumeBtn, '继续游戏', '#0984e3');
+    this.drawBtn(ctx, this.pauseRestartBtn, '重新开始', '#e17055');
     this.drawBtn(ctx, this.rankBtn, this.showRankPanel ? '收起排行' : '积分排行', '#6c5ce7');
 
     if (this.showRankPanel) {
-      this.renderLeaderboard(ctx, SCREEN_HEIGHT * 0.48, GameGlobal.databus.score);
+      this.renderLeaderboard(ctx, SCREEN_HEIGHT * 0.52, GameGlobal.databus.score);
     }
 
     ctx.textAlign = 'left';

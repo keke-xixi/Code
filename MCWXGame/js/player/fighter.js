@@ -161,10 +161,10 @@ export default class Fighter extends Entity {
   }
 
   setTarget(x, y) {
-    const rightPad = 58;
+    const edgePad = 4;
     const w = this.width;
     const h = this.height;
-    this.targetX = Math.max(0, Math.min(x - w / 2, SCREEN_WIDTH - w - rightPad));
+    this.targetX = Math.max(edgePad, Math.min(x - w / 2, SCREEN_WIDTH - w - edgePad));
     this.targetY = Math.max(60, Math.min(y - h / 2, SCREEN_HEIGHT - h - 20));
   }
 

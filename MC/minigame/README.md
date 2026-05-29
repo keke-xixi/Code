@@ -1,6 +1,12 @@
 # MC 微信小游戏工程
 
-- **AppID**：`wxdb70767113810f88`
-- **导入方式**：微信开发者工具 → 左侧选 **小游戏** → 导入本目录 `minigame`（不是仓库根目录，也不是 `dist/dev/mp-weixin`）
+- **AppID**：`wxdb70767113810f88`（仅本目录使用）
+- **导入**：开发者工具左侧 **小游戏** → 导入 **本文件夹** `minigame`
 
-当前为 Canvas 演示骨架（格子、移动、凿矿），完整功能见仓库 `src/` 与 `docs/MINIGAME.md` 迁移计划。
+## 常见错误
+
+若导入的是 `dist/dev/mp-weixin`，会报 **找不到 game.json**、模拟器黑屏——那是 uni **小程序** 产物，不能当小游戏打开。
+
+详见仓库根目录 `WEIXIN_导入说明.md`。
+
+当前为 Canvas 演示骨架，完整玩法迁移见 `docs/MINIGAME.md`。

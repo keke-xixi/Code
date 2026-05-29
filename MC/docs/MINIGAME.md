@@ -11,7 +11,7 @@
 | 构建 | `npm run dev:mp-weixin` → `dist/dev/mp-weixin` | 导入 `minigame/` 目录 |
 | 开发者工具 | **小程序模式** | **小游戏模式** |
 
-`dist/dev/mp-weixin` **不能**在微信开发者工具「小游戏」里直接导入运行（会报找不到 `game.json`）。
+`dist/dev/mp-weixin` **不能**配合小游戏 AppID 使用：工具会编译 `game.json` 并报 **未找到 game.json**、黑屏。小游戏请只导入 `minigame/`；uni 小程序请用 AppID `wx9430aecf60877fad` 导入 `mp-weixin`（见 `WEIXIN_导入说明.md`）。
 
 ## 本分支（dev-wexin-game）做什么
 

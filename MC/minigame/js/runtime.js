@@ -18,6 +18,11 @@ const oreColors = {
 export const boot = () => {
   canvas = wx.createCanvas()
   ctx = canvas.getContext('2d')
+  const sys = wx.getSystemInfoSync()
+  const dpr = sys.pixelRatio || 1
+  canvas.width = sys.windowWidth * dpr
+  canvas.height = sys.windowHeight * dpr
+  ctx.scale(dpr, dpr)
   initMap()
   bindTouch()
   loop()

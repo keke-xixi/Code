@@ -11,7 +11,13 @@ node_modules
 */node_modules
 .DS_Store
 dist
+*/dist
 *.local
+
+# WXAppBack runtime data
+WXAppBack/uploads/
+WXAppBack/data/
+WXAppBack/.env
 
 # Editor directories and files
 .idea

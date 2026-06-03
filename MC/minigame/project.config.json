@@ -1,0 +1,17 @@
+{
+  "description": "MC 挖矿 · 微信小游戏",
+  "compileType": "game",
+  "appid": "wxdb70767113810f88",
+  "projectname": "MC-minigame",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": false,
+    "minified": true
+  },
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "condition": {}
+}

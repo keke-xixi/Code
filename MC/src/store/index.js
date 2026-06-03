@@ -1,4 +1,5 @@
 import { createStore } from 'vuex'
+import { getSystemMetrics } from '@/utils/system.js'
 
 export default createStore({
   state: {
@@ -17,30 +18,35 @@ export default createStore({
   },
   actions: {
     calculateHeights({ commit }) {
-      const systemInfo = uni.getSystemInfoSync()
+      const systemInfo = getSystemMetrics()
       let navHeight = 44
-      
+
       // #ifdef MP-WEIXIN
-      const menu = wx.getMenuButtonBoundingClientRect()
-      navHeight = menu.bottom + menu.top - systemInfo.statusBarHeight
+      try {
+        if (typeof wx !== 'undefined' && wx.getMenuButtonBoundingClientRect) {
+          const menu = wx.getMenuButtonBoundingClientRect()
+          if (menu?.bottom != null && menu?.top != null) {
+            navHeight = menu.bottom + menu.top - (systemInfo.statusBarHeight || 0)
+          }
+        }
+      } catch (e) {
+        /* 忽略胶囊按钮读取失败 */
+      }
       // #endif
-      
-      // 更准确的安全区域计算
+
       let safeAreaHeight = systemInfo.safeArea?.height || systemInfo.windowHeight
-      
-      // 如果存在状态栏和导航栏，需要减去它们的高度
       if (systemInfo.statusBarHeight && navHeight) {
         safeAreaHeight = safeAreaHeight - systemInfo.statusBarHeight - navHeight
       }
-      
-      // 计算屏幕高度（rpx）
-      const screenHeight = (systemInfo.windowHeight / systemInfo.windowWidth) * 750
-      
+
+      const screenHeight =
+        (systemInfo.windowHeight / systemInfo.windowWidth) * 750
+
       commit('UPDATE_HEIGHT', {
         statusBarHeight: systemInfo.statusBarHeight,
         navigationBarHeight: navHeight,
-        safeAreaHeight: safeAreaHeight,  // 修正后的安全高度
-        screenHeight: screenHeight
+        safeAreaHeight,
+        screenHeight,
       })
     }
   }

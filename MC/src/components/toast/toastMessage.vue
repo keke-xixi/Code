@@ -1,13 +1,7 @@
 <template>
   <uni-popup ref="popupRef" type="center" :mask-click="false">
     <view class="mc-toast" :class="`mc-toast--${toastType}`">
-      <text class="mc-toast__emoji" v-if="toastEmoji">{{ toastEmoji }}</text>
-      <uni-icons
-        v-else-if="showIcon"
-        :type="iconType"
-        :size="36"
-        :color="iconColor"
-      />
+      <text class="mc-toast__emoji" v-if="displayIcon">{{ displayIcon }}</text>
       <text class="mc-toast__title" v-if="toastTitle">{{ toastTitle }}</text>
       <text class="mc-toast__message">{{ toastMessage }}</text>
       <view class="mc-toast__actions" v-if="toastShowConfirm || toastShowCancel">
@@ -60,26 +54,21 @@ const toastShowConfirm = ref(props.showConfirm)
 const toastShowCancel = ref(props.showCancel)
 const toastDuration = ref(props.duration)
 
-const iconType = computed(() => {
+const iconEmoji = computed(() => {
   const map = {
-    success: 'checkmarkempty',
-    error: 'closeempty',
-    warning: 'info',
-    info: 'info',
-    loading: 'spinner-cycle',
+    success: '✓',
+    error: '✕',
+    warning: '!',
+    info: 'ℹ',
+    loading: '…',
   }
-  return map[toastType.value] || 'info'
+  return map[toastType.value] || 'ℹ'
 })
 
-const iconColor = computed(() => {
-  const map = {
-    success: '#4ade80',
-    error: '#ff6b6b',
-    warning: '#ffd700',
-    info: '#7eb8ff',
-    loading: '#8b9cb3',
-  }
-  return map[toastType.value] || '#7eb8ff'
+const displayIcon = computed(() => {
+  if (toastEmoji.value) return toastEmoji.value
+  if (props.showIcon) return iconEmoji.value
+  return ''
 })
 
 const clearTimer = () => {

@@ -3,7 +3,7 @@
 
 ## 游戏
 
-MC 挖矿小游戏 h5 版本
+MC 挖矿小游戏 h5 版本（含微信小游戏同步 `MC/minigame`）
 
 MCBack 挖矿小游戏后端代码 (node.js  暂不需要)
 
@@ -11,11 +11,11 @@ MCWXGame 竖版射击微信小游戏（星河拾弹记）
 
 MCNovel 小说网站（规划中）
 
-## 云笔记（dev 分支）
+## 云笔记
 
 WXApp 微信小程序 — 个人云笔记与文件存储
 
-WXAppBack 云笔记后端（Node.js + Express + SQLite）
+WXAppBack 云笔记后端（Node.js + Express + MySQL）
 
 ### 快速开始
 

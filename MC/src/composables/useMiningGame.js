@@ -9,6 +9,7 @@ import {
 } from '@/config/game.js'
 import { meetsRarity } from '@/config/shop.js'
 import { exchangeDiamondForGold } from '@/services/game/exchange.js'
+import { getSystemMetrics } from '@/utils/system.js'
 import { initializeWorldOres, extendWorldOres } from '@/services/game/world.js'
 import { loadSave, persistSave, clearSave } from '@/services/game/save.js'
 import {
@@ -649,7 +650,7 @@ export function useMiningGame({ toastRef } = {}) {
   }
 
   const initGame = () => {
-    const systemInfo = uni.getSystemInfoSync()
+    const systemInfo = getSystemMetrics()
     screenHeight.value = systemInfo.windowHeight
     screenWidth.value = systemInfo.windowWidth
     const save = loadSave()

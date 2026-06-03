@@ -2,12 +2,12 @@
   <view class="dpad-wrap">
     <view v-if="expanded" class="dpad" @tap.stop>
       <view class="dpad__row">
-        <button class="dpad__btn dpad__btn--up" @touchstart.prevent="$emit('move', 'w')">↑</button>
+        <view class="dpad__btn dpad__btn--up" @touchstart.stop.prevent="$emit('move', 'w')">↑</view>
       </view>
       <view class="dpad__row dpad__row--middle">
-        <button class="dpad__btn dpad__btn--left" @touchstart.prevent="$emit('move', 'a')">←</button>
-        <button class="dpad__btn dpad__btn--down" @touchstart.prevent="$emit('move', 's')">↓</button>
-        <button class="dpad__btn dpad__btn--right" @touchstart.prevent="$emit('move', 'd')">→</button>
+      <view class="dpad__btn dpad__btn--left" @touchstart.stop.prevent="$emit('move', 'a')">←</view>
+      <view class="dpad__btn dpad__btn--down" @touchstart.stop.prevent="$emit('move', 's')">↓</view>
+      <view class="dpad__btn dpad__btn--right" @touchstart.stop.prevent="$emit('move', 'd')">→</view>
       </view>
     </view>
 
@@ -79,20 +79,13 @@ const toggle = () => {
   color: #fff;
   font-size: 22px;
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0;
-  padding: 0;
+  line-height: 52px;
+  text-align: center;
   transition: transform 0.1s;
+}
 
-  &::after {
-    border: none;
-  }
-
-  &:active {
-    transform: scale(0.92);
-  }
+.dpad__btn:active {
+  transform: scale(0.92);
 }
 
 .dpad__btn--up {

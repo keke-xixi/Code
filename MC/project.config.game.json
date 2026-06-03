@@ -1,0 +1,18 @@
+{
+  "description": "MC 微信小游戏（导入仓库根目录 MC 时使用，源码在 minigame/）",
+  "compileType": "game",
+  "miniprogramRoot": "minigame/",
+  "appid": "wxdb70767113810f88",
+  "projectname": "MC-minigame",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "postcss": false,
+    "minified": true
+  },
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "condition": {}
+}

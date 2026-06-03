@@ -1,0 +1,19 @@
+{
+  "name": "云笔记",
+  "appid": "wx9430aecf60877fad",
+  "description": "个人云笔记与文件存储",
+  "versionName": "1.0.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "mp-weixin": {
+    "appid": "wx9430aecf60877fad",
+    "setting": {
+      "urlCheck": false,
+      "es6": true,
+      "minified": true
+    },
+    "usingComponents": true,
+    "permission": {}
+  },
+  "vueVersion": "3"
+}

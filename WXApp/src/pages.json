@@ -1,0 +1,70 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "云笔记",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/notes/list",
+      "style": {
+        "navigationBarTitleText": "我的笔记",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/notes/edit",
+      "style": {
+        "navigationBarTitleText": "编辑笔记",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/files/index",
+      "style": {
+        "navigationBarTitleText": "我的文件",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationBarTitleText": "修改密码",
+        "navigationStyle": "default"
+      }
+    },
+    {
+      "path": "pages/admin/users",
+      "style": {
+        "navigationBarTitleText": "用户管理",
+        "navigationStyle": "default"
+      }
+    }
+  ],
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^App(.*)": "@/components/App$1.vue",
+      "^PageShell$": "@/components/PageShell.vue",
+      "^ThemePicker$": "@/components/ThemePicker.vue",
+      "^EmptyState$": "@/components/EmptyState.vue",
+      "^FabButton$": "@/components/FabButton.vue",
+      "^ConfirmDialog$": "@/components/ConfirmDialog.vue"
+    }
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "云笔记",
+    "navigationBarBackgroundColor": "#ffffff",
+    "backgroundColor": "#f5f7fb"
+  }
+}

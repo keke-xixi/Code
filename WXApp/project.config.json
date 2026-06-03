@@ -1,0 +1,9 @@
+{
+  "description": "云笔记 - 微信小程序",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "minified": true
+  },
+  "compileType": "miniprogram"
+}

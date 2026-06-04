@@ -1,9 +1,9 @@
-import { BASE_URL } from '@/config/index.js'
+import { API_BASE } from '@/config/index.js'
 import { getToken } from '@/utils/request.js'
 
 export function fileDownloadUrl(fileId) {
   const token = encodeURIComponent(getToken() || '')
-  return `${BASE_URL}/api/files/${fileId}/download?token=${token}`
+  return `${API_BASE}/files/${fileId}/download?token=${token}`
 }
 
 export function fileExt(name = '') {

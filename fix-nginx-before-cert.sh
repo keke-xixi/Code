@@ -1,6 +1,22 @@
-# 部署后执行：sudo nginx -t && sudo systemctl reload nginx
-# 证书路径由 certbot 生成，若路径不同请改 ssl_certificate 两行
+#!/bin/bash
+set -e
 
+echo "==> 1. 查找 ssl 引用"
+grep -rn "ssl_certificate\|letsencrypt" /etc/nginx/ 2>/dev/null || true
+
+echo ""
+echo "==> 2. 备份 conf.d"
+for f in /etc/nginx/conf.d/*.conf; do
+  [ -f "$f" ] && mv "$f" "${f}.bak.$(date +%F)" && echo "已备份: $f"
+done
+
+echo ""
+echo "==> 3. 备份主配置"
+cp /etc/nginx/nginx.conf "/etc/nginx/nginx.conf.bak.$(date +%F-%H%M%S)"
+
+echo ""
+echo "==> 4. 写入纯 HTTP 配置"
+tee /etc/nginx/nginx.conf > /dev/null << 'EOF'
 user nginx;
 worker_processes auto;
 error_log /var/log/nginx/error.log;
@@ -30,36 +46,18 @@ http {
 
     client_max_body_size 200m;
 
-    # HTTP -> HTTPS
     server {
         listen       80 default_server;
         listen       [::]:80 default_server;
         server_name  ljrsin.cn www.ljrsin.cn;
 
+        root /home/front/build;
+        index index.html;
+
         location ^~ /.well-known/acme-challenge/ {
             root /var/www/certbot;
             allow all;
         }
-
-        location / {
-            return 301 https://$host$request_uri;
-        }
-    }
-
-    # HTTPS 主站
-    server {
-        listen       443 ssl http2 default_server;
-        listen       [::]:443 ssl http2 default_server;
-        server_name  ljrsin.cn www.ljrsin.cn;
-
-        ssl_certificate     /etc/letsencrypt/live/ljrsin.cn/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/ljrsin.cn/privkey.pem;
-        ssl_session_cache   shared:SSL:10m;
-        ssl_session_timeout 10m;
-        ssl_protocols       TLSv1.2 TLSv1.3;
-
-        root /home/front/build;
-        index index.html;
 
         location ^~ /wx-api/ {
             proxy_pass http://127.0.0.1:5010/;
@@ -97,3 +95,18 @@ http {
         }
     }
 }
+EOF
+
+mkdir -p /var/www/certbot
+
+echo ""
+echo "==> 5. 测试并重载"
+nginx -t
+systemctl reload nginx
+
+echo ""
+echo "==> 6. 验证"
+curl -s http://127.0.0.1/wx-api/api/health
+echo ""
+echo ""
+echo "完成！接下来: certbot --nginx -d ljrsin.cn -d www.ljrsin.cn"

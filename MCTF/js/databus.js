@@ -3,6 +3,7 @@ import { getLevelById } from './config/levels.config'
 import Pool from './base/pool'
 import { getPermanentSlots, unlockLevel } from './base/progress'
 import { clearSlotCache, getLevelSlots } from './map/layout'
+import { initSkills } from './combat/skills'
 
 let instance
 
@@ -25,6 +26,10 @@ export default class DataBus {
   selectedTower = null
   moveMode = false
   showExitConfirm = false
+  skillCharges = {}
+  skillCooldowns = {}
+  pauseTicks = 0
+  gamePaused = false
 
   spawnQueue = []
   waveDelayLeft = 0
@@ -57,6 +62,7 @@ export default class DataBus {
     this.selectedTower = null
     this.moveMode = false
     this.showExitConfirm = false
+    this.gamePaused = false
     this.spawnQueue = []
     this.waveDelayLeft = 0
     this.spawning = false
@@ -64,6 +70,7 @@ export default class DataBus {
       unlocked: s.free || perm.includes(i),
       permanent: perm.includes(i),
     }))
+    initSkills(this)
   }
 
   isSlotUnlocked(index) {

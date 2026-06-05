@@ -42,7 +42,7 @@ const LEVELS = [
       { delay: 110, groups: [{ type: 'fox', count: 2, gap: 90 }, { type: 'eagle', count: 6, gap: 30 }] },
       { delay: 100, groups: [{ type: 'snake', count: 8, gap: 38 }, { type: 'weasel', count: 6, gap: 25 }] },
     ],
-    theme: { sky: '#A8D8F0', pathOuter: '#B8956A', pathInner: '#E8D4B0', grass: '#7CB342', overlay: 'rgba(124,179,66,0.14)', showClouds: true },
+    theme: { sky: '#A8D8F0', pathOuter: '#B8956A', pathInner: '#E8D4B0', grass: '#7CB342' },
     menu: { accent: '#66BB6A', accentDark: '#2E7D32' },
   },
   {
@@ -91,7 +91,7 @@ const LEVELS = [
       { delay: 90, groups: [{ type: 'weasel', count: 12, gap: 20 }, { type: 'snake', count: 6, gap: 40 }] },
       { delay: 120, groups: [{ type: 'demon', count: 1, gap: 0 }, { type: 'fox', count: 3, gap: 55 }] },
     ],
-    theme: { sky: '#9EC9E8', pathOuter: '#A08050', pathInner: '#DCC9A0', grass: '#6FAF4A', overlay: 'rgba(230,126,34,0.16)', showClouds: true },
+    theme: { sky: '#9EC9E8', pathOuter: '#A08050', pathInner: '#DCC9A0', grass: '#6FAF4A' },
     menu: { accent: '#FFA726', accentDark: '#E65100' },
   },
   {

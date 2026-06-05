@@ -9,6 +9,7 @@ import Music from './runtime/music'
 import Particles from './base/particles'
 import { drawSprite, waitForAssets } from './base/assets'
 import { buildPathPoints, buildSlotPoints, getScale } from './map/layout'
+import { tickSkillCooldowns } from './combat/skills'
 
 const ctx = canvas.getContext('2d')
 
@@ -44,6 +45,7 @@ export default class Main {
     db.selectedTower = null
     db.moveMode = false
     db.showExitConfirm = false
+    db.gamePaused = false
   }
 
   startLevel(levelId) {
@@ -71,6 +73,7 @@ export default class Main {
   spawnTick() {
     const db = GameGlobal.databus
     if (!db.spawning) return
+    if (db.pauseTicks > 0) return
     if (db.waveDelayLeft > 0) { db.waveDelayLeft -= 1; return }
 
     if (!db.spawnQueue.length) {
@@ -95,11 +98,12 @@ export default class Main {
   update() {
     if (this.loading) return
     const db = GameGlobal.databus
-    if (db.scene !== 'playing' || db.isGameOver) return
+    if (db.scene !== 'playing' || db.isGameOver || db.gamePaused || db.showExitConfirm) return
 
     db.frame += 1
+    tickSkillCooldowns(db)
     this.background.update()
-    this.spawnTick()
+    if (db.pauseTicks <= 0) this.spawnTick()
     db.towers.forEach((t) => t.update())
     db.enemys.forEach((e) => e.update())
     db.bullets.forEach((b) => b.update())

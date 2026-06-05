@@ -94,30 +94,32 @@ export default class Background {
     ctx.fillStyle = theme.sky || '#A8D8F0'
     ctx.fillRect(0, area.top, area.width, area.height)
 
-    if (levelBg && drawCoverImage(ctx, levelBg, area.left, area.top, area.width, area.height)) {
-      if (theme.overlay) {
-        ctx.fillStyle = theme.overlay
+    const usedLevelBg = levelBg && drawCoverImage(ctx, levelBg, area.left, area.top, area.width, area.height)
+
+    if (!usedLevelBg) {
+      if (grass._loaded) {
+        const gw = area.width
+        const gh = area.height
+        const gox = -(this.grassOffset % gw)
+        ctx.drawImage(grass, area.left + gox, area.top, gw, gh)
+        ctx.drawImage(grass, area.left + gox + gw, area.top, gw, gh)
+      } else {
+        ctx.fillStyle = theme.grass || '#7CB342'
         ctx.fillRect(area.left, area.top, area.width, area.height)
       }
-    } else if (grass._loaded) {
-      const gw = area.width
-      const gh = area.height
-      const gox = -(this.grassOffset % gw)
-      ctx.drawImage(grass, area.left + gox, area.top, gw, gh)
-      ctx.drawImage(grass, area.left + gox + gw, area.top, gw, gh)
-    } else {
-      ctx.fillStyle = theme.grass || '#7CB342'
-      ctx.fillRect(area.left, area.top, area.width, area.height)
-    }
 
-    if (theme.showClouds !== false && clouds._loaded) {
-      const cw = area.width
-      const ch = area.height * 0.42
-      const ox = -(this.cloudOffset % cw)
-      ctx.globalAlpha = levelId === 3 ? 0.45 : 0.78
-      ctx.drawImage(clouds, ox, area.top, cw, ch)
-      ctx.drawImage(clouds, ox + cw, area.top, cw, ch)
-      ctx.globalAlpha = 1
+      if (theme.showClouds !== false && clouds._loaded) {
+        const cw = area.width
+        const ch = area.height * 0.42
+        const ox = -(this.cloudOffset % cw)
+        ctx.globalAlpha = 0.78
+        ctx.drawImage(clouds, ox, area.top, cw, ch)
+        ctx.drawImage(clouds, ox + cw, area.top, cw, ch)
+        ctx.globalAlpha = 1
+      }
+    } else if (theme.overlay) {
+      ctx.fillStyle = theme.overlay
+      ctx.fillRect(area.left, area.top, area.width, area.height)
     }
 
     const pts = GameGlobal.pathPoints || []

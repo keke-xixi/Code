@@ -11,6 +11,7 @@ export default class Music {
     this.hit = this.create(a.hit, false, 0.6)
     this.build = this.create(a.build, false, 0.7)
     this.upgrade = this.create(a.upgrade, false, 0.7)
+    this.invade = this.create(a.invade || a.hit, false, 0.85)
     if (this.bgm) {
       this.bgm.play()
     }
@@ -40,4 +41,5 @@ export default class Music {
   playHit() { this.play(this.hit) }
   playBuild() { this.play(this.build) }
   playUpgrade() { this.play(this.upgrade) }
+  playInvade() { this.play(this.invade) }
 }

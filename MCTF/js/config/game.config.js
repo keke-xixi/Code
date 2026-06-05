@@ -16,6 +16,36 @@ export default {
     towerRangeMul: 1.5,
   },
 
+  skills: [
+    {
+      id: 'slow',
+      name: '减速',
+      icon: 'slow',
+      color: '#4FC3F7',
+      cooldown: 900,
+      slowRatio: 0.5,
+      slowDuration: 300,
+      chargesPerLevel: 1,
+    },
+    {
+      id: 'pause',
+      name: '冰冻',
+      icon: 'freeze',
+      color: '#81D4FA',
+      cooldown: 1200,
+      pauseDuration: 180,
+      chargesPerLevel: 1,
+    },
+    {
+      id: 'massUp',
+      name: '升星',
+      icon: 'star',
+      color: '#FF8A65',
+      cooldown: 1500,
+      chargesPerLevel: 1,
+    },
+  ],
+
   /** 资源路径（images/ 与 audio/） */
   assets: {
     bgGrass: 'images/bg_grass.png',
@@ -55,6 +85,7 @@ export default {
       hit: 'audio/boom.mp3',
       build: 'audio/build.mp3',
       upgrade: 'audio/upgrade.mp3',
+      invade: 'audio/boom.mp3',
     },
   },
 

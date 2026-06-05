@@ -63,15 +63,25 @@ export default class Tower {
     return Math.floor(this.getTotalInvested() * CONFIG.game.sellRefundRate)
   }
 
+  bumpStar() {
+    if (!this.canUpgrade()) return false
+    this.star += 1
+    this.attackAnim = 12
+    GameGlobal.particles?.burst(this.x, this.y, '#F1C40F', 14)
+    return true
+  }
+
+  forceUpgrade() {
+    return this.bumpStar()
+  }
+
   tryUpgrade() {
     const cost = this.upgradeCost()
     const db = GameGlobal.databus
     if (!this.canUpgrade() || db.coins < cost) return false
     db.coins -= cost
-    this.star += 1
-    this.attackAnim = 12
+    if (!this.bumpStar()) return false
     GameGlobal.musicManager?.playUpgrade()
-    GameGlobal.particles?.burst(this.x, this.y, '#F1C40F', 14)
     return true
   }
 

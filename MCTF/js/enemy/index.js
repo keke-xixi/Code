@@ -80,6 +80,8 @@ export default class Enemy {
     if (this.hitFlash > 0) this.hitFlash -= 1
     this.animPhase += 0.12
 
+    if (GameGlobal.databus.pauseTicks > 0) return
+
     if (this.slowTicks > 0) { this.slowTicks -= 1; if (this.slowTicks <= 0) this.slowFactor = 1 }
     if (this.vulnTicks > 0) { this.vulnTicks -= 1; if (this.vulnTicks <= 0) this.vulnFactor = 1 }
     if (this.poisonTicks > 0 && GameGlobal.databus.frame % 20 === 0) {
@@ -114,11 +116,15 @@ export default class Enemy {
   }
 
   reachNest() {
-    GameGlobal.databus.lives -= 1
-    if (GameGlobal.databus.lives <= 0) GameGlobal.databus.gameOver()
+    const db = GameGlobal.databus
+    db.lives -= 1
+    GameGlobal.musicManager?.playInvade()
+    try { wx.vibrateShort({ type: 'medium' }) } catch (e) { /* ignore */ }
+    GameGlobal.particles?.burst(this.x, this.y, '#E53935', 16)
+    if (db.lives <= 0) db.gameOver()
     this.isActive = false
     this.visible = false
-    GameGlobal.databus.removeEnemy(this)
+    db.removeEnemy(this)
   }
 
   die() {

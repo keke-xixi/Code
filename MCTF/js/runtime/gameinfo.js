@@ -4,6 +4,7 @@ import LEVELS from '../config/levels.config'
 import { drawCoverImage, drawSprite, getImage } from '../base/assets'
 import { addPermanentSlot, isLevelUnlocked } from '../base/progress'
 import Tower from '../tower/index'
+import { canUseSkill, useSkill } from '../combat/skills'
 import {
   buildSlotPoints, dist, drawStars, getLevelConfig, getLevelSlots, getScale, getWaveCount, roundRect,
 } from '../map/layout'
@@ -67,6 +68,11 @@ export default class GameInfo extends Emitter {
     return db.selectedSlotIndex >= 0 || !!db.selectedTower
   }
 
+  isDockBlocked() {
+    const db = GameGlobal.databus
+    return db.showExitConfirm || db.gamePaused || db.isGameOver || this.isSelectionActive()
+  }
+
   getBottomBar() {
     const h = SCREEN_HEIGHT * CONFIG.game.bottomBarHeight
     return { x: 0, y: SCREEN_HEIGHT - h, w: SCREEN_WIDTH, h }
@@ -77,13 +83,211 @@ export default class GameInfo extends Emitter {
     return { x: 8, y: 5, w: 48, h: hudH - 10 }
   }
 
-  getExitConfirmBtns() {
-    const y = SCREEN_HEIGHT / 2 + 18
-    const w = 88
-    const g = 12
+  getActionDockLayout() {
+    const margin = 10
+    const size = 46
+    const gap = 8
+    const y = SCREEN_HEIGHT - size - margin
+    const skillW = CONFIG.skills.length * size + (CONFIG.skills.length - 1) * gap
+    const total = skillW + gap + size
+    const x0 = SCREEN_WIDTH - total - margin
+    const skillBtns = CONFIG.skills.map((s, i) => ({
+      id: s.id,
+      skill: s,
+      x: x0 + i * (size + gap),
+      y,
+      w: size,
+      h: size,
+    }))
+    const pauseBtn = {
+      x: x0 + skillW + gap,
+      y,
+      w: size,
+      h: size,
+    }
+    return { skillBtns, pauseBtn, y, size, margin }
+  }
+
+  getSkillBtns() {
+    return this.getActionDockLayout().skillBtns
+  }
+
+  getPauseBtn() {
+    return this.getActionDockLayout().pauseBtn
+  }
+
+  getResumeBtn() {
+    const size = 56
     return {
-      ok: { x: SCREEN_WIDTH / 2 - w - g / 2, y, w, h: 40 },
-      cancel: { x: SCREEN_WIDTH / 2 + g / 2, y, w, h: 40 },
+      x: SCREEN_WIDTH / 2 - size / 2,
+      y: SCREEN_HEIGHT / 2 - size / 2,
+      w: size,
+      h: size,
+    }
+  }
+
+  drawDockIcon(ctx, icon, cx, cy, s, active) {
+    const col = active ? '#FFFFFF' : 'rgba(255,255,255,0.45)'
+    ctx.strokeStyle = col
+    ctx.fillStyle = col
+    ctx.lineWidth = 2.5
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+
+    if (icon === 'slow') {
+      ctx.beginPath()
+      ctx.arc(cx, cy, s * 0.34, 0.2, Math.PI * 1.55)
+      ctx.stroke()
+      ctx.beginPath()
+      ctx.moveTo(cx + s * 0.1, cy - s * 0.34)
+      ctx.lineTo(cx + s * 0.28, cy - s * 0.48)
+      ctx.lineTo(cx + s * 0.14, cy - s * 0.22)
+      ctx.fill()
+    } else if (icon === 'freeze') {
+      for (let i = 0; i < 3; i += 1) {
+        const a = (Math.PI * i) / 3
+        ctx.beginPath()
+        ctx.moveTo(cx, cy)
+        ctx.lineTo(cx + Math.cos(a) * s * 0.38, cy + Math.sin(a) * s * 0.38)
+        ctx.stroke()
+      }
+      ctx.beginPath()
+      ctx.arc(cx, cy, s * 0.1, 0, Math.PI * 2)
+      ctx.fill()
+    } else if (icon === 'star') {
+      ctx.beginPath()
+      for (let i = 0; i < 5; i += 1) {
+        const a = -Math.PI / 2 + (Math.PI * 2 * i) / 5
+        const r = i % 2 === 0 ? s * 0.36 : s * 0.16
+        const px = cx + Math.cos(a) * r
+        const py = cy + Math.sin(a) * r
+        if (i === 0) ctx.moveTo(px, py)
+        else ctx.lineTo(px, py)
+      }
+      ctx.closePath()
+      ctx.fill()
+    } else if (icon === 'pause') {
+      const bw = s * 0.14
+      const gap = s * 0.12
+      ctx.fillRect(cx - gap - bw, cy - s * 0.28, bw, s * 0.56)
+      ctx.fillRect(cx + gap, cy - s * 0.28, bw, s * 0.56)
+    } else if (icon === 'play') {
+      ctx.beginPath()
+      ctx.moveTo(cx - s * 0.12, cy - s * 0.3)
+      ctx.lineTo(cx + s * 0.34, cy)
+      ctx.lineTo(cx - s * 0.12, cy + s * 0.3)
+      ctx.closePath()
+      ctx.fill()
+    } else if (icon === 'check') {
+      ctx.beginPath()
+      ctx.moveTo(cx - s * 0.28, cy + s * 0.02)
+      ctx.lineTo(cx - s * 0.06, cy + s * 0.26)
+      ctx.lineTo(cx + s * 0.32, cy - s * 0.24)
+      ctx.stroke()
+    } else if (icon === 'close') {
+      const d = s * 0.24
+      ctx.beginPath()
+      ctx.moveTo(cx - d, cy - d)
+      ctx.lineTo(cx + d, cy + d)
+      ctx.moveTo(cx + d, cy - d)
+      ctx.lineTo(cx - d, cy + d)
+      ctx.stroke()
+    } else if (icon === 'exit') {
+      ctx.strokeRect(cx - s * 0.22, cy - s * 0.28, s * 0.44, s * 0.56)
+      ctx.beginPath()
+      ctx.moveTo(cx - s * 0.08, cy)
+      ctx.lineTo(cx - s * 0.38, cy)
+      ctx.moveTo(cx - s * 0.28, cy - s * 0.12)
+      ctx.lineTo(cx - s * 0.38, cy)
+      ctx.lineTo(cx - s * 0.28, cy + s * 0.12)
+      ctx.stroke()
+    }
+  }
+
+  drawDockBtn(ctx, x, y, w, h, bg, ready) {
+    roundRect(ctx, x, y, w, h, 10)
+    ctx.fillStyle = ready ? bg : 'rgba(0,0,0,0.5)'
+    ctx.fill()
+    ctx.strokeStyle = ready ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
+
+  drawChargeDot(ctx, x, y, w, charges, ready) {
+    const r = 4
+    const dx = x + w - 7
+    const dy = y + 7
+    ctx.beginPath()
+    ctx.arc(dx, dy, r, 0, Math.PI * 2)
+    ctx.fillStyle = charges > 0 && ready ? '#69F0AE' : 'rgba(255,255,255,0.2)'
+    ctx.fill()
+    if (charges <= 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
+  }
+
+  drawCdMask(ctx, x, y, w, h, cd, maxCd) {
+    if (cd <= 0 || maxCd <= 0) return
+    const cx = x + w / 2
+    const cy = y + h / 2
+    const sweep = (cd / maxCd) * Math.PI * 2
+    ctx.fillStyle = 'rgba(0,0,0,0.58)'
+    ctx.beginPath()
+    ctx.moveTo(cx, cy)
+    ctx.arc(cx, cy, w * 0.72, -Math.PI / 2, -Math.PI / 2 + sweep)
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  inActionDock(x, y) {
+    const { skillBtns, pauseBtn } = this.getActionDockLayout()
+    if (this.inRect(x, y, pauseBtn)) return true
+    return skillBtns.some((b) => this.inRect(x, y, b))
+  }
+
+  handleActionDockTouch(x, y) {
+    const db = GameGlobal.databus
+    if (this.isDockBlocked()) return false
+
+    if (this.inRect(x, y, this.getPauseBtn())) {
+      db.gamePaused = !db.gamePaused
+      db.selectedSlotIndex = -1
+      db.selectedTower = null
+      db.moveMode = false
+      return true
+    }
+
+    const skillBtn = this.getSkillBtns().find((b) => this.inRect(x, y, b))
+    if (skillBtn) {
+      useSkill(db, skillBtn.id)
+      return true
+    }
+
+    return this.inActionDock(x, y)
+  }
+
+  getExitConfirmDialog() {
+    const w = 210
+    const h = 152
+    return {
+      x: SCREEN_WIDTH / 2 - w / 2,
+      y: SCREEN_HEIGHT / 2 - h / 2,
+      w,
+      h,
+    }
+  }
+
+  getExitConfirmBtns() {
+    const d = this.getExitConfirmDialog()
+    const size = 50
+    const gap = 28
+    const y = d.y + d.h - size - 18
+    const cx = SCREEN_WIDTH / 2
+    return {
+      ok: { x: cx - gap / 2 - size, y, w: size, h: size },
+      cancel: { x: cx + gap / 2, y, w: size, h: size },
     }
   }
 
@@ -92,15 +296,21 @@ export default class GameInfo extends Emitter {
 
     if (db.showExitConfirm) {
       const c = this.getExitConfirmBtns()
+      const dialog = this.getExitConfirmDialog()
       if (this.inRect(x, y, c.ok)) {
         db.showExitConfirm = false
         this.emit('menu')
         return
       }
-      if (this.inRect(x, y, c.cancel)) {
+      if (this.inRect(x, y, c.cancel) || !this.inRect(x, y, dialog)) {
         db.showExitConfirm = false
         return
       }
+      return
+    }
+
+    if (db.gamePaused && !db.isGameOver) {
+      if (this.inRect(x, y, this.getResumeBtn())) db.gamePaused = false
       return
     }
 
@@ -131,13 +341,13 @@ export default class GameInfo extends Emitter {
         db.selectedSlotIndex = -1
         db.selectedTower = null
         db.moveMode = false
-        return
       }
       return
     }
 
     if (this.handleSlotTap(x, y)) return
     if (this.handleTowerTap(x, y)) return
+    if (this.handleActionDockTouch(x, y)) return
     db.selectedSlotIndex = -1
     db.selectedTower = null
     db.moveMode = false
@@ -641,13 +851,6 @@ export default class GameInfo extends Emitter {
     ctx.font = `bold ${Math.floor(14 * getScale())}px sans-serif`
     ctx.fillText(CONFIG.game.title, SCREEN_WIDTH - 12, hudH / 2)
 
-    if (!this.isSelectionActive() && !db.isGameOver && db.waveDelayLeft <= 0) {
-      ctx.textAlign = 'center'
-      ctx.fillStyle = 'rgba(255,255,255,0.65)'
-      ctx.font = '11px sans-serif'
-      const hint = db.moveMode ? '点击空鸡窝完成移动' : '🔒点锁窝购买 · 点鸡升星/移动/拆除'
-      ctx.fillText(hint, SCREEN_WIDTH / 2, hudH - 4)
-    }
   }
 
   renderBottomBar(ctx) {
@@ -783,33 +986,86 @@ export default class GameInfo extends Emitter {
   renderExitConfirm(ctx) {
     const db = GameGlobal.databus
     if (!db.showExitConfirm) return
-    ctx.fillStyle = 'rgba(0,0,0,0.6)'
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
     ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
-    roundRect(ctx, SCREEN_WIDTH / 2 - 110, SCREEN_HEIGHT / 2 - 50, 220, 100, 12)
-    ctx.fillStyle = 'rgba(40,60,36,0.96)'
+    const d = this.getExitConfirmDialog()
+    roundRect(ctx, d.x, d.y, d.w, d.h, 14)
+    ctx.fillStyle = 'rgba(40,60,36,0.98)'
     ctx.fill()
-    ctx.fillStyle = '#fff'
-    ctx.font = 'bold 18px sans-serif'
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    this.drawDockIcon(ctx, 'exit', d.x + d.w / 2, d.y + 36, 20, true)
+    ctx.fillStyle = '#E8F5E9'
+    ctx.font = 'bold 15px sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.fillText('退出？', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 18)
+    ctx.fillText('返回首页', d.x + d.w / 2, d.y + 68)
     const c = this.getExitConfirmBtns()
-    const drawBtn = (b, label, color) => {
-      roundRect(ctx, b.x, b.y, b.w, b.h, 8)
-      ctx.fillStyle = color
-      ctx.fill()
-      ctx.fillStyle = '#fff'
-      ctx.font = 'bold 14px sans-serif'
-      ctx.fillText(label, b.x + b.w / 2, b.y + b.h / 2)
-    }
-    drawBtn(c.ok, '确定', '#2E7D32')
-    drawBtn(c.cancel, '继续', '#546E7A')
+    this.drawDockBtn(ctx, c.ok.x, c.ok.y, c.ok.w, c.ok.h, '#2E7D32', true)
+    this.drawDockIcon(ctx, 'check', c.ok.x + c.ok.w / 2, c.ok.y + c.ok.h / 2, c.ok.w * 0.34, true)
+    this.drawDockBtn(ctx, c.cancel.x, c.cancel.y, c.cancel.w, c.cancel.h, '#546E7A', true)
+    this.drawDockIcon(ctx, 'close', c.cancel.x + c.cancel.w / 2, c.cancel.y + c.cancel.h / 2, c.cancel.w * 0.34, true)
+  }
+
+  renderActionDock(ctx) {
+    const db = GameGlobal.databus
+    if (db.isGameOver) return
+    const { skillBtns, pauseBtn } = this.getActionDockLayout()
+
+    skillBtns.forEach((b) => {
+      const s = b.skill
+      const ready = canUseSkill(s, db) && !db.gamePaused
+      const charges = db.skillCharges[s.id] || 0
+      const cd = db.skillCooldowns[s.id] || 0
+      this.drawDockBtn(ctx, b.x, b.y, b.w, b.h, s.color, ready)
+      this.drawDockIcon(ctx, s.icon, b.x + b.w / 2, b.y + b.h / 2, b.w * 0.42, ready && cd <= 0)
+      this.drawChargeDot(ctx, b.x, b.y, b.w, charges, ready)
+      this.drawCdMask(ctx, b.x, b.y, b.w, b.h, cd, s.cooldown)
+    })
+
+    const pauseReady = !db.isGameOver
+    this.drawDockBtn(ctx, pauseBtn.x, pauseBtn.y, pauseBtn.w, pauseBtn.h, '#8D6E63', pauseReady)
+    this.drawDockIcon(
+      ctx,
+      db.gamePaused ? 'play' : 'pause',
+      pauseBtn.x + pauseBtn.w / 2,
+      pauseBtn.y + pauseBtn.h / 2,
+      pauseBtn.w * 0.42,
+      pauseReady,
+    )
+  }
+
+  renderSkillPauseOverlay(ctx) {
+    const db = GameGlobal.databus
+    if (db.pauseTicks <= 0 || db.isGameOver || db.gamePaused) return
+    const hudH = SCREEN_HEIGHT * CONFIG.game.hudHeight
+    ctx.fillStyle = 'rgba(79,195,247,0.08)'
+    ctx.fillRect(0, hudH, SCREEN_WIDTH, SCREEN_HEIGHT - hudH)
+  }
+
+  renderGamePauseOverlay(ctx) {
+    const db = GameGlobal.databus
+    if (!db.gamePaused || db.isGameOver) return
+    ctx.fillStyle = 'rgba(0,0,0,0.55)'
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+    const btn = this.getResumeBtn()
+    roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 12)
+    ctx.fillStyle = '#8D6E63'
+    ctx.fill()
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'
+    ctx.lineWidth = 2
+    ctx.stroke()
+    this.drawDockIcon(ctx, 'play', btn.x + btn.w / 2, btn.y + btn.h / 2, btn.w * 0.38, true)
   }
 
   render(ctx) {
     this.renderHud(ctx)
+    this.renderSkillPauseOverlay(ctx)
+    this.renderActionDock(ctx)
     this.renderBottomBar(ctx)
     this.renderGameOver(ctx)
+    this.renderGamePauseOverlay(ctx)
     this.renderExitConfirm(ctx)
   }
 }

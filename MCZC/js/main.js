@@ -5,11 +5,13 @@ import DataBus from './databus';
 import Particles from './base/particles';
 import { preloadAssets, waitForAssets } from './base/assets';
 import GameUI from './runtime/gameui';
+import Sfx from './runtime/sfx';
 
 const ctx = canvas.getContext('2d');
 
 GameGlobal.databus = new DataBus();
 GameGlobal.particles = new Particles();
+GameGlobal.sfx = new Sfx();
 
 const assetList = [
   CONFIG.assets.menuBg,
@@ -34,13 +36,19 @@ export default class Main {
 
   showMenu() {
     const db = GameGlobal.databus;
+    const fromLevel = db.levelId;
     db.scene = 'menu';
     db.isOver = false;
     db.isWin = false;
+    db.showExitConfirm = false;
+    db.touchStartScene = '';
+    db.menuIndex = Math.min(LEVELS.length - 1, Math.max(0, fromLevel - 1));
+    GameGlobal.sfx?.refreshBgm();
   }
 
   startLevel(id) {
     GameGlobal.databus.startLevel(id);
+    GameGlobal.sfx?.refreshBgm();
   }
 
   update() {

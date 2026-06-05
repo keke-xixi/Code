@@ -1,3 +1,5 @@
+import LEVELS from '../config/levels.config';
+
 const KEY = 'mirror_twin_progress';
 
 const defaults = () => ({
@@ -25,7 +27,7 @@ export function isUnlocked(id) {
 }
 
 export function unlock(id) {
-  if (id > 3 || data.unlocked.includes(id)) return;
+  if (id > LEVELS.length || data.unlocked.includes(id)) return;
   data.unlocked.push(id);
   data.unlocked.sort((a, b) => a - b);
   save();

@@ -27,6 +27,8 @@ export default class DataBus {
 
   menuIndex = 0;
   menuDragX = 0;
+  showExitConfirm = false;
+  touchStartScene = '';
 
   constructor() {
     if (instance) return instance;
@@ -51,10 +53,11 @@ export default class DataBus {
     this.isWin = false;
     this.isOver = false;
     this.stars = 0;
+    this.showExitConfirm = false;
   }
 
   tick() {
-    if (this.scene !== 'play' || this.isOver) return;
+    if (this.scene !== 'play' || this.isOver || this.showExitConfirm) return;
     this.frame += 1;
     this.elapsed += 1;
     if (this.wrongMark) {
@@ -75,7 +78,7 @@ export default class DataBus {
       const dx = rx - d.x;
       const dy = ry - d.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist <= d.r * 1.15) {
+      if (dist <= d.r * (CONFIG.diffHitMul || 1.15)) {
         this.found.add(d.id);
         this.combo += 1;
         if (this.found.size >= lv.differences.length) this.win();

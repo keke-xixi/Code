@@ -24,6 +24,8 @@ export default class GameUI extends Emitter {
     this.touchY = t.clientY;
     this.touchMoved = false;
     const db = GameGlobal.databus;
+    db.touchStartScene = db.scene;
+    GameGlobal.sfx?.ensureBgm();
     if (db.scene === 'menu') return;
     if (db.scene === 'play') this.handlePlayTouch(t.clientX, t.clientY);
   }
@@ -40,6 +42,11 @@ export default class GameUI extends Emitter {
   onEnd() {
     const db = GameGlobal.databus;
     if (db.scene !== 'menu') return;
+    if (db.touchStartScene !== 'menu') {
+      db.touchStartScene = '';
+      db.menuDragX = 0;
+      return;
+    }
     const th = 45;
     if (Math.abs(db.menuDragX) >= th) {
       if (db.menuDragX < 0 && db.menuIndex < LEVELS.length - 1) db.menuIndex += 1;
@@ -63,6 +70,24 @@ export default class GameUI extends Emitter {
 
   handlePlayTouch(x, y) {
     const db = GameGlobal.databus;
+    if (db.showExitConfirm) {
+      const c = this.getExitConfirmBtns();
+      const dialog = this.getExitConfirmDialog();
+      if (this.hit(x, y, c.ok)) {
+        db.showExitConfirm = false;
+        this.emit('menu');
+        return;
+      }
+      if (this.hit(x, y, c.cancel) || !this.hit(x, y, dialog)) {
+        db.showExitConfirm = false;
+        return;
+      }
+      return;
+    }
+    if (this.hit(x, y, this.getExitBtn()) && !db.isOver) {
+      db.showExitConfirm = true;
+      return;
+    }
     if (db.isOver) {
       const btns = this.getResultBtns();
       if (this.hit(x, y, btns.retry)) this.emit('start', db.levelId);
@@ -82,9 +107,11 @@ export default class GameUI extends Emitter {
       const pos = diffToPixel(result.diff, panel);
       GameGlobal.particles.burst(pos.x, pos.y, '#69F0AE', 16);
       GameGlobal.particles.ring(pos.x, pos.y);
+      GameGlobal.sfx?.playFind();
       try { wx.vibrateShort({ type: 'light' }); } catch (e) { /* ignore */ }
     } else {
       db.wrongMark = { x: tap.px, y: tap.py, life: 30 };
+      GameGlobal.sfx?.playMiss();
       try { wx.vibrateShort({ type: 'medium' }); } catch (e) { /* ignore */ }
     }
   }
@@ -110,16 +137,86 @@ export default class GameUI extends Emitter {
     return { x: SCREEN_WIDTH / 2 - 96, y: m.y + m.h + 16, w: 192, h: 44 };
   }
 
+  getExitBtn() {
+    const h = getHudH();
+    return { x: 8, y: 6, w: 40, h: h - 12 };
+  }
+
+  getExitConfirmDialog() {
+    const w = 210;
+    const hh = 118;
+    return {
+      x: SCREEN_WIDTH / 2 - w / 2,
+      y: SCREEN_HEIGHT / 2 - hh / 2,
+      w,
+      h: hh,
+    };
+  }
+
+  getExitConfirmBtns() {
+    const d = this.getExitConfirmDialog();
+    const size = 50;
+    const gap = 28;
+    const y = d.y + d.h - size - 18;
+    const cx = SCREEN_WIDTH / 2;
+    return {
+      ok: { x: cx - gap / 2 - size, y, w: size, h: size },
+      cancel: { x: cx + gap / 2, y, w: size, h: size },
+    };
+  }
+
   getHintBtn() {
     const fh = getFooterH();
     return { x: SCREEN_WIDTH / 2 - 60, y: SCREEN_HEIGHT - fh + 8, w: 120, h: fh - 16 };
+  }
+
+  drawIconBtn(ctx, x, y, w, h, bg, ready) {
+    roundRect(ctx, x, y, w, h, 10);
+    ctx.fillStyle = ready ? bg : 'rgba(0,0,0,0.5)';
+    ctx.fill();
+    ctx.strokeStyle = ready ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.18)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  drawIcon(ctx, type, cx, cy, s, active) {
+    const col = active ? '#FFFFFF' : 'rgba(255,255,255,0.45)';
+    ctx.strokeStyle = col;
+    ctx.fillStyle = col;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    if (type === 'exit') {
+      ctx.strokeRect(cx - s * 0.22, cy - s * 0.28, s * 0.44, s * 0.56);
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.08, cy);
+      ctx.lineTo(cx - s * 0.38, cy);
+      ctx.moveTo(cx - s * 0.28, cy - s * 0.12);
+      ctx.lineTo(cx - s * 0.38, cy);
+      ctx.lineTo(cx - s * 0.28, cy + s * 0.12);
+      ctx.stroke();
+    } else if (type === 'check') {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.28, cy + s * 0.02);
+      ctx.lineTo(cx - s * 0.06, cy + s * 0.26);
+      ctx.lineTo(cx + s * 0.32, cy - s * 0.24);
+      ctx.stroke();
+    } else if (type === 'close') {
+      const d = s * 0.24;
+      ctx.beginPath();
+      ctx.moveTo(cx - d, cy - d);
+      ctx.lineTo(cx + d, cy + d);
+      ctx.moveTo(cx + d, cy - d);
+      ctx.lineTo(cx - d, cy + d);
+      ctx.stroke();
+    }
   }
 
   getResultBtns() {
     const db = GameGlobal.databus;
     const y = SCREEN_HEIGHT / 2 + 50;
     const h = 42;
-    const hasNext = db.isWin && db.levelId < 3 && isUnlocked(db.levelId + 1);
+    const hasNext = db.isWin && db.levelId < LEVELS.length && isUnlocked(db.levelId + 1);
     if (hasNext) {
       const w = 110;
       const g = 10;
@@ -165,8 +262,7 @@ export default class GameUI extends Emitter {
     ctx.shadowBlur = 0;
     ctx.font = '13px sans-serif';
     ctx.fillStyle = 'rgba(232,234,246,0.8)';
-    ctx.fillText(CONFIG.subtitle, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09 + 30);
-    ctx.fillText('左右滑动 · 在镜像中找到不同之处', SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09 + 52);
+    ctx.fillText('左右滑动选关', SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09 + 30);
 
     if (db.menuIndex > 0) {
       ctx.font = 'bold 32px sans-serif';
@@ -292,6 +388,7 @@ export default class GameUI extends Emitter {
     }
     this.renderFooter(ctx, lv);
     if (db.isOver) this.renderResult(ctx, lv);
+    if (db.showExitConfirm) this.renderExitConfirm(ctx);
     ctx.restore();
   }
 
@@ -305,10 +402,14 @@ export default class GameUI extends Emitter {
     ctx.fillRect(0, 0, SCREEN_WIDTH, h);
 
     ctx.textBaseline = 'middle';
+    const exit = this.getExitBtn();
+    this.drawIconBtn(ctx, exit.x, exit.y, exit.w, exit.h, '#5D4037', !db.isOver);
+    this.drawIcon(ctx, 'exit', exit.x + exit.w / 2, exit.y + exit.h / 2, exit.w * 0.34, !db.isOver);
+
     ctx.font = 'bold 15px sans-serif';
     ctx.textAlign = 'left';
     ctx.fillStyle = lv.accent;
-    ctx.fillText(lv.name, 14, h / 2);
+    ctx.fillText(lv.name, exit.x + exit.w + 8, h / 2);
 
     const sec = Math.floor(db.elapsed / 60);
     ctx.fillStyle = '#E8EAF6';
@@ -317,7 +418,8 @@ export default class GameUI extends Emitter {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = '#FF8A80';
-    ctx.fillText('❤'.repeat(db.lives) + '🖤'.repeat(CONFIG.maxLives - db.lives), SCREEN_WIDTH - 14, h / 2 - 8);
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(`❤ ${db.lives}`, SCREEN_WIDTH - 14, h / 2 - 8);
     ctx.fillStyle = '#69F0AE';
     ctx.font = '12px sans-serif';
     ctx.fillText(`已找到 ${db.found.size}/${lv.differences.length}`, SCREEN_WIDTH - 14, h / 2 + 10);
@@ -370,9 +472,30 @@ export default class GameUI extends Emitter {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(db.hintsLeft > 0 ? `提示 (${db.hintsLeft})` : '提示已用完', btn.x + btn.w / 2, btn.y + btn.h / 2);
-    ctx.font = '11px sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText('点击左右任意一侧对应位置', SCREEN_WIDTH / 2, y + fh - 8);
+  }
+
+  renderExitConfirm(ctx) {
+    const db = GameGlobal.databus;
+    if (!db.showExitConfirm) return;
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const d = this.getExitConfirmDialog();
+    roundRect(ctx, d.x, d.y, d.w, d.h, 14);
+    ctx.fillStyle = 'rgba(26,35,126,0.98)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#E8EAF6';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('返回', d.x + d.w / 2, d.y + 38);
+    const c = this.getExitConfirmBtns();
+    this.drawIconBtn(ctx, c.ok.x, c.ok.y, c.ok.w, c.ok.h, '#2E7D32', true);
+    this.drawIcon(ctx, 'check', c.ok.x + c.ok.w / 2, c.ok.y + c.ok.h / 2, c.ok.w * 0.34, true);
+    this.drawIconBtn(ctx, c.cancel.x, c.cancel.y, c.cancel.w, c.cancel.h, '#546E7A', true);
+    this.drawIcon(ctx, 'close', c.cancel.x + c.cancel.w / 2, c.cancel.y + c.cancel.h / 2, c.cancel.w * 0.34, true);
   }
 
   renderResult(ctx, lv) {

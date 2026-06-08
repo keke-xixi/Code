@@ -19,6 +19,55 @@ function overlapRatio(a, b, size) {
   return (ox * oy) / (size * size * 0.55);
 }
 
+function buildLayerBuckets(tiles) {
+  const buckets = new Map();
+  for (let i = 0; i < tiles.length; i += 1) {
+    const t = tiles[i];
+    if (t.removed) continue;
+    const list = buckets.get(t.layer);
+    if (list) list.push(t);
+    else buckets.set(t.layer, [t]);
+  }
+  return buckets;
+}
+
+function isBlockedByUpper(tile, buckets, upperLayers) {
+  for (let i = 0; i < upperLayers.length; i += 1) {
+    const layer = upperLayers[i];
+    const list = buckets.get(layer);
+    if (!list) continue;
+    for (let j = 0; j < list.length; j += 1) {
+      const other = list[j];
+      if (overlapRatio(tile, other, Math.min(tile.size, other.size)) > 0.42) return true;
+    }
+  }
+  return false;
+}
+
+/** 一次划分遮挡/可点，供渲染与点击复用 */
+export function partitionBoardTiles(tiles) {
+  const buckets = buildLayerBuckets(tiles);
+  const layers = [...buckets.keys()].sort((a, b) => a - b);
+  const blocked = [];
+  const exposed = [];
+
+  for (let li = 0; li < layers.length; li += 1) {
+    const layer = layers[li];
+    const list = buckets.get(layer);
+    const upper = layers.slice(li + 1);
+    for (let i = 0; i < list.length; i += 1) {
+      const tile = list[i];
+      if (isBlockedByUpper(tile, buckets, upper)) blocked.push(tile);
+      else exposed.push(tile);
+    }
+  }
+
+  const sortFn = (a, b) => a.layer - b.layer || a.uid - b.uid;
+  blocked.sort(sortFn);
+  exposed.sort(sortFn);
+  return { blocked, exposed, liveCount: blocked.length + exposed.length };
+}
+
 function buildTileDeck(count) {
   const fruitSlots = count - 3;
   const triples = Math.floor(fruitSlots / 3);
@@ -68,22 +117,22 @@ export function generateBoard(level, area) {
 }
 
 export function isTileBlocked(tile, tiles) {
-  return tiles.some((other) => {
-    if (other.removed || other.uid === tile.uid) return false;
-    if (other.layer <= tile.layer) return false;
-    return overlapRatio(tile, other, Math.min(tile.size, other.size)) > 0.42;
-  });
+  for (let i = 0; i < tiles.length; i += 1) {
+    const other = tiles[i];
+    if (other.removed || other.uid === tile.uid) continue;
+    if (other.layer <= tile.layer) continue;
+    if (overlapRatio(tile, other, Math.min(tile.size, other.size)) > 0.42) return true;
+  }
+  return false;
 }
 
 export function isExposed(tile, tiles) {
   return !tile.removed && !isTileBlocked(tile, tiles);
 }
 
-export function hitExposedTile(tiles, x, y) {
-  const list = tiles
-    .filter((t) => isExposed(t, tiles))
-    .sort((a, b) => b.layer - a.layer);
-  for (let i = 0; i < list.length; i += 1) {
+export function hitExposedTile(tiles, x, y, partition) {
+  const list = partition ? partition.exposed : partitionBoardTiles(tiles).exposed;
+  for (let i = list.length - 1; i >= 0; i -= 1) {
     const t = list[i];
     const h = t.size * 0.48;
     if (x >= t.x - h && x <= t.x + h && y >= t.y - h && y <= t.y + h) return t;
@@ -92,5 +141,9 @@ export function hitExposedTile(tiles, x, y) {
 }
 
 export function remainingOnBoard(tiles) {
-  return tiles.filter((t) => !t.removed).length;
+  let n = 0;
+  for (let i = 0; i < tiles.length; i += 1) {
+    if (!tiles[i].removed) n += 1;
+  }
+  return n;
 }

@@ -110,8 +110,8 @@ function verifyLevel(level) {
 }
 
 const levels = [
-  { id: 1, tileCount: 18, layers: 1, tileSize: 92, gridCols: 5, gridRows: 4 },
-  { id: 2, tileCount: 60, layers: 4, tileSize: 58, gridCols: 5, gridRows: 3 },
+  { id: 1, tileCount: 27, layers: 1, tileSize: 92, gridCols: 6, gridRows: 5 },
+  { id: 2, tileCount: 66, layers: 4, tileSize: 58, gridCols: 5, gridRows: 4 },
 ];
 
 console.log('=== MCZD 居中 & 布局验证 ===');

@@ -1,7 +1,8 @@
 import Emitter from '../libs/tinyemitter';
 import CONFIG from '../config/game.config';
 import LEVELS, { getLevel } from '../config/levels.config';
-import { drawCover, getImage } from '../base/assets';
+import { drawCover } from '../base/assets';
+import { drawMenuScene, drawPlayScene } from '../base/scene';
 import { drawDifference, drawFoundMark, drawHintRing, drawWrongMark } from '../base/diff';
 import { diffToPixel, getFooterH, getHudH, getPanels, roundRect, tapToRelative } from '../base/layout';
 import { getStars, isUnlocked } from '../base/progress';
@@ -239,38 +240,24 @@ export default class GameUI extends Emitter {
 
   renderMenu(ctx) {
     const db = GameGlobal.databus;
-    const bg = getImage(CONFIG.assets.menuBg);
-    if (bg._loaded) {
-      drawCover(ctx, CONFIG.assets.menuBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-      ctx.fillStyle = 'rgba(20,12,48,0.45)';
-      ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    } else {
-      const g = ctx.createLinearGradient(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-      g.addColorStop(0, '#311B92');
-      g.addColorStop(1, '#0D1B3E');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    }
+    const frame = db.frame;
+
+    drawMenuScene(ctx, frame);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#E8EAF6';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.shadowColor = 'rgba(0,0,0,0.6)';
-    ctx.shadowBlur = 8;
-    ctx.fillText(CONFIG.title, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09);
-    ctx.shadowBlur = 0;
-    ctx.font = '13px sans-serif';
-    ctx.fillStyle = 'rgba(232,234,246,0.8)';
-    ctx.fillText('左右滑动选关', SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09 + 30);
+    ctx.font = 'bold 28px sans-serif';
+    ctx.fillText(CONFIG.title, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.1 + Math.sin(frame * 0.03) * 1);
 
+    const cardMid = this.getCardMetrics().y + this.getCardMetrics().h / 2;
     if (db.menuIndex > 0) {
       ctx.font = 'bold 32px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.fillText('‹', SCREEN_WIDTH * 0.05, SCREEN_HEIGHT * 0.46);
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      ctx.fillText('‹', SCREEN_WIDTH * 0.06, cardMid);
     }
     if (db.menuIndex < LEVELS.length - 1) {
-      ctx.fillText('›', SCREEN_WIDTH * 0.95, SCREEN_HEIGHT * 0.46);
+      ctx.fillText('›', SCREEN_WIDTH * 0.94, cardMid);
     }
 
     LEVELS.forEach((lv, i) => {
@@ -280,57 +267,79 @@ export default class GameUI extends Emitter {
       const unlocked = isUnlocked(lv.id);
       const stars = getStars(lv.id);
       const scale = active ? 1 : 0.9;
+      const floatY = active ? Math.sin(frame * 0.04 + i * 0.5) * 1.5 : 0;
       const cx = card.x + card.w / 2;
-      const cy = card.y + card.h / 2;
+      const cy = card.y + card.h / 2 + floatY;
       const w = card.w * scale;
       const h = card.h * scale;
       const x = cx - w / 2;
       const y = cy - h / 2;
+      const previewH = h * 0.62;
+      const footerH = h - previewH;
 
       ctx.save();
-      ctx.globalAlpha = active ? 1 : 0.7;
-      roundRect(ctx, x, y, w, h, 16);
+      ctx.globalAlpha = active ? 1 : 0.72;
+
+      if (active) {
+        ctx.shadowColor = 'rgba(0,0,0,0.35)';
+        ctx.shadowBlur = 14;
+        ctx.shadowOffsetY = 5;
+      }
+
+      roundRect(ctx, x, y, w, h, 14);
+      const cg = ctx.createLinearGradient(x, y, x, y + h);
+      cg.addColorStop(0, lv.accent);
+      cg.addColorStop(1, lv.accentDark);
+      ctx.fillStyle = cg;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
       ctx.save();
+      roundRect(ctx, x + 8, y + 8, w - 16, previewH - 12, 10);
       ctx.clip();
-      drawCover(ctx, lv.image, x, y, w, h);
-      const overlay = ctx.createLinearGradient(x, y, x, y + h);
-      overlay.addColorStop(0, 'rgba(0,0,0,0.05)');
-      overlay.addColorStop(1, 'rgba(0,0,0,0.8)');
-      ctx.fillStyle = overlay;
-      ctx.fillRect(x, y, w, h);
+      drawCover(ctx, lv.image, x + 8, y + 8, w - 16, previewH - 12);
       ctx.restore();
 
-      roundRect(ctx, x, y, w, h, 16);
-      ctx.strokeStyle = active ? lv.accent : 'rgba(255,255,255,0.3)';
-      ctx.lineWidth = active ? 4 : 2;
+      ctx.fillStyle = 'rgba(0,0,0,0.28)';
+      ctx.fillRect(x, y + previewH - 8, w, footerH + 8);
+
+      ctx.strokeStyle = active
+        ? `rgba(255,245,157,${0.75 + Math.sin(frame * 0.05) * 0.12})`
+        : 'rgba(255,255,255,0.35)';
+      ctx.lineWidth = active ? 3 : 2;
+      roundRect(ctx, x, y, w, h, 14);
       ctx.stroke();
 
       ctx.fillStyle = '#fff';
-      ctx.textAlign = 'left';
-      ctx.font = 'bold 18px sans-serif';
-      ctx.fillText(lv.name, x + 14, y + h - 52);
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 17px sans-serif';
+      ctx.fillText(lv.name, cx, y + previewH + footerH * 0.38);
       ctx.font = '12px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.fillText(`${lv.desc} · ${lv.differences.length}处差异`, x + 14, y + h - 30);
-      ctx.textAlign = 'right';
-      ctx.fillText(stars ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '未完成', x + w - 14, y + h - 30);
+      ctx.fillStyle = 'rgba(255,255,255,0.88)';
+      ctx.fillText(`${lv.desc} · ${lv.differences.length}处`, cx, y + previewH + footerH * 0.62);
+      ctx.font = '14px sans-serif';
+      ctx.fillStyle = '#FFD54F';
+      ctx.fillText(stars ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '未完成', cx, y + previewH + footerH * 0.86);
 
       if (!unlocked) {
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        roundRect(ctx, x, y, w, h, 16);
+        ctx.fillStyle = 'rgba(26,35,126,0.72)';
+        roundRect(ctx, x, y, w, h, 14);
         ctx.fill();
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 20px sans-serif';
-        ctx.fillStyle = '#ECEFF1';
-        ctx.fillText('🔒 通关上一关解锁', cx, cy);
+        ctx.font = '32px sans-serif';
+        ctx.fillText('🔒', cx, cy - 6);
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillStyle = '#E8EAF6';
+        ctx.fillText('通关上一关解锁', cx, cy + 22);
       }
       ctx.restore();
     });
 
+    const m = this.getCardMetrics();
     LEVELS.forEach((_, i) => {
       ctx.beginPath();
-      ctx.arc(SCREEN_WIDTH / 2 + (i - 1) * 14, this.getCardMetrics().y + this.getCardMetrics().h + 6, i === db.menuIndex ? 5 : 3.5, 0, Math.PI * 2);
-      ctx.fillStyle = i === db.menuIndex ? '#FFD54F' : 'rgba(255,255,255,0.4)';
+      ctx.arc(SCREEN_WIDTH / 2 + (i - (LEVELS.length - 1) / 2) * 12, m.y + m.h + 12, i === db.menuIndex ? 5 : 3.5, 0, Math.PI * 2);
+      ctx.fillStyle = i === db.menuIndex ? '#FFD54F' : 'rgba(255,255,255,0.35)';
       ctx.fill();
     });
 
@@ -339,12 +348,13 @@ export default class GameUI extends Emitter {
     roundRect(ctx, btn.x, btn.y, btn.w, btn.h, 12);
     ctx.fillStyle = isUnlocked(cur.id) ? cur.accentDark : '#546E7A';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText(isUnlocked(cur.id) ? '进入镜界' : '尚未解锁', btn.x + btn.w / 2, btn.y + btn.h / 2);
   }
 
@@ -352,7 +362,9 @@ export default class GameUI extends Emitter {
     const db = GameGlobal.databus;
     const lv = getLevel(db.levelId);
     const panels = getPanels();
-    const shakeX = db.shake > 0 ? (Math.random() - 0.5) * db.shake * 0.6 : 0;
+    const shakeX = db.shake > 0 ? (Math.random() - 0.5) * db.shake * 0.4 : 0;
+
+    drawPlayScene(ctx, db.frame, lv.accent);
 
     ctx.save();
     ctx.translate(shakeX, 0);

@@ -1,6 +1,6 @@
 export default {
   title: '找炸弹',
-  hudHeight: 0.065,
+  hudHeight: 0.036,
   footerHeight: 0.11,
   boardPad: 8,
   slotMax: 7,

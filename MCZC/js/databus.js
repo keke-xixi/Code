@@ -57,6 +57,10 @@ export default class DataBus {
   }
 
   tick() {
+    if (this.scene === 'menu') {
+      this.frame += 1;
+      return;
+    }
     if (this.scene !== 'play' || this.isOver || this.showExitConfirm) return;
     this.frame += 1;
     this.elapsed += 1;
@@ -88,7 +92,7 @@ export default class DataBus {
     this.mistakes += 1;
     this.combo = 0;
     this.lives -= 1;
-    this.shake = 12;
+    this.shake = 8;
     if (this.lives <= 0) this.fail();
     return { ok: false };
   }

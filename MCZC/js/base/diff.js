@@ -64,7 +64,7 @@ export function drawWrongMark(ctx, x, y, frame, alpha) {
 }
 
 export function drawHintRing(ctx, x, y, r, frame) {
-  const pulse = 1 + Math.sin(frame * 0.12) * 0.15;
+  const pulse = 1 + Math.sin(frame * 0.1) * 0.06;
   ctx.save();
   ctx.strokeStyle = '#FFD54F';
   ctx.lineWidth = 3;

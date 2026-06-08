@@ -1,4 +1,4 @@
-import { generateBoard, isExposed, remainingOnBoard } from './base/board';
+import { generateBoard, remainingOnBoard, partitionBoardTiles } from './base/board';
 import { getBoardArea } from './base/layout';
 import CONFIG from './config/game.config';
 import { getLevel } from './config/levels.config';
@@ -27,6 +27,8 @@ export default class DataBus {
   showExitConfirm = false;
   touchStartScene = '';
 
+  _boardPartition = null;
+
   constructor() {
     if (instance) return instance;
     instance = this;
@@ -49,9 +51,31 @@ export default class DataBus {
     this.isOver = false;
     this.stars = 0;
     this.showExitConfirm = false;
+    this._boardPartition = null;
+  }
+
+  invalidateBoardPartition() {
+    this._boardPartition = null;
+  }
+
+  getBoardPartition() {
+    if (!this._boardPartition) {
+      const { blocked, exposed, liveCount } = partitionBoardTiles(this.tiles);
+      this._boardPartition = {
+        blocked,
+        exposed,
+        liveCount,
+        exposedSet: new Set(exposed.map((t) => t.uid)),
+      };
+    }
+    return this._boardPartition;
   }
 
   tick() {
+    if (this.scene === 'menu') {
+      this.frame += 1;
+      return;
+    }
     if (this.scene !== 'play' || this.isOver || this.showExitConfirm) return;
     this.frame += 1;
     if (this.flashUntil > 0) {
@@ -62,17 +86,19 @@ export default class DataBus {
 
   pickTile(tile) {
     if (!tile || tile.removed || this.isOver) return null;
-    if (!isExposed(tile, this.tiles)) return null;
+    const partition = this.getBoardPartition();
+    if (!partition.exposedSet.has(tile.uid)) return null;
 
     tile.removed = true;
+    this.invalidateBoardPartition();
 
     if (tile.kind === 'bomb') {
       this.bombsFound += 1;
       if (this.bombsFound >= 3) {
         this.win();
-        return 'bomb';
+        return { action: 'bomb', done: true };
       }
-      return 'bomb';
+      return { action: 'bomb', done: false };
     }
 
     let insertAt = this.slots.length;
@@ -80,12 +106,18 @@ export default class DataBus {
       if (this.slots[i].fruitId === tile.fruitId) insertAt = i + 1;
       else break;
     }
+
+    return { action: 'fruit', tile, insertAt };
+  }
+
+  commitFruitPick(pending) {
+    const { tile, insertAt } = pending;
     this.slots.splice(insertAt, 0, tile);
 
     const matched = this.clearSlotTriples();
     if (this.slots.length >= CONFIG.slotMax) {
       this.fail();
-      return 'overflow';
+      return matched ? 'clear' : 'overflow';
     }
     return matched ? 'clear' : 'pick';
   }

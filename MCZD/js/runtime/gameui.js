@@ -3,11 +3,12 @@ import CONFIG from '../config/game.config';
 import LEVELS, { getLevel } from '../config/levels.config';
 import THEME from '../config/theme.config';
 import { drawStartBtn } from '../base/assets';
-import { drawFruit3D } from '../base/fruit';
-import { drawPlate, drawPlayBackground, getPlateBounds } from '../base/plate';
-import { hitExposedTile, isExposed } from '../base/board';
+import { drawMenuScene, drawPlayScene } from '../base/scene';
+import { drawFruit3D, drawFruitLite } from '../base/fruit';
+import { drawPlate, getPlateBounds } from '../base/plate';
+import { hitExposedTile } from '../base/board';
 import { getBoardArea, getFooterH, getHudH, getSlotBarLayout, roundRect } from '../base/layout';
-import { getStars, isUnlocked } from '../base/progress';
+import { isUnlocked } from '../base/progress';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../render';
 
 export default class GameUI extends Emitter {
@@ -113,20 +114,48 @@ export default class GameUI extends Emitter {
     const area = this.getPlayBoardArea();
     if (!this.hit(x, y, area)) return;
 
-    const tile = hitExposedTile(db.tiles, x, y);
+    const tile = hitExposedTile(db.tiles, x, y, db.getBoardPartition());
     if (!tile) return;
 
-    const result = db.pickTile(tile);
+    const pending = db.pickTile(tile);
+    if (!pending) return;
 
-    if (result === 'bomb') {
-      GameGlobal.particles.burst(tile.x, tile.y, '#FF5252', 18);
+    const layout = getSlotBarLayout();
+
+    if (pending.action === 'bomb') {
+      GameGlobal.animations.bombFound(tile.x, tile.y);
+      GameGlobal.particles.burst(tile.x, tile.y, '#FF5252', 22);
+      GameGlobal.particles.sparkle(tile.x, tile.y, '#FF8A80', 10);
       GameGlobal.sfx?.playFind();
-    } else if (result === 'clear') {
-      GameGlobal.particles.burst(tile.x, tile.y, '#69F0AE', 14);
-      GameGlobal.sfx?.playClear();
-    } else if (result === 'overflow') {
-      GameGlobal.sfx?.playMiss();
+      return;
     }
+
+    const slot = layout.slots[pending.insertAt] || layout.slots[layout.slots.length - 1];
+    const tx = slot.x + slot.w / 2;
+    const ty = slot.y + slot.h / 2;
+
+    GameGlobal.animations.flyToSlot(
+      pending.tile,
+      tile.x,
+      tile.y,
+      tx,
+      ty,
+      () => {
+        const result = db.commitFruitPick(pending);
+        GameGlobal.animations.slotPop(tx, ty, pending.tile.color || '#FFB74D');
+        if (result === 'clear') {
+          GameGlobal.animations.tripleClear(tx, ty, pending.tile.color || '#69F0AE');
+          GameGlobal.particles.burst(tx, ty, '#69F0AE', 16);
+          GameGlobal.particles.emojiBurst(tx, ty, pending.tile.emoji, 4);
+          GameGlobal.sfx?.playClear();
+        } else if (result === 'overflow') {
+          GameGlobal.sfx?.playMiss();
+        } else {
+          GameGlobal.particles.sparkle(tx, ty, pending.tile.color || '#FFD54F', 5);
+          GameGlobal.sfx?.playFind();
+        }
+      },
+    );
   }
 
   hit(x, y, r) {
@@ -152,19 +181,19 @@ export default class GameUI extends Emitter {
 
   getStartBtn() {
     const m = this.getCardMetrics();
-    const w = Math.min(168, SCREEN_WIDTH * 0.48);
-    const h = w * 0.44;
+    const w = Math.min(180, SCREEN_WIDTH * 0.5);
+    const h = 48;
     return {
       x: SCREEN_WIDTH / 2 - w / 2,
-      y: m.y + m.h + 24,
+      y: m.y + m.h + 32,
       w,
       h,
     };
   }
 
   getExitBtn() {
-    const h = getHudH();
-    return { x: 8, y: 6, w: 40, h: h - 12 };
+    const size = 40;
+    return { x: 12, y: 10, w: size, h: size };
   }
 
   getExitConfirmDialog() {
@@ -252,12 +281,9 @@ export default class GameUI extends Emitter {
 
   renderMenu(ctx) {
     const db = GameGlobal.databus;
-    const g = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
-    g.addColorStop(0, THEME.menuBg[0]);
-    g.addColorStop(0.5, THEME.menuBg[1]);
-    g.addColorStop(1, THEME.menuBg[2]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const frame = db.frame;
+
+    drawMenuScene(ctx, frame);
 
     const cardMid = this.getCardMetrics().y + this.getCardMetrics().h / 2;
     if (db.menuIndex > 0) {
@@ -276,10 +302,10 @@ export default class GameUI extends Emitter {
       if (card.x + card.w < -30 || card.x > SCREEN_WIDTH + 30) return;
       const active = i === db.menuIndex;
       const unlocked = isUnlocked(lv.id);
-      const stars = getStars(lv.id);
       const scale = active ? 1 : 0.9;
+      const floatY = active ? Math.sin(frame * 0.04) * 1.5 : 0;
       const cx = card.x + card.w / 2;
-      const cy = card.y + card.h / 2;
+      const cy = card.y + card.h / 2 + floatY;
       const w = card.w * scale;
       const h = card.h * scale;
       const x = cx - w / 2;
@@ -293,30 +319,31 @@ export default class GameUI extends Emitter {
       cg.addColorStop(1, lv.accentDark);
       ctx.fillStyle = cg;
       ctx.fill();
-      ctx.strokeStyle = active ? '#FFF59D' : 'rgba(255,255,255,0.35)';
+      ctx.strokeStyle = active
+        ? `rgba(255,245,157,${0.82 + Math.sin(frame * 0.05) * 0.1})`
+        : 'rgba(255,255,255,0.35)';
       ctx.lineWidth = active ? 4 : 2;
       ctx.stroke();
 
       ctx.textAlign = 'center';
-      ctx.font = '52px sans-serif';
-      ctx.fillText('🍎🍊🍇', cx, y + h * 0.36);
+      const fruitY = y + h * 0.36 + (active ? Math.sin(frame * 0.05) * 1.2 : 0);
+      ctx.font = '44px sans-serif';
+      ctx.fillText('🍎🍊🍇🍌🍉', cx, fruitY);
       ctx.font = 'bold 32px sans-serif';
       ctx.fillStyle = '#fff';
-      ctx.fillText('💣×3', cx, y + h * 0.56);
-
+      ctx.fillText('💣×3', cx, y + h * 0.54);
       ctx.font = 'bold 20px sans-serif';
-      ctx.fillText(lv.name, cx, y + h - 62);
-      ctx.font = '13px sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText(lv.desc, cx, y + h - 38);
-      ctx.font = '16px sans-serif';
-      ctx.fillText(stars ? '★'.repeat(stars) + '☆'.repeat(3 - stars) : '未完成', cx, y + h - 16);
+      ctx.fillStyle = '#fff';
+      ctx.fillText(lv.name, cx, y + h * 0.72);
+      const diff = lv.difficulty || 1;
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillStyle = '#FFD54F';
+      ctx.fillText('★'.repeat(diff) + '☆'.repeat(3 - diff), cx, y + h * 0.86);
 
       if (!unlocked) {
         ctx.fillStyle = 'rgba(0,0,0,0.55)';
         roundRect(ctx, x, y, w, h, 16);
         ctx.fill();
-        ctx.textAlign = 'center';
         ctx.font = 'bold 18px sans-serif';
         ctx.fillStyle = '#ECEFF1';
         ctx.fillText('🔒 通关上一关解锁', cx, cy);
@@ -335,118 +362,131 @@ export default class GameUI extends Emitter {
     const cur = LEVELS[db.menuIndex];
     const btn = this.getStartBtn();
     ctx.globalAlpha = isUnlocked(cur.id) ? 1 : 0.45;
-    drawStartBtn(ctx, btn.x, btn.y, btn.w, btn.h);
+    drawStartBtn(ctx, btn.x, btn.y, btn.w, btn.h, frame, isUnlocked(cur.id));
     ctx.globalAlpha = 1;
+  }
+
+  drawTile(ctx, tile, exposed, frame, lite) {
+    if (exposed) drawFruit3D(ctx, tile, true, frame);
+    else if (lite) drawFruitLite(ctx, tile);
+    else drawFruit3D(ctx, tile, false, frame);
   }
 
   renderPlay(ctx) {
     const db = GameGlobal.databus;
     const lv = getLevel(db.levelId);
+    const frame = db.frame;
+    const fh = getFooterH();
+    const partition = db.getBoardPartition();
+    const liteScene = partition.liveCount > 90;
 
     ctx.save();
-    this.renderHud(ctx, lv);
-    this.renderBoard(ctx);
+    drawPlayScene(ctx, frame, lv.accent, fh, liteScene);
+    this.renderBoard(ctx, lv, frame);
     GameGlobal.particles.render(ctx);
-    this.renderFooter(ctx);
+    GameGlobal.animations.render(ctx);
+    this.renderHud(ctx);
+    this.renderFooter(ctx, frame);
     if (db.isOver) this.renderResult(ctx, lv);
     if (db.showExitConfirm) this.renderExitConfirm(ctx);
     ctx.restore();
   }
 
-  renderHud(ctx, lv) {
-    const db = GameGlobal.databus;
-    const h = getHudH();
-    const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, THEME.hudBg[0]);
-    g.addColorStop(1, THEME.hudBg[1]);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, SCREEN_WIDTH, h);
-
+  renderHud(ctx) {
     const exit = this.getExitBtn();
-    this.drawIconBtn(ctx, exit.x, exit.y, exit.w, exit.h, '#795548');
-    this.drawIcon(ctx, 'exit', exit.x + exit.w / 2, exit.y + exit.h / 2, exit.w * 0.34);
+    ctx.save();
+    ctx.shadowColor = 'rgba(62,39,35,0.25)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+    this.drawIconBtn(ctx, exit.x, exit.y, exit.w, exit.h, 'rgba(255,255,255,0.92)');
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    this.drawIconBrown(ctx, 'exit', exit.x + exit.w / 2, exit.y + exit.h / 2, exit.w * 0.32);
+    ctx.restore();
+  }
 
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 15px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillStyle = THEME.textLight;
-    ctx.fillText(lv.name, exit.x + exit.w + 8, h / 2);
-
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#FFAB91';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText(`💣 ${db.bombsFound}/3`, SCREEN_WIDTH / 2, h / 2);
-
-    ctx.textAlign = 'right';
-    ctx.fillStyle = THEME.textWarm;
-    ctx.font = '13px sans-serif';
-    ctx.fillText(`${db.remainingTiles()}`, SCREEN_WIDTH - 14, h / 2);
-
-    if (db.flashMsg) {
-      ctx.fillStyle = '#FFCDD2';
-      ctx.font = 'bold 12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(db.flashMsg, SCREEN_WIDTH / 2, h - 4);
+  drawIconBrown(ctx, type, cx, cy, s) {
+    ctx.strokeStyle = '#5D4037';
+    ctx.fillStyle = '#5D4037';
+    ctx.lineWidth = 2.2;
+    ctx.lineCap = 'round';
+    if (type === 'exit') {
+      ctx.strokeRect(cx - s * 0.22, cy - s * 0.28, s * 0.44, s * 0.56);
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.08, cy);
+      ctx.lineTo(cx - s * 0.38, cy);
+      ctx.moveTo(cx - s * 0.28, cy - s * 0.12);
+      ctx.lineTo(cx - s * 0.38, cy);
+      ctx.lineTo(cx - s * 0.28, cy + s * 0.12);
+      ctx.stroke();
     }
   }
 
-  drawTile(ctx, tile, tiles, exposed) {
-    drawFruit3D(ctx, tile, exposed);
-  }
-
-  renderBoard(ctx) {
+  renderBoard(ctx, lv, frame) {
     const db = GameGlobal.databus;
     const area = this.getPlayBoardArea();
     const plate = getPlateBounds(area);
-    const live = [...db.tiles].filter((t) => !t.removed);
+    const { blocked, exposed, liveCount } = db.getBoardPartition();
+    const liteDraw = liveCount > 60;
 
-    drawPlayBackground(ctx, area);
-    drawPlate(ctx, plate);
+    drawPlate(ctx, plate, frame);
 
-    const blocked = live
-      .filter((t) => !isExposed(t, db.tiles))
-      .sort((a, b) => a.layer - b.layer || a.uid - b.uid);
-    const exposed = live
-      .filter((t) => isExposed(t, db.tiles))
-      .sort((a, b) => a.layer - b.layer || a.uid - b.uid);
-
-    blocked.forEach((tile) => this.drawTile(ctx, tile, db.tiles, false));
-    exposed.forEach((tile) => this.drawTile(ctx, tile, db.tiles, true));
+    blocked.forEach((tile) => this.drawTile(ctx, tile, false, frame, liteDraw));
+    exposed.forEach((tile) => this.drawTile(ctx, tile, true, frame, liteDraw));
   }
 
-  renderSlotBar(ctx) {
+  renderSlotBar(ctx, frame) {
     const db = GameGlobal.databus;
     const layout = getSlotBarLayout();
     const fh = getFooterH();
     const y = SCREEN_HEIGHT - fh;
     const last = layout.slots[layout.slots.length - 1];
-    const barW = last.x + last.w - layout.slots[0].x + 16;
+    const barW = last.x + last.w - layout.slots[0].x + 20;
 
-    ctx.fillStyle = THEME.footerBg;
-    ctx.fillRect(0, y, SCREEN_WIDTH, fh);
+    ctx.save();
+    ctx.shadowColor = 'rgba(62,39,55,0.4)';
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 3;
 
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    roundRect(ctx, layout.slots[0].x - 10, layout.barY, barW, layout.slots[0].h + 16, 14);
+    const barGrad = ctx.createLinearGradient(layout.slots[0].x - 12, layout.barY, layout.slots[0].x - 12, layout.barY + layout.slots[0].h + 18);
+    barGrad.addColorStop(0, 'rgba(255,253,248,0.97)');
+    barGrad.addColorStop(0.45, 'rgba(255,243,224,0.95)');
+    barGrad.addColorStop(1, 'rgba(255,224,178,0.93)');
+    ctx.fillStyle = barGrad;
+    roundRect(ctx, layout.slots[0].x - 12, layout.barY, barW, layout.slots[0].h + 18, 18);
     ctx.fill();
-    ctx.strokeStyle = '#A1887F';
-    ctx.lineWidth = 2.5;
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.65)';
+    ctx.lineWidth = 2;
     ctx.stroke();
+    ctx.strokeStyle = 'rgba(161,136,127,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
 
     layout.slots.forEach((slot, i) => {
-      ctx.fillStyle = '#FFFFFF';
-      roundRect(ctx, slot.x, slot.y, slot.w, slot.h, 8);
+      const filled = i < db.slots.length;
+      const glow = filled && Math.sin(frame * 0.08 + i) > 0.92;
+
+      ctx.fillStyle = filled ? '#FFFFFF' : 'rgba(255,255,255,0.55)';
+      roundRect(ctx, slot.x, slot.y, slot.w, slot.h, 10);
       ctx.fill();
-      ctx.strokeStyle = '#A1887F';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = glow ? '#FF8F00' : '#BCAAA4';
+      ctx.lineWidth = glow ? 2.5 : 2;
       ctx.stroke();
 
       const tile = db.slots[i];
       if (!tile) return;
-      ctx.font = `${Math.floor(slot.w * 0.85)}px sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.globalAlpha = 1;
-      ctx.fillText(tile.emoji, slot.x + slot.w / 2, slot.y + slot.h / 2);
+
+      const mini = {
+        ...tile,
+        x: slot.x + slot.w / 2,
+        y: slot.y + slot.h / 2,
+        size: slot.w * 0.92,
+      };
+      drawFruit3D(ctx, mini, true, frame);
     });
 
     const filled = db.slots.length;
@@ -456,13 +496,13 @@ export default class GameUI extends Emitter {
     for (let i = 0; i < CONFIG.slotMax; i += 1) {
       ctx.beginPath();
       ctx.arc(dotStart + i * dotGap, dotY, i < filled ? 3.5 : 2.5, 0, Math.PI * 2);
-      ctx.fillStyle = i < filled ? '#FF8F00' : 'rgba(161,136,127,0.35)';
+      ctx.fillStyle = i < filled ? '#FFB300' : 'rgba(255,255,255,0.25)';
       ctx.fill();
     }
   }
 
-  renderFooter(ctx) {
-    this.renderSlotBar(ctx);
+  renderFooter(ctx, frame) {
+    this.renderSlotBar(ctx, frame);
   }
 
   renderExitConfirm(ctx) {

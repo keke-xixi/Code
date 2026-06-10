@@ -46,16 +46,54 @@
         :style="itemStyle"
       >
         <view class="files__row">
-          <view v-if="item.category === 'image'" class="files__thumb-wrap">
+          <view
+            v-if="item.category === 'image' || (item.category === 'video' && shouldLoadThumb(item))"
+            class="files__thumb-wrap"
+            :class="{ 'files__thumb-wrap--video': item.category === 'video' }"
+            @tap="item.category === 'image' ? previewImage(item) : previewVideo(item)"
+          >
             <image
+              v-if="item.category === 'image' && thumbMap[item.id]"
               class="files__thumb"
-              :src="fileDownloadUrl(item.id)"
+              :src="thumbMap[item.id]"
               mode="aspectFill"
-              @tap="previewImage(item)"
             />
+            <video
+              v-else-if="item.category === 'video' && thumbMap[item.id]"
+              class="files__thumb"
+              :src="thumbMap[item.id]"
+              :show-center-play-btn="false"
+              :controls="false"
+              :show-play-btn="false"
+              :enable-progress-gesture="false"
+              :show-fullscreen-btn="false"
+              object-fit="cover"
+              muted
+            />
+            <view v-else class="files__thumb-loading">
+              <text v-if="item.category === 'image'" class="files__thumb-loading-icon">🖼</text>
+              <text v-else class="files__thumb-loading-icon">🎬</text>
+            </view>
+            <view v-if="item.category === 'video'" class="files__thumb-play">
+              <text class="files__thumb-play-icon">▶</text>
+            </view>
           </view>
-          <view v-else class="files__icon-wrap" :style="iconWrapStyle">
+          <view
+            v-else-if="item.category === 'video'"
+            class="files__icon-wrap files__icon-wrap--video"
+            @tap="previewVideo(item)"
+          >
+            <text class="files__icon">🎬</text>
+            <text class="files__icon-ext">{{ fileExt(item.original_name) || 'MP4' }}</text>
+            <view class="files__icon-play"><text>▶</text></view>
+          </view>
+          <view
+            v-else
+            class="files__icon-wrap"
+            :style="iconWrapStyleFor(item)"
+          >
             <text class="files__icon">{{ categoryIcon(item.category, item.original_name) }}</text>
+            <text class="files__icon-ext">{{ categoryTheme(item.category, item.original_name).label }}</text>
           </view>
 
           <view class="files__meta">
@@ -129,10 +167,10 @@ import { fetchFiles, uploadUserFile, deleteFile } from '@/api/files.js'
 import { ensureLogin, downloadAuthFile } from '@/utils/request.js'
 import { useTheme } from '@/composables/useTheme.js'
 import {
-  fileDownloadUrl,
   fileExt,
   categoryLabel,
   categoryIcon,
+  categoryTheme,
   formatFileSize,
   formatFileTime,
 } from '@/utils/file.js'
@@ -145,12 +183,16 @@ const itemStyle = computed(() => ({
   borderLeftColor: theme.value.primary,
   boxShadow: `0 8rpx 28rpx ${theme.value.primary}18`,
 }))
-const iconWrapStyle = computed(() => ({ background: theme.value.primaryLight }))
 const tagStyle = computed(() => ({
   background: theme.value.primaryLight,
   color: theme.value.primaryDark,
 }))
 const primaryBtnStyle = computed(() => ({ background: theme.value.primary }))
+
+const iconWrapStyleFor = (item) => {
+  const t = categoryTheme(item.category, item.original_name)
+  return { background: t.bg, borderColor: `${t.accent}33` }
+}
 
 const tabs = [
   { label: '全部', value: '' },
@@ -163,18 +205,47 @@ const tabs = [
 const category = ref('')
 const files = ref([])
 const loading = ref(false)
+const thumbMap = ref({})
 const showDeleteDialog = ref(false)
 const deleteTarget = ref(null)
+
+const THUMB_VIDEO_MAX = 30 * 1024 * 1024
 
 const deleteContent = computed(() =>
   deleteTarget.value ? `确定删除「${deleteTarget.value.original_name}」？` : '',
 )
 
+const shouldLoadThumb = (item) => {
+  if (item.category === 'image') return true
+  if (item.category === 'video') return item.size <= THUMB_VIDEO_MAX
+  return false
+}
+
+const loadThumb = async (item) => {
+  if (!shouldLoadThumb(item) || thumbMap.value[item.id]) return
+  try {
+    const path = await downloadAuthFile(`/files/${item.id}/download`)
+    thumbMap.value = { ...thumbMap.value, [item.id]: path }
+  } catch {
+    /* 缩略图失败时保留占位 */
+  }
+}
+
+const loadThumbs = async (list) => {
+  const targets = list.filter(shouldLoadThumb)
+  const batch = 3
+  for (let i = 0; i < targets.length; i += batch) {
+    await Promise.allSettled(targets.slice(i, i + batch).map(loadThumb))
+  }
+}
+
 const loadFiles = async () => {
   loading.value = true
+  thumbMap.value = {}
   try {
     const params = category.value ? { category: category.value } : {}
     files.value = await fetchFiles(params)
+    loadThumbs(files.value)
   } catch (e) {
     uni.showToast({ title: e.message, icon: 'none' })
   } finally {
@@ -413,11 +484,50 @@ const doRemove = async () => {
     overflow: hidden;
     flex-shrink: 0;
     background: #f1f5f9;
+    position: relative;
+
+    &--video {
+      background: #1e1b4b;
+    }
   }
 
   &__thumb {
     width: 120rpx;
     height: 120rpx;
+    display: block;
+  }
+
+  &__thumb-loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  }
+
+  &__thumb-loading-icon {
+    font-size: 40rpx;
+    opacity: 0.45;
+  }
+
+  &__thumb-play {
+    position: absolute;
+    right: 8rpx;
+    bottom: 8rpx;
+    width: 36rpx;
+    height: 36rpx;
+    border-radius: 50%;
+    background: rgba(15, 23, 42, 0.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__thumb-play-icon {
+    font-size: 18rpx;
+    color: #fff;
+    margin-left: 2rpx;
   }
 
   &__icon-wrap {
@@ -425,14 +535,49 @@ const doRemove = async () => {
     height: 120rpx;
     border-radius: 16rpx;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    border: 2rpx solid transparent;
+    gap: 6rpx;
   }
 
   &__icon {
-    font-size: 52rpx;
+    font-size: 44rpx;
     line-height: 1;
+  }
+
+  &__icon-ext {
+    font-size: 20rpx;
+    font-weight: 700;
+    color: #64748b;
+    letter-spacing: 0.5rpx;
+  }
+
+  &__icon-wrap--video {
+    background: linear-gradient(145deg, #312e81 0%, #1e1b4b 100%);
+    border-color: #6366f133;
+    position: relative;
+
+    .files__icon-ext {
+      color: #c7d2fe;
+    }
+  }
+
+  &__icon-play {
+    position: absolute;
+    right: 8rpx;
+    bottom: 8rpx;
+    width: 32rpx;
+    height: 32rpx;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16rpx;
+    color: #312e81;
   }
 
   &__meta {

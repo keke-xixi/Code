@@ -104,7 +104,7 @@ const LEVELS = [
   {
     id: 7,
     name: '秘境花园',
-    desc: '萤火微光 · 镜界终章',
+    desc: '萤火微光 · 镜像终章',
     image: 'images/scene_garden.png',
     bgm: 'cool',
     accent: '#BA68C8',

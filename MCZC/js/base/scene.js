@@ -10,7 +10,8 @@ const STARS = Array.from({ length: 24 }, (_, i) => ({
   ph: i * 1.7,
 }));
 
-function drawMenuFallback(ctx, frame = 0) {
+/** 选关：镜像蓝紫 + 微光星点 */
+export function drawMenuScene(ctx, frame = 0) {
   const g = ctx.createLinearGradient(0, 0, SCREEN_WIDTH * 0.3, SCREEN_HEIGHT);
   g.addColorStop(0, '#3F51B5');
   g.addColorStop(0.5, '#283593');
@@ -36,17 +37,7 @@ function drawMenuFallback(ctx, frame = 0) {
   });
 }
 
-/** 选关：menu_bg 全屏背景 + 暗色遮罩，加载失败时回退蓝紫渐变 */
-export function drawMenuScene(ctx, frame = 0) {
-  if (drawCover(ctx, CONFIG.assets.menuBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)) {
-    ctx.fillStyle = 'rgba(20,12,48,0.45)';
-    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-  } else {
-    drawMenuFallback(ctx, frame);
-  }
-}
-
-/** 对局：深色镜界底 + 中央微光分隔 */
+/** 对局：深色镜像底 + 中央微光分隔 */
 export function drawPlayScene(ctx, frame = 0, accent = '#7E57C2') {
   const g = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
   g.addColorStop(0, '#1A237E');

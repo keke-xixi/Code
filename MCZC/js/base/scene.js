@@ -1,4 +1,6 @@
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../render';
+import CONFIG from '../config/game.config';
+import { drawCover } from './assets';
 
 const STARS = Array.from({ length: 24 }, (_, i) => ({
   x: (i * 47 + 13) % 100 / 100,
@@ -8,8 +10,7 @@ const STARS = Array.from({ length: 24 }, (_, i) => ({
   ph: i * 1.7,
 }));
 
-/** 选关：镜界蓝紫 + 微光星点 */
-export function drawMenuScene(ctx, frame = 0) {
+function drawMenuFallback(ctx, frame = 0) {
   const g = ctx.createLinearGradient(0, 0, SCREEN_WIDTH * 0.3, SCREEN_HEIGHT);
   g.addColorStop(0, '#3F51B5');
   g.addColorStop(0.5, '#283593');
@@ -33,6 +34,16 @@ export function drawMenuScene(ctx, frame = 0) {
     ctx.arc(x, y, st.s, 0, Math.PI * 2);
     ctx.fill();
   });
+}
+
+/** 选关：menu_bg 全屏背景 + 暗色遮罩，加载失败时回退蓝紫渐变 */
+export function drawMenuScene(ctx, frame = 0) {
+  if (drawCover(ctx, CONFIG.assets.menuBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)) {
+    ctx.fillStyle = 'rgba(20,12,48,0.45)';
+    ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  } else {
+    drawMenuFallback(ctx, frame);
+  }
 }
 
 /** 对局：深色镜界底 + 中央微光分隔 */

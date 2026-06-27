@@ -3,7 +3,7 @@ const LEVELS = [
   {
     id: 1,
     name: '午后茶歇',
-    desc: '湖畔露台 · 微风暖阳',
+    desc: '湖光照里 · 微风暖阳',
     image: 'images/scene_cafe.png',
     bgm: 'warm',
     accent: '#FF8A65',

@@ -19,6 +19,7 @@
 ## 资源
 
 ```
+images/logo.png            游戏 Logo / 小程序图标
 images/menu_bg.png       菜单背景
 images/player_hero.png   玩家
 images/enemy_ghost.png   普通魂体

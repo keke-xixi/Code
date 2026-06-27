@@ -66,7 +66,7 @@ export default class Main {
       ctx.font = 'bold 20px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('镜界双生 加载中…', canvas.width / 2, canvas.height / 2);
+      ctx.fillText('镜像双生 加载中…', canvas.width / 2, canvas.height / 2);
       return;
     }
     this.ui.render(ctx);

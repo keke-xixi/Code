@@ -8,7 +8,7 @@ const STARS = Array.from({ length: 24 }, (_, i) => ({
   ph: i * 1.7,
 }));
 
-/** 选关：镜界蓝紫 + 微光星点 */
+/** 选关：镜像蓝紫 + 微光星点 */
 export function drawMenuScene(ctx, frame = 0) {
   const g = ctx.createLinearGradient(0, 0, SCREEN_WIDTH * 0.3, SCREEN_HEIGHT);
   g.addColorStop(0, '#3F51B5');
@@ -35,7 +35,7 @@ export function drawMenuScene(ctx, frame = 0) {
   });
 }
 
-/** 对局：深色镜界底 + 中央微光分隔 */
+/** 对局：深色镜像底 + 中央微光分隔 */
 export function drawPlayScene(ctx, frame = 0, accent = '#7E57C2') {
   const g = ctx.createLinearGradient(0, 0, 0, SCREEN_HEIGHT);
   g.addColorStop(0, '#1A237E');

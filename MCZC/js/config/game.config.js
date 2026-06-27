@@ -1,5 +1,5 @@
 export default {
-  title: '镜界双生',
+  title: '镜像双生',
   hudHeight: 0.11,
   footerHeight: 0.11,
   maxLives: 30,

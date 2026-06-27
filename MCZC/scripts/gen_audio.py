@@ -1,4 +1,4 @@
-"""Generate soft puzzle-game audio for 镜界双生."""
+"""Generate soft puzzle-game audio for 镜像双生."""
 import math
 import struct
 import wave

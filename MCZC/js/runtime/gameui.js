@@ -355,7 +355,7 @@ export default class GameUI extends Emitter {
     ctx.font = 'bold 16px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(isUnlocked(cur.id) ? '进入镜界' : '尚未解锁', btn.x + btn.w / 2, btn.y + btn.h / 2);
+    ctx.fillText(isUnlocked(cur.id) ? '进入镜像' : '尚未解锁', btn.x + btn.w / 2, btn.y + btn.h / 2);
   }
 
   renderPlay(ctx) {
@@ -518,7 +518,7 @@ export default class GameUI extends Emitter {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(db.isWin ? '✨ 镜界归一！' : '💫 镜像破碎…', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 56);
+    ctx.fillText(db.isWin ? '✨ 镜像归一！' : '💫 镜像破碎…', SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 56);
     if (db.isWin) {
       ctx.font = '22px sans-serif';
       ctx.fillStyle = '#FFD54F';

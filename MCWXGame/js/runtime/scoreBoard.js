@@ -1,5 +1,18 @@
+import { GAMEPLAY_KEYS } from '../config/gameClub.config';
+
 const STORAGE_KEY = 'thunder_fighter_top10';
+const SYNC_CACHE_KEY = 'thunder_fighter_cloud_sync';
 const MAX_RECORDS = 10;
+
+/** 构建微信托管数据 value（含 wxgame 字段，兼容游戏圈/排行榜） */
+function buildWxgameValue(score) {
+  return JSON.stringify({
+    wxgame: {
+      score: Math.floor(score),
+      update_time: Math.floor(Date.now() / 1000),
+    },
+  });
+}
 
 /**
  * 本地积分排行榜 - 保留历史前10名（按分数降序）
@@ -35,7 +48,61 @@ export default class ScoreBoard {
     } catch (e) {
       /* 忽略写入失败 */
     }
+
+    ScoreBoard.syncGameplay(Math.floor(score), level || 1, cleared);
     return top;
+  }
+
+  /** 将最高得分/关卡/通关状态同步到微信托管数据（key 对应 MP 后台玩法 ID） */
+  static syncGameplay(score, level, cleared = false) {
+    if (typeof wx.setUserCloudStorage !== 'function') return;
+
+    let cache = { bestScore: 0, maxLevel: 0, gameCleared: 0 };
+    try {
+      const saved = wx.getStorageSync(SYNC_CACHE_KEY);
+      if (saved) cache = { ...cache, ...saved };
+    } catch (e) {
+      /* 忽略 */
+    }
+
+    const kvList = [];
+    if (score > (cache.bestScore || 0)) {
+      kvList.push({
+        key: GAMEPLAY_KEYS.BEST_SCORE,
+        value: buildWxgameValue(score),
+      });
+      cache.bestScore = score;
+    }
+    if (level > (cache.maxLevel || 0)) {
+      kvList.push({
+        key: GAMEPLAY_KEYS.MAX_LEVEL,
+        value: buildWxgameValue(level),
+      });
+      cache.maxLevel = level;
+    }
+    if (cleared && !cache.gameCleared) {
+      kvList.push({
+        key: GAMEPLAY_KEYS.GAME_CLEARED,
+        value: buildWxgameValue(1),
+      });
+      cache.gameCleared = 1;
+    }
+
+    if (!kvList.length) return;
+
+    wx.setUserCloudStorage({
+      KVDataList: kvList,
+      success: () => {
+        try {
+          wx.setStorageSync(SYNC_CACHE_KEY, cache);
+        } catch (e) {
+          /* 忽略 */
+        }
+      },
+      fail: (err) => {
+        console.warn('[Gameplay] sync failed', err);
+      },
+    });
   }
 
   static formatDate(ts) {

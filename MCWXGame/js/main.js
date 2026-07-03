@@ -7,6 +7,7 @@ import Music from './runtime/music';
 import DataBus from './databus';
 import { getCurrentLevelCfg } from './config/levels';
 import ScoreBoard from './runtime/scoreBoard';
+import GameClubButton, { openGameClub } from './runtime/gameClub';
 
 const ctx = canvas.getContext('2d');
 
@@ -29,6 +30,9 @@ export default class Main {
     GameGlobal.databus.hud = this.hud;
     GameGlobal.databus.bg = this.bg;
 
+    GameGlobal.gameClub = new GameClubButton();
+    GameGlobal.gameClub.open = openGameClub;
+
     this.hud.on('restart', this.start.bind(this));
     GameGlobal.databus.topScores = ScoreBoard.load();
     this.start();
@@ -37,6 +41,7 @@ export default class Main {
   start() {
     GameGlobal.databus.reset();
     GameGlobal.databus.hud.showRankPanel = false;
+    GameGlobal.gameClub?.hide();
     this.player.init();
     this.spawner.reset();
     this.bg.setLevel(1);
@@ -114,6 +119,13 @@ export default class Main {
     this.player.render(ctx);
     GameGlobal.databus.particles.forEach((p) => p.render(ctx));
     this.hud.render(ctx);
+    this.syncGameClubButton();
+  }
+
+  /** 仅在暂停/结算时显示原生游戏圈按钮，对局中隐藏 */
+  syncGameClubButton() {
+    const info = this.hud.getGameClubScene();
+    GameGlobal.gameClub?.update(info?.scene ?? null, info?.rect ?? null);
   }
 
   update() {

@@ -71,3 +71,35 @@ MCWXGame/
 使用微信开发者工具打开本项目目录即可预览。
 
 可选：在 `audio/` 目录放置 `bgm.mp3`、`bullet.mp3`、`boom.mp3` 启用音效。
+
+## 游戏圈
+
+已在**暂停界面**和**结算界面**（游戏结束 / 通关）提供「游戏圈」入口，对局进行中不显示，不影响操作。
+
+### 配置 openlink
+
+已在 `js/config/gameClub.config.js` 填入 MP 后台「游戏圈首页链接 → **游戏内打开**」的 openlink。
+
+| 后台字段 | 用途 | 是否写入代码 |
+|----------|------|--------------|
+| 游戏内打开 | 游戏内跳转游戏圈首页 | ✅ `GAME_CLUB_OPENLINK` |
+| 游戏内推荐 | 推荐至游戏圈 | 预留 `GAME_CLUB_RECOMMEND_OPENLINK` |
+| 微信内/外打开 | H5 分享链接 | 不需要写入游戏代码 |
+
+### 游戏玩法 ID（战绩上报）
+
+MP 后台「游戏玩法」配置的 ID 须与 `js/config/gameClub.config.js` 中一致：
+
+| 玩法名称 | 玩法 ID | 战绩类型 | 单位 |
+|----------|---------|----------|------|
+| 最高得分 | `bestScore` | 整数 | 分 |
+| 最高关卡 | `maxLevel` | 整数 | 关 |
+| 通关状态 | `gameCleared` | 整数 | （通关上报 1） |
+
+游戏结束/通关时会自动调用 `wx.setUserCloudStorage` 上报（仅在新纪录时更新）。
+
+### 技术说明
+
+- 原生入口：`wx.createGameClubButton`（与 Canvas 按钮位置对齐，仅在暂停/结算时显示）
+- 指定页面：`wx.createPageManager` + openlink（配置 openlink 后，Canvas 点击也可跳转）
+- 文档：[游戏圈接入指南](https://developers.weixin.qq.com/minigame/dev/guide/open-ability/game-club.html)

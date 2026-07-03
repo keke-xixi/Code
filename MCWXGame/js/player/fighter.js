@@ -129,6 +129,11 @@ export default class Fighter extends Entity {
         GameGlobal.databus.hud.showRankPanel = !GameGlobal.databus.hud.showRankPanel;
         return;
       }
+      if (touchResult === 'gameClub') {
+        if (GameGlobal.gameClub?.visible) return;
+        GameGlobal.gameClub?.open?.();
+        return;
+      }
       if (touchResult === 'paused' || touchResult === 'toggle') return;
       if (touchResult && typeof touchResult === 'string') {
         if (!GameGlobal.databus.isGameOver && !GameGlobal.databus.gameCleared && !GameGlobal.databus.isPaused) {

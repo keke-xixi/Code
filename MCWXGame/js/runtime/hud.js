@@ -74,6 +74,20 @@ export default class HUD extends Emitter {
       h: 36,
     };
 
+    this.gameClubBtn = {
+      x: SCREEN_WIDTH / 2 - 60,
+      y: SCREEN_HEIGHT / 2 + 92,
+      w: 120,
+      h: 34,
+    };
+
+    this.gameClubEndBtn = {
+      x: SCREEN_WIDTH / 2 - 60,
+      y: SCREEN_HEIGHT - 132,
+      w: 120,
+      h: 34,
+    };
+
     this.toggleBtn = {
       x: SCREEN_WIDTH - RIGHT_MARGIN - TOGGLE_W,
       y: SCREEN_HEIGHT / 2 - 20,
@@ -102,6 +116,7 @@ export default class HUD extends Emitter {
   handleTouch(x, y) {
     if (GameGlobal.databus.isGameOver || GameGlobal.databus.gameCleared) {
       if (this.hitRect(x, y, this.restartBtn)) return 'restart';
+      if (this.hitRect(x, y, this.gameClubEndBtn)) return 'gameClub';
       return null;
     }
 
@@ -109,6 +124,7 @@ export default class HUD extends Emitter {
       if (this.hitRect(x, y, this.resumeBtn)) return 'resume';
       if (this.hitRect(x, y, this.pauseRestartBtn)) return 'restart';
       if (this.hitRect(x, y, this.rankBtn)) return 'rank';
+      if (this.hitRect(x, y, this.gameClubBtn)) return 'gameClub';
       return 'paused';
     }
 
@@ -350,6 +366,7 @@ export default class HUD extends Emitter {
     this.drawBtn(ctx, this.resumeBtn, '继续游戏', '#0984e3');
     this.drawBtn(ctx, this.pauseRestartBtn, '重新开始', '#e17055');
     this.drawBtn(ctx, this.rankBtn, this.showRankPanel ? '收起排行' : '积分排行', '#6c5ce7');
+    this.drawGameClubBtn(ctx, this.gameClubBtn);
 
     if (this.showRankPanel) {
       this.renderLeaderboard(ctx, SCREEN_HEIGHT * 0.52, GameGlobal.databus.score);
@@ -374,6 +391,7 @@ export default class HUD extends Emitter {
     ctx.fillText(`到达第 ${GameGlobal.databus.currentLevel} 关`, SCREEN_WIDTH / 2, 122);
 
     this.renderLeaderboard(ctx, 138, GameGlobal.databus.score);
+    this.drawGameClubBtn(ctx, this.gameClubEndBtn);
     this.drawRestartBtn(ctx);
     ctx.textAlign = 'left';
   }
@@ -392,8 +410,21 @@ export default class HUD extends Emitter {
     ctx.fillText(`最终得分 ${GameGlobal.databus.score}`, SCREEN_WIDTH / 2, 100);
 
     this.renderLeaderboard(ctx, 118, GameGlobal.databus.score);
+    this.drawGameClubBtn(ctx, this.gameClubEndBtn);
     this.drawRestartBtn(ctx);
     ctx.textAlign = 'left';
+  }
+
+  /** 当前应显示游戏圈入口的场景与按钮区域（供原生按钮对齐） */
+  getGameClubScene() {
+    const db = GameGlobal.databus;
+    if (db.isPaused) return { scene: 'pause', rect: this.gameClubBtn };
+    if (db.isGameOver || db.gameCleared) return { scene: 'end', rect: this.gameClubEndBtn };
+    return null;
+  }
+
+  drawGameClubBtn(ctx, b) {
+    this.drawBtn(ctx, b, '游戏圈', '#6c5ce7');
   }
 
   renderLeaderboard(ctx, startY, highlightScore) {

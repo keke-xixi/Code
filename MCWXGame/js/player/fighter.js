@@ -130,7 +130,6 @@ export default class Fighter extends Entity {
         return;
       }
       if (touchResult === 'gameClub') {
-        if (GameGlobal.gameClub?.visible) return;
         GameGlobal.gameClub?.open?.();
         return;
       }

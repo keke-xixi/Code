@@ -41,7 +41,6 @@ export default class Main {
   start() {
     GameGlobal.databus.reset();
     GameGlobal.databus.hud.showRankPanel = false;
-    GameGlobal.gameClub?.hide();
     this.player.init();
     this.spawner.reset();
     this.bg.setLevel(1);
@@ -119,13 +118,6 @@ export default class Main {
     this.player.render(ctx);
     GameGlobal.databus.particles.forEach((p) => p.render(ctx));
     this.hud.render(ctx);
-    this.syncGameClubButton();
-  }
-
-  /** 仅在暂停/结算时显示原生游戏圈按钮，对局中隐藏 */
-  syncGameClubButton() {
-    const info = this.hud.getGameClubScene();
-    GameGlobal.gameClub?.update(info?.scene ?? null, info?.rect ?? null);
   }
 
   update() {

@@ -2,130 +2,81 @@ import { GAME_CLUB_OPENLINK } from '../config/gameClub.config';
 
 let pageManager = null;
 let loading = false;
-let nativeBtn = null;
 
-/** 是否支持 createPageManager（指定页面跳转） */
+function getPlatform() {
+  try {
+    return wx.getSystemInfoSync?.()?.platform || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+/** PC 端微信小游戏对游戏圈支持不完整 */
+export function isGameClubPcLimited() {
+  const p = getPlatform();
+  return p === 'windows' || p === 'mac';
+}
+
 export function canUsePageManager() {
   return typeof wx.createPageManager === 'function';
 }
 
-/** 是否支持原生游戏圈按钮 */
-export function canUseNativeButton() {
-  return typeof wx.createGameClubButton === 'function';
+function showToast(title, duration = 2500) {
+  wx.showToast({ title, icon: 'none', duration });
 }
 
 /**
- * 通过 PageManager 打开游戏圈（可指定帖子/话题页）
+ * 打开游戏圈（Canvas 按钮点击入口）
+ * 不再叠加原生 createGameClubButton，避免 PC 端点击被拦截却无响应
  */
 export function openGameClub() {
   if (loading) return;
 
-  if (GAME_CLUB_OPENLINK && canUsePageManager()) {
-    loading = true;
-    if (!pageManager) pageManager = wx.createPageManager();
-
-    pageManager
-      .load({ openlink: GAME_CLUB_OPENLINK })
-      .then(() => {
-        loading = false;
-        pageManager.show();
-      })
-      .catch((err) => {
-        loading = false;
-        console.error('[GameClub] load failed', err);
-        wx.showToast({ title: '游戏圈打开失败，请稍后重试', icon: 'none', duration: 2000 });
-      });
+  if (isGameClubPcLimited()) {
+    showToast('游戏圈请在手机微信中打开');
     return;
   }
 
-  if (nativeBtn && GAME_CLUB_OPENLINK) {
-    wx.showToast({ title: '请点击游戏圈按钮', icon: 'none', duration: 1500 });
+  if (!GAME_CLUB_OPENLINK) {
+    showToast('未配置游戏圈 openlink');
     return;
   }
 
-  wx.showToast({
-    title: GAME_CLUB_OPENLINK ? '当前环境不支持游戏圈' : '请在 gameClub.config.js 配置 OPENLINK',
-    icon: 'none',
-    duration: 2500,
-  });
+  if (!canUsePageManager()) {
+    showToast('当前微信版本不支持游戏圈，请升级后重试');
+    return;
+  }
+
+  loading = true;
+  showToast('正在打开游戏圈…', 1500);
+
+  if (!pageManager) pageManager = wx.createPageManager();
+
+  pageManager
+    .load({ openlink: GAME_CLUB_OPENLINK })
+    .then(() => {
+      loading = false;
+      pageManager.show();
+    })
+    .catch((err) => {
+      loading = false;
+      console.error('[GameClub] load failed', err);
+      const code = err?.errCode ?? err?.errno;
+      if (code === -8) {
+        showToast('openlink 与当前版本不匹配，请检查体验版/正式版');
+      } else if (code === -2) {
+        showToast('微信版本过低，请升级后重试');
+      } else {
+        showToast('游戏圈打开失败，请稍后重试');
+      }
+    });
 }
 
-/**
- * 原生游戏圈按钮：仅在暂停/结算时显示，对局中隐藏，避免遮挡操作区域
- */
+/** 保留兼容：main.js 初始化用 */
 export default class GameClubButton {
-  constructor() {
-    this.visible = false;
-    this.mode = 'pause'; // 'pause' | 'end'
-    this.initNative();
-  }
+  open = openGameClub;
 
-  initNative() {
-    if (!canUseNativeButton()) return;
+  hide() {}
 
-    const opts = {
-      type: 'text',
-      text: '游戏圈',
-      style: {
-        left: 0,
-        top: 0,
-        width: 120,
-        height: 34,
-        backgroundColor: 'rgba(108, 92, 231, 0.9)',
-        color: '#ffffff',
-        fontSize: 13,
-        borderRadius: 8,
-        textAlign: 'center',
-        lineHeight: 34,
-      },
-    };
-
-    if (GAME_CLUB_OPENLINK) opts.openlink = GAME_CLUB_OPENLINK;
-
-    nativeBtn = wx.createGameClubButton(opts);
-    nativeBtn.hide();
-  }
-
-  /** @param {{ x: number, y: number, w: number, h: number }} rect */
-  syncRect(rect) {
-    if (!nativeBtn || !rect) return;
-    nativeBtn.style.left = rect.x;
-    nativeBtn.style.top = rect.y;
-    nativeBtn.style.width = rect.w;
-    nativeBtn.style.height = rect.h;
-    nativeBtn.style.lineHeight = rect.h;
-  }
-
-  setMode(mode) {
-    this.mode = mode;
-  }
-
-  show() {
-    if (!nativeBtn || this.visible) return;
-    nativeBtn.show();
-    this.visible = true;
-  }
-
-  hide() {
-    if (!nativeBtn || !this.visible) return;
-    nativeBtn.hide();
-    this.visible = false;
-  }
-
-  /**
-   * 根据游戏状态自动显隐
-   * @param {'pause'|'end'|null} scene
-   * @param {{ x: number, y: number, w: number, h: number }|null} rect
-   */
-  update(scene, rect) {
-    if (!nativeBtn) return;
-
-    if (scene && rect) {
-      this.setMode(scene);
-      this.syncRect(rect);
-      this.show();
-    } else {
-      this.hide();
-    }
-  }
+  update() {}
 }

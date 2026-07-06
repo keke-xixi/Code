@@ -1,6 +1,7 @@
 import CONFIG from './config/game.config';
 import { getLevel } from './config/levels.config';
 import { setStars, unlock } from './base/progress';
+import { syncGameplayAfterWin } from './runtime/gameplaySync';
 
 let instance;
 
@@ -120,6 +121,7 @@ export default class DataBus {
     this.stars = stars;
     setStars(this.levelId, stars);
     unlock(this.levelId + 1);
+    syncGameplayAfterWin();
   }
 
   fail() {

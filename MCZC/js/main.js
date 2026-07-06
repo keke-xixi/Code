@@ -6,6 +6,7 @@ import Particles from './base/particles';
 import { preloadAssets, waitForAssets } from './base/assets';
 import GameUI from './runtime/gameui';
 import Sfx from './runtime/sfx';
+import GameClubButton from './runtime/gameClub';
 
 const ctx = canvas.getContext('2d');
 
@@ -24,6 +25,7 @@ export default class Main {
   loading = true;
 
   constructor() {
+    GameGlobal.gameClub = new GameClubButton();
     this.ui.on('start', (id) => this.startLevel(id));
     this.ui.on('menu', () => this.showMenu());
     this.ui.bindTouch();

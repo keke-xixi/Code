@@ -60,6 +60,10 @@ export default class GameUI extends Emitter {
 
   handleMenuTap(x, y) {
     const db = GameGlobal.databus;
+    if (this.hit(x, y, this.getMenuGameClubBtn())) {
+      GameGlobal.gameClub?.open?.();
+      return;
+    }
     if (x < SCREEN_WIDTH * 0.12 && db.menuIndex > 0) { db.menuIndex -= 1; return; }
     if (x > SCREEN_WIDTH * 0.88 && db.menuIndex < LEVELS.length - 1) { db.menuIndex += 1; return; }
     const lv = LEVELS[db.menuIndex];
@@ -91,6 +95,10 @@ export default class GameUI extends Emitter {
     }
     if (db.isOver) {
       const btns = this.getResultBtns();
+      if (this.hit(x, y, btns.gameClub)) {
+        GameGlobal.gameClub?.open?.();
+        return;
+      }
       if (this.hit(x, y, btns.retry)) this.emit('start', db.levelId);
       if (btns.next && this.hit(x, y, btns.next)) this.emit('start', db.levelId + 1);
       if (this.hit(x, y, btns.menu)) this.emit('menu');
@@ -213,6 +221,14 @@ export default class GameUI extends Emitter {
     }
   }
 
+  getMenuGameClubBtn() {
+    return { x: SCREEN_WIDTH - 118, y: SCREEN_HEIGHT - 52, w: 102, h: 34 };
+  }
+
+  getResultGameClubBtn(y) {
+    return { x: SCREEN_WIDTH / 2 - 55, y, w: 110, h: 34 };
+  }
+
   getResultBtns() {
     const db = GameGlobal.databus;
     const y = SCREEN_HEIGHT / 2 + 50;
@@ -227,6 +243,7 @@ export default class GameUI extends Emitter {
         retry: { x: sx, y, w, h },
         next: { x: sx + w + g, y, w, h },
         menu: { x: sx + (w + g) * 2, y, w, h },
+        gameClub: this.getResultGameClubBtn(y + h + 14),
       };
     }
     const w = 130;
@@ -235,6 +252,7 @@ export default class GameUI extends Emitter {
       retry: { x: SCREEN_WIDTH / 2 - w - g / 2, y, w, h },
       next: null,
       menu: { x: SCREEN_WIDTH / 2 + g / 2, y, w, h },
+      gameClub: this.getResultGameClubBtn(y + h + 14),
     };
   }
 
@@ -354,6 +372,17 @@ export default class GameUI extends Emitter {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(isUnlocked(cur.id) ? '进入镜像' : '尚未解锁', btn.x + btn.w / 2, btn.y + btn.h / 2);
+
+    const club = this.getMenuGameClubBtn();
+    roundRect(ctx, club.x, club.y, club.w, club.h, 10);
+    ctx.fillStyle = 'rgba(106, 27, 154, 0.88)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText('游戏圈', club.x + club.w / 2, club.y + club.h / 2);
   }
 
   renderPlay(ctx) {
@@ -541,6 +570,7 @@ export default class GameUI extends Emitter {
     drawBtn(btns.retry, '再试一次', lv.accentDark);
     if (btns.next) drawBtn(btns.next, '下一关', '#1976D2');
     drawBtn(btns.menu, '选关', '#455A64');
+    drawBtn(btns.gameClub, '游戏圈', '#6A1B9A');
   }
 
   render(ctx) {

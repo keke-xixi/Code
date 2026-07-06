@@ -10,18 +10,26 @@ const STARS = Array.from({ length: 24 }, (_, i) => ({
   ph: i * 1.7,
 }));
 
-/** 选关：镜像蓝紫 + 微光星点 */
-export function drawMenuScene(ctx, frame = 0) {
+function drawMenuFallback(ctx) {
   const g = ctx.createLinearGradient(0, 0, SCREEN_WIDTH * 0.3, SCREEN_HEIGHT);
   g.addColorStop(0, '#3F51B5');
   g.addColorStop(0.5, '#283593');
   g.addColorStop(1, '#1A237E');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+}
+
+/** 选关：menu_bg 底图 + 轻遮罩 + 微光星点 */
+export function drawMenuScene(ctx, frame = 0) {
+  const hasBg = drawCover(ctx, CONFIG.assets.menuBg, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+  if (!hasBg) drawMenuFallback(ctx);
+
+  ctx.fillStyle = hasBg ? 'rgba(26,35,126,0.28)' : 'rgba(26,35,126,0.15)';
+  ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
   const aurora = ctx.createLinearGradient(0, SCREEN_HEIGHT * 0.2, SCREEN_WIDTH, SCREEN_HEIGHT * 0.7);
   aurora.addColorStop(0, 'rgba(126,87,192,0)');
-  aurora.addColorStop(0.5, `rgba(126,87,192,${0.08 + Math.sin(frame * 0.015) * 0.03})`);
+  aurora.addColorStop(0.5, `rgba(126,87,192,${0.06 + Math.sin(frame * 0.015) * 0.02})`);
   aurora.addColorStop(1, 'rgba(126,87,192,0)');
   ctx.fillStyle = aurora;
   ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -29,7 +37,7 @@ export function drawMenuScene(ctx, frame = 0) {
   STARS.forEach((st) => {
     const x = st.x * SCREEN_WIDTH + Math.sin(frame * st.sp + st.ph) * 2;
     const y = st.y * SCREEN_HEIGHT + Math.cos(frame * st.sp * 0.8 + st.ph) * 1.5;
-    const a = 0.25 + Math.sin(frame * 0.05 + st.ph) * 0.15;
+    const a = 0.2 + Math.sin(frame * 0.05 + st.ph) * 0.12;
     ctx.fillStyle = `rgba(232,234,246,${a})`;
     ctx.beginPath();
     ctx.arc(x, y, st.s, 0, Math.PI * 2);

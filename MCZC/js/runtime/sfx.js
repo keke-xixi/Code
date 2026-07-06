@@ -1,9 +1,13 @@
 import CONFIG from '../config/game.config';
 import { getLevel } from '../config/levels.config';
 
+const MUTE_KEY = 'mirror_twin_mute';
+
 export default class Sfx {
   bgmStarted = false;
   currentBgmKey = '';
+  muted = false;
+  baseVol = { ...CONFIG.audioVol };
 
   constructor() {
     const a = CONFIG.assets.audio;
@@ -15,6 +19,8 @@ export default class Sfx {
       warm: this.create(a.bgmWarm, true, v.bgm),
       cool: this.create(a.bgmCool, true, v.bgm),
     };
+    this.loadMute();
+    this.applyMute();
   }
 
   create(src, loop, volume) {
@@ -29,8 +35,47 @@ export default class Sfx {
     }
   }
 
+  loadMute() {
+    try {
+      this.muted = !!wx.getStorageSync(MUTE_KEY);
+    } catch {
+      this.muted = false;
+    }
+  }
+
+  saveMute() {
+    try {
+      wx.setStorageSync(MUTE_KEY, this.muted);
+    } catch { /* ignore */ }
+  }
+
+  isMuted() {
+    return this.muted;
+  }
+
+  toggleMute() {
+    this.muted = !this.muted;
+    this.saveMute();
+    this.applyMute();
+    return this.muted;
+  }
+
+  applyMute() {
+    const vol = this.muted ? 0 : 1;
+    if (this.find) this.find.volume = this.baseVol.find * vol;
+    if (this.miss) this.miss.volume = this.baseVol.miss * vol;
+    Object.values(this.bgmTracks).forEach((t) => {
+      if (!t) return;
+      t.volume = this.baseVol.bgm * vol;
+      if (this.muted) {
+        try { t.stop(); } catch { /* ignore */ }
+      }
+    });
+    if (!this.muted && this.bgmStarted) this.ensureBgm();
+  }
+
   play(audio) {
-    if (!audio) return;
+    if (!audio || this.muted) return;
     try {
       audio.stop();
       audio.play();
@@ -44,6 +89,7 @@ export default class Sfx {
   }
 
   ensureBgm() {
+    if (this.muted) return;
     const key = this.getBgmKey();
     if (!this.bgmStarted) this.bgmStarted = true;
     if (this.currentBgmKey === key) {

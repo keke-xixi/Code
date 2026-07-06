@@ -67,6 +67,11 @@ export function openGameClub() {
     });
 }
 
+/** 游戏圈入口（Canvas 主题按钮，由 GameUI 绘制） */
 export default class GameClubButton {
   open = openGameClub;
+
+  update() {}
+
+  hide() {}
 }

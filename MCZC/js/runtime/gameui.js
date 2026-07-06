@@ -60,7 +60,11 @@ export default class GameUI extends Emitter {
 
   handleMenuTap(x, y) {
     const db = GameGlobal.databus;
-    if (this.hit(x, y, this.getMenuGameClubBtn())) {
+    if (this.hit(x, y, this.getSoundFabRect())) {
+      GameGlobal.sfx?.toggleMute();
+      return;
+    }
+    if (this.hit(x, y, this.getGameClubFabRect())) {
       GameGlobal.gameClub?.open?.();
       return;
     }
@@ -95,6 +99,10 @@ export default class GameUI extends Emitter {
     }
     if (db.isOver) {
       const btns = this.getResultBtns();
+      if (this.hit(x, y, btns.sound)) {
+        GameGlobal.sfx?.toggleMute();
+        return;
+      }
       if (this.hit(x, y, btns.gameClub)) {
         GameGlobal.gameClub?.open?.();
         return;
@@ -102,6 +110,10 @@ export default class GameUI extends Emitter {
       if (this.hit(x, y, btns.retry)) this.emit('start', db.levelId);
       if (btns.next && this.hit(x, y, btns.next)) this.emit('start', db.levelId + 1);
       if (this.hit(x, y, btns.menu)) this.emit('menu');
+      return;
+    }
+    if (this.hit(x, y, this.getSoundFabRect())) {
+      GameGlobal.sfx?.toggleMute();
       return;
     }
     if (this.hit(x, y, this.getHintBtn())) {
@@ -221,12 +233,133 @@ export default class GameUI extends Emitter {
     }
   }
 
-  getMenuGameClubBtn() {
-    return { x: SCREEN_WIDTH - 118, y: SCREEN_HEIGHT - 52, w: 102, h: 34 };
+  getFabSize() {
+    return 46;
   }
 
-  getResultGameClubBtn(y) {
-    return { x: SCREEN_WIDTH / 2 - 55, y, w: 110, h: 34 };
+  getSoundFabRect() {
+    const s = this.getFabSize();
+    return { x: SCREEN_WIDTH - s - 10, y: SCREEN_HEIGHT - s - 10, w: s, h: s };
+  }
+
+  getGameClubFabRect() {
+    const s = this.getFabSize();
+    const gap = 8;
+    const sound = this.getSoundFabRect();
+    return { x: sound.x - s - gap, y: sound.y, w: s, h: s };
+  }
+
+  /** 音效开关 — 紫金圆钮 + 扬声器图标 */
+  drawSoundFab(ctx, rect, frame = 0) {
+    const { x, y, w, h } = rect;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const r = w / 2 - 1;
+    const muted = GameGlobal.sfx?.isMuted?.();
+    const pulse = muted ? 0.35 : 0.6 + Math.sin(frame * 0.05) * 0.18;
+
+    ctx.save();
+    ctx.shadowColor = `rgba(126,87,192,${0.4 + pulse * 0.2})`;
+    ctx.shadowBlur = 12;
+    const bg = ctx.createRadialGradient(cx - r * 0.2, cy - r * 0.3, r * 0.05, cx, cy, r);
+    bg.addColorStop(0, muted ? 'rgba(120,120,140,0.95)' : 'rgba(149,117,205,0.98)');
+    bg.addColorStop(0.55, muted ? 'rgba(84,84,102,0.96)' : 'rgba(94,53,177,0.96)');
+    bg.addColorStop(1, muted ? 'rgba(69,69,86,0.98)' : 'rgba(69,39,160,0.98)');
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = muted ? 'rgba(255,255,255,0.35)' : `rgba(255,213,79,${0.55 + pulse * 0.35})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r - 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    const s = w * 0.18;
+    ctx.fillStyle = muted ? 'rgba(255,255,255,0.55)' : '#FFFFFF';
+    ctx.strokeStyle = muted ? 'rgba(255,255,255,0.55)' : '#FFFFFF';
+    ctx.lineWidth = 1.6;
+    ctx.lineCap = 'round';
+
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.95, cy - s * 0.35);
+    ctx.lineTo(cx - s * 0.55, cy - s * 0.35);
+    ctx.lineTo(cx - s * 0.25, cy - s * 0.72);
+    ctx.lineTo(cx - s * 0.25, cy + s * 0.72);
+    ctx.lineTo(cx - s * 0.55, cy + s * 0.35);
+    ctx.lineTo(cx - s * 0.95, cy + s * 0.35);
+    ctx.closePath();
+    ctx.fill();
+
+    if (!muted) {
+      ctx.beginPath();
+      ctx.arc(cx + s * 0.35, cy, s * 0.42, -Math.PI / 3, Math.PI / 3);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(cx + s * 0.55, cy, s * 0.72, -Math.PI / 3, Math.PI / 3);
+      ctx.stroke();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.1, cy - s * 0.85);
+      ctx.lineTo(cx + s * 0.95, cy + s * 0.85);
+      ctx.stroke();
+    }
+  }
+
+  /** 游戏圈 — 圆角方钮 + 重叠对话气泡 */
+  drawGameClubFab(ctx, rect, frame = 0) {
+    const { x, y, w, h } = rect;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rad = 12;
+    const pulse = 0.55 + Math.sin(frame * 0.04 + 1.2) * 0.15;
+
+    ctx.save();
+    ctx.shadowColor = `rgba(255,213,79,${0.25 + pulse * 0.2})`;
+    ctx.shadowBlur = 10;
+    roundRect(ctx, x + 1, y + 1, w - 2, h - 2, rad);
+    const bg = ctx.createLinearGradient(x, y, x + w, y + h);
+    bg.addColorStop(0, 'rgba(126,87,192,0.95)');
+    bg.addColorStop(1, 'rgba(63,81,181,0.95)');
+    ctx.fillStyle = bg;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.strokeStyle = `rgba(255,213,79,${0.65 + pulse * 0.25})`;
+    ctx.lineWidth = 2;
+    roundRect(ctx, x + 1, y + 1, w - 2, h - 2, rad);
+    ctx.stroke();
+
+    const s = w * 0.17;
+    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    roundRect(ctx, cx - s * 2.1, cy - s * 0.55, s * 1.85, s * 1.35, s * 0.35);
+    ctx.fill();
+    roundRect(ctx, cx + s * 0.15, cy - s * 1.05, s * 1.95, s * 1.45, s * 0.38);
+    ctx.fill();
+
+    ctx.fillStyle = 'rgba(126,87,192,0.85)';
+    [-0.55, 0, 0.55].forEach((ox, i) => {
+      ctx.beginPath();
+      ctx.arc(cx + ox * s + (i > 0 ? s * 0.2 : 0), cy + (i > 0 ? -s * 0.15 : s * 0.05), s * 0.11, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    ctx.fillStyle = '#FFD54F';
+    ctx.beginPath();
+    ctx.arc(cx + s * 1.55, cy - s * 0.85, s * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#4527A0';
+    ctx.font = `bold ${Math.max(8, s * 0.55)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('圈', cx + s * 1.55, cy - s * 0.82);
+  }
+
+  drawBottomFabs(ctx, frame, showClub = true) {
+    this.drawSoundFab(ctx, this.getSoundFabRect(), frame);
+    if (showClub) this.drawGameClubFab(ctx, this.getGameClubFabRect(), frame);
   }
 
   getResultBtns() {
@@ -243,7 +376,8 @@ export default class GameUI extends Emitter {
         retry: { x: sx, y, w, h },
         next: { x: sx + w + g, y, w, h },
         menu: { x: sx + (w + g) * 2, y, w, h },
-        gameClub: this.getResultGameClubBtn(y + h + 14),
+        sound: this.getSoundFabRect(),
+        gameClub: this.getGameClubFabRect(),
       };
     }
     const w = 130;
@@ -252,7 +386,8 @@ export default class GameUI extends Emitter {
       retry: { x: SCREEN_WIDTH / 2 - w - g / 2, y, w, h },
       next: null,
       menu: { x: SCREEN_WIDTH / 2 + g / 2, y, w, h },
-      gameClub: this.getResultGameClubBtn(y + h + 14),
+      sound: this.getSoundFabRect(),
+      gameClub: this.getGameClubFabRect(),
     };
   }
 
@@ -270,9 +405,6 @@ export default class GameUI extends Emitter {
     ctx.shadowBlur = 8;
     ctx.fillText(CONFIG.title, SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09);
     ctx.shadowBlur = 0;
-    ctx.font = '13px sans-serif';
-    ctx.fillStyle = 'rgba(232,234,246,0.85)';
-    ctx.fillText('左右滑动 · 在镜像中找到不同之处', SCREEN_WIDTH / 2, SCREEN_HEIGHT * 0.09 + 30);
 
     const cardMid = this.getCardMetrics().y + this.getCardMetrics().h / 2;
     if (db.menuIndex > 0) {
@@ -373,16 +505,7 @@ export default class GameUI extends Emitter {
     ctx.textBaseline = 'middle';
     ctx.fillText(isUnlocked(cur.id) ? '进入镜像' : '尚未解锁', btn.x + btn.w / 2, btn.y + btn.h / 2);
 
-    const club = this.getMenuGameClubBtn();
-    roundRect(ctx, club.x, club.y, club.w, club.h, 10);
-    ctx.fillStyle = 'rgba(106, 27, 154, 0.88)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 13px sans-serif';
-    ctx.fillText('游戏圈', club.x + club.w / 2, club.y + club.h / 2);
+    this.drawBottomFabs(ctx, frame, true);
   }
 
   renderPlay(ctx) {
@@ -428,6 +551,7 @@ export default class GameUI extends Emitter {
     this.renderFooter(ctx, lv);
     if (db.isOver) this.renderResult(ctx, lv);
     if (db.showExitConfirm) this.renderExitConfirm(ctx);
+    if (!db.isOver) this.drawBottomFabs(ctx, db.frame, false);
     ctx.restore();
   }
 
@@ -570,7 +694,7 @@ export default class GameUI extends Emitter {
     drawBtn(btns.retry, '再试一次', lv.accentDark);
     if (btns.next) drawBtn(btns.next, '下一关', '#1976D2');
     drawBtn(btns.menu, '选关', '#455A64');
-    drawBtn(btns.gameClub, '游戏圈', '#6A1B9A');
+    this.drawBottomFabs(ctx, db.frame, true);
   }
 
   render(ctx) {

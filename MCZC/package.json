@@ -1,0 +1,16 @@
+{
+  "name": "mczc",
+  "version": "1.0.0",
+  "description": "微信小游戏：左右镜像对照场景图，在右侧镜像图中找出全部差异点。",
+  "main": ".eslintrc.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "sharp": "^0.35.3"
+  }
+}

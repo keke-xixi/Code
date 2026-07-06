@@ -49,6 +49,7 @@ export default class Main {
   }
 
   startLevel(id) {
+    GameGlobal.gameClub?.hide();
     GameGlobal.databus.startLevel(id);
     GameGlobal.sfx?.refreshBgm();
   }

@@ -13,13 +13,13 @@ export default {
     bgm: 0.18,
   },
   assets: {
-    menuBg: 'images/menu_bg.png',
+    menuBg: 'images/menu_bg.jpg',
     audio: {
       find: 'audio/find.wav',
       miss: 'audio/miss.wav',
-      bgmMenu: 'audio/bgm_menu.wav',
-      bgmWarm: 'audio/bgm_warm.wav',
-      bgmCool: 'audio/bgm_cool.wav',
+      bgmMenu: 'audio/bgm_menu.mp3',
+      bgmWarm: 'audio/bgm_warm.mp3',
+      bgmCool: 'audio/bgm_cool.mp3',
     },
   },
 };

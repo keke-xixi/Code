@@ -27,7 +27,7 @@
     "useCompilerPlugins": false
   },
   "compileType": "game",
-  "libVersion": "latest",
+  "libVersion": "3.15.2",
   "appid": "wxd0b16de0aeb3227b",
   "projectname": "星河拾弹记",
   "condition": {

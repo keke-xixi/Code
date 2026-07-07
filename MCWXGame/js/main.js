@@ -8,6 +8,7 @@ import DataBus from './databus';
 import { getCurrentLevelCfg } from './config/levels';
 import ScoreBoard from './runtime/scoreBoard';
 import GameClubButton, { openGameClub } from './runtime/gameClub';
+import adManager from './runtime/ads';
 
 const ctx = canvas.getContext('2d');
 
@@ -32,13 +33,22 @@ export default class Main {
 
     GameGlobal.gameClub = new GameClubButton();
     GameGlobal.gameClub.open = openGameClub;
+    GameGlobal.adManager = adManager;
+    adManager.init();
 
-    this.hud.on('restart', this.start.bind(this));
+    this.hud.on('restart', () => {
+      if (GameGlobal.databus.isGameOver || GameGlobal.databus.gameCleared) {
+        adManager.showInterstitialThen(() => this.start());
+      } else {
+        this.start();
+      }
+    });
     GameGlobal.databus.topScores = ScoreBoard.load();
     this.start();
   }
 
   start() {
+    GameGlobal.adManager?.resetDeathFlags?.();
     GameGlobal.databus.reset();
     GameGlobal.databus.hud.showRankPanel = false;
     this.player.init();
@@ -134,6 +144,7 @@ export default class Main {
 
     GameGlobal.databus.particles = GameGlobal.databus.particles.filter((p) => p.update());
 
+    GameGlobal.databus.tickAdCooldown();
     this.collisionDetection();
   }
 

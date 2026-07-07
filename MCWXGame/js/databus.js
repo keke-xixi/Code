@@ -52,12 +52,46 @@ export default class DataBus {
     this.weaponSwitchTimer = 0;
     this.weaponSwitchMsg = '';
     this.bossTitle = '';
+    this.reviveUsed = false;
+    this.scoreBonusClaimed = false;
+    this.skillAdCooldown = 0;
   }
 
   gameOver() {
     this.isGameOver = true;
     this.isPaused = false;
     this.saveRunScore(false);
+    GameGlobal.adManager?.tryShowGameOverInterstitial?.();
+  }
+
+  canRevive() {
+    return this.isGameOver && !this.reviveUsed && !this.gameCleared;
+  }
+
+  revivePlayer() {
+    if (!this.canRevive()) return false;
+    this.reviveUsed = true;
+    this.isGameOver = false;
+    this.scoreSaved = false;
+
+    const p = this.player;
+    if (!p) return false;
+
+    p.isActive = true;
+    p.visible = true;
+    p.hp = Math.max(35, Math.floor(p.maxHp * 0.45));
+    p.invincibleTimer = 150;
+    return true;
+  }
+
+  applyScoreBonus(ratio = 0.5) {
+    if (this.scoreBonusClaimed || !this.gameCleared) return 0;
+    const added = Math.floor(this.score * ratio);
+    this.score += added;
+    this.scoreBonusClaimed = true;
+    this.scoreSaved = false;
+    this.saveRunScore(true);
+    return added;
   }
 
   /** 失败或通关时保存积分到排行榜 */
@@ -71,6 +105,10 @@ export default class DataBus {
   togglePause() {
     if (this.isGameOver || this.gameCleared) return;
     this.isPaused = !this.isPaused;
+  }
+
+  tickAdCooldown() {
+    if (this.skillAdCooldown > 0) this.skillAdCooldown--;
   }
 
   addExplosion(x, y, color, size) {

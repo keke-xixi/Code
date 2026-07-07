@@ -133,6 +133,18 @@ export default class Fighter extends Entity {
         GameGlobal.gameClub?.open?.();
         return;
       }
+      if (touchResult === 'adRevive') {
+        GameGlobal.adManager?.showReviveAd?.();
+        return;
+      }
+      if (touchResult === 'adScoreBonus') {
+        GameGlobal.adManager?.showScoreBonusAd?.();
+        return;
+      }
+      if (touchResult === 'adRandomSkill') {
+        GameGlobal.adManager?.showRandomSkillAd?.();
+        return;
+      }
       if (touchResult === 'paused' || touchResult === 'toggle') return;
       if (touchResult && typeof touchResult === 'string') {
         if (!GameGlobal.databus.isGameOver && !GameGlobal.databus.gameCleared && !GameGlobal.databus.isPaused) {

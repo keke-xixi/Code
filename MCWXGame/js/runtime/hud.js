@@ -2,6 +2,7 @@ import Emitter from '../libs/tinyemitter';
 import { SCREEN_WIDTH, SCREEN_HEIGHT } from '../config/constants';
 import { SKILL_CONFIG } from '../config/weapons';
 import { LEVELS } from '../config/levels';
+import { AD_ENABLED } from '../config/ads.config';
 import ScoreBoard from './scoreBoard';
 
 const SKILL_KEYS = ['laser', 'missile', 'shield', 'bomb', 'overdrive'];
@@ -53,6 +54,13 @@ export default class HUD extends Emitter {
       h: 28,
     };
 
+    this.randomSkillAdBtn = {
+      x: this.pauseBtn.x + this.pauseBtn.w + 6,
+      y: this.pauseBtn.y,
+      w: 46,
+      h: 28,
+    };
+
     this.resumeBtn = {
       x: SCREEN_WIDTH / 2 - 145,
       y: SCREEN_HEIGHT / 2 - 10,
@@ -88,6 +96,20 @@ export default class HUD extends Emitter {
       h: 34,
     };
 
+    this.reviveAdBtn = {
+      x: SCREEN_WIDTH / 2 - 95,
+      y: SCREEN_HEIGHT - 186,
+      w: 190,
+      h: 40,
+    };
+
+    this.scoreBonusAdBtn = {
+      x: SCREEN_WIDTH / 2 - 95,
+      y: SCREEN_HEIGHT - 186,
+      w: 190,
+      h: 40,
+    };
+
     this.toggleBtn = {
       x: SCREEN_WIDTH - RIGHT_MARGIN - TOGGLE_W,
       y: SCREEN_HEIGHT / 2 - 20,
@@ -103,6 +125,12 @@ export default class HUD extends Emitter {
     }));
   }
 
+  /** 对局中是否显示「广告/技能」按钮 */
+  canShowInGameAdBtn() {
+    const db = GameGlobal.databus;
+    return AD_ENABLED && db && !db.isGameOver && !db.gameCleared && !db.isPaused;
+  }
+
   hitRect(x, y, r) {
     return x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
   }
@@ -115,6 +143,12 @@ export default class HUD extends Emitter {
 
   handleTouch(x, y) {
     if (GameGlobal.databus.isGameOver || GameGlobal.databus.gameCleared) {
+      if (GameGlobal.adManager?.canShowReviveBtn?.() && this.hitRect(x, y, this.reviveAdBtn)) {
+        return 'adRevive';
+      }
+      if (GameGlobal.adManager?.canShowScoreBonusBtn?.() && this.hitRect(x, y, this.scoreBonusAdBtn)) {
+        return 'adScoreBonus';
+      }
       if (this.hitRect(x, y, this.restartBtn)) return 'restart';
       if (this.hitRect(x, y, this.gameClubEndBtn)) return 'gameClub';
       return null;
@@ -129,6 +163,9 @@ export default class HUD extends Emitter {
     }
 
     if (this.hitRect(x, y, this.pauseBtn)) return 'pause';
+    if (this.canShowInGameAdBtn() && this.hitRect(x, y, this.randomSkillAdBtn)) {
+      return 'adRandomSkill';
+    }
 
     const t = this.toggleBtn;
     if (x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h) {
@@ -178,6 +215,23 @@ export default class HUD extends Emitter {
     ctx.textAlign = 'center';
     ctx.fillText('暂停', b.x + b.w / 2, b.y + 19);
     ctx.textAlign = 'left';
+
+    if (this.canShowInGameAdBtn()) {
+      const ab = this.randomSkillAdBtn;
+      const onCd = GameGlobal.databus.skillAdCooldown > 0;
+      ctx.fillStyle = onCd ? 'rgba(20,25,45,0.55)' : 'rgba(0,150,110,0.92)';
+      drawRoundRect(ctx, ab.x, ab.y, ab.w, ab.h, 6);
+      ctx.fill();
+      ctx.strokeStyle = onCd ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)';
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, ab.x, ab.y, ab.w, ab.h, 6);
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(onCd ? '冷却' : '广告', ab.x + ab.w / 2, ab.y + 19);
+      ctx.textAlign = 'left';
+    }
   }
 
   renderTopBar(ctx) {
@@ -391,6 +445,9 @@ export default class HUD extends Emitter {
     ctx.fillText(`到达第 ${GameGlobal.databus.currentLevel} 关`, SCREEN_WIDTH / 2, 122);
 
     this.renderLeaderboard(ctx, 138, GameGlobal.databus.score);
+    if (GameGlobal.adManager?.canShowReviveBtn?.()) {
+      this.drawAdBtn(ctx, this.reviveAdBtn, '看广告 · 复活+随机技能', '#e17055');
+    }
     this.drawGameClubBtn(ctx, this.gameClubEndBtn);
     this.drawRestartBtn(ctx);
     ctx.textAlign = 'left';
@@ -408,8 +465,16 @@ export default class HUD extends Emitter {
     ctx.fillStyle = '#ffffff';
     ctx.font = '15px sans-serif';
     ctx.fillText(`最终得分 ${GameGlobal.databus.score}`, SCREEN_WIDTH / 2, 100);
+    if (GameGlobal.databus.scoreBonusClaimed) {
+      ctx.fillStyle = '#55efc4';
+      ctx.font = '12px sans-serif';
+      ctx.fillText('已领取广告积分加成', SCREEN_WIDTH / 2, 118);
+    }
 
-    this.renderLeaderboard(ctx, 118, GameGlobal.databus.score);
+    this.renderLeaderboard(ctx, GameGlobal.databus.scoreBonusClaimed ? 128 : 118, GameGlobal.databus.score);
+    if (GameGlobal.adManager?.canShowScoreBonusBtn?.()) {
+      this.drawAdBtn(ctx, this.scoreBonusAdBtn, '看广告 · 积分+50%', '#00b894');
+    }
     this.drawGameClubBtn(ctx, this.gameClubEndBtn);
     this.drawRestartBtn(ctx);
     ctx.textAlign = 'left';
@@ -425,6 +490,23 @@ export default class HUD extends Emitter {
 
   drawGameClubBtn(ctx, b) {
     this.drawBtn(ctx, b, '游戏圈', '#6c5ce7');
+  }
+
+  drawAdBtn(ctx, b, label, color) {
+    ctx.fillStyle = color;
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('📺', b.x + 18, b.y + b.h / 2 + 5);
+    ctx.font = 'bold 13px sans-serif';
+    ctx.fillText(label, b.x + b.w / 2 + 8, b.y + b.h / 2 + 5);
+    ctx.textAlign = 'left';
   }
 
   renderLeaderboard(ctx, startY, highlightScore) {

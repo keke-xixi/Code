@@ -30,6 +30,10 @@ function shouldSimulateRewarded() {
   return AD_ENABLED && !AD_UNITS.rewardedVideo && isDevEnv();
 }
 
+function shouldSimulateReviveRewarded() {
+  return AD_ENABLED && !AD_UNITS.reviveRewardedVideo && isDevEnv();
+}
+
 function isInterstitialDevSimulate() {
   return AD_ENABLED && !AD_UNITS.interstitial && isDevEnv();
 }
@@ -61,15 +65,20 @@ export function grantRandomSkill(player) {
 
 class AdManager {
   rewardedVideo = null;
+  reviveRewardedVideo = null;
   interstitial = null;
   pendingReward = null;
+  pendingReviveReward = null;
   interstitialShownThisDeath = false;
   rewardedInited = false;
+  reviveRewardedInited = false;
   showing = false;
+  showingRevive = false;
 
   init() {
     if (!AD_ENABLED || isPcClient()) return;
     if (AD_UNITS.rewardedVideo) this.ensureRewarded();
+    if (AD_UNITS.reviveRewardedVideo) this.ensureReviveRewarded();
     if (AD_UNITS.interstitial) this.ensureInterstitial();
   }
 
@@ -110,6 +119,88 @@ class AdManager {
     } catch (err) {
       console.warn('[Ads] createRewardedVideoAd failed', err);
     }
+  }
+
+  ensureReviveRewarded() {
+    if (this.reviveRewardedInited || shouldSimulateReviveRewarded()) return;
+    if (!AD_UNITS.reviveRewardedVideo || !canUseRewardedApi()) return;
+
+    try {
+      this.reviveRewardedVideo = wx.createRewardedVideoAd({
+        adUnitId: AD_UNITS.reviveRewardedVideo,
+      });
+      this.reviveRewardedVideo.onLoad(() => {
+        console.log('[Ads] revive rewarded loaded');
+      });
+      this.reviveRewardedVideo.onError((err) => {
+        console.warn('[Ads] revive rewarded error', err);
+        if (this.pendingReviveReward) {
+          const fail = this.pendingReviveReward.onFail;
+          this.pendingReviveReward = null;
+          this.showingRevive = false;
+          fail?.(formatAdError(err));
+        }
+      });
+      this.reviveRewardedVideo.onClose((res) => {
+        this.showingRevive = false;
+        const pending = this.pendingReviveReward;
+        this.pendingReviveReward = null;
+        if (!pending) return;
+        if (res && res.isEnded) {
+          pending.onSuccess?.();
+        } else {
+          pending.onFail?.('需看完广告才能获得复活次数');
+        }
+        this.reviveRewardedVideo?.load?.().catch(() => {});
+      });
+      this.reviveRewardedInited = true;
+      this.reviveRewardedVideo.load().catch((err) => {
+        console.warn('[Ads] revive rewarded preload failed', err);
+      });
+    } catch (err) {
+      console.warn('[Ads] createReviveRewardedVideoAd failed', err);
+    }
+  }
+
+  showReviveRewarded(onSuccess, onFail) {
+    if (!AD_ENABLED) {
+      onFail?.('广告未启用');
+      return;
+    }
+
+    if (this.showingRevive) return;
+
+    if (shouldSimulateReviveRewarded()) {
+      showToast('开发版模拟复活广告', 2000);
+      setTimeout(() => onSuccess?.(), 400);
+      return;
+    }
+
+    if (isPcClient()) {
+      onFail?.('电脑模拟器无法播放真实广告，请点「预览」用手机微信扫码');
+      return;
+    }
+
+    this.ensureReviveRewarded();
+    if (!this.reviveRewardedVideo) {
+      onFail?.('当前微信版本不支持激励视频广告');
+      return;
+    }
+
+    this.pendingReviveReward = { onSuccess, onFail };
+    this.showingRevive = true;
+    showToast('广告加载中…', 1500);
+
+    const tryShow = () => this.reviveRewardedVideo.show().catch(() => (
+      this.reviveRewardedVideo.load().then(() => this.reviveRewardedVideo.show())
+    ));
+
+    tryShow().catch((err) => {
+      this.pendingReviveReward = null;
+      this.showingRevive = false;
+      console.warn('[Ads] show revive rewarded failed', err);
+      onFail?.(formatAdError(err));
+    });
   }
 
   ensureInterstitial() {
@@ -255,13 +346,27 @@ class AdManager {
     );
   }
 
-  /** 暂停弹窗：纯看插屏广告，无游戏奖励 */
-  showPauseInterstitialAd() {
+  /** 暂停弹窗：看激励广告累积 1 次复活 */
+  showPauseReviveAd() {
     const db = GameGlobal.databus;
     if (!db.isPaused || db.isGameOver || db.gameCleared) return;
 
-    showToast('广告加载中…', 1500);
-    this.showInterstitial((msg) => showToast(msg || '广告加载失败'));
+    this.showReviveRewarded(
+      () => {
+        const count = db.addStoredRevive(1);
+        showToast(`获得 1 次复活 · 共 ${count} 次`, 2500);
+      },
+      (msg) => showToast(msg || '领取失败'),
+    );
+  }
+
+  useStoredRevive() {
+    const db = GameGlobal.databus;
+    if (!db.useStoredRevive()) {
+      showToast('暂无可用复活次数');
+      return;
+    }
+    showToast(`复活成功 · 剩余 ${db.storedReviveCount} 次`, 2500);
   }
 
   canShowReviveBtn() {
@@ -278,9 +383,14 @@ class AdManager {
     return AD_ENABLED && !db?.isGameOver && !db?.gameCleared && !db?.isPaused;
   }
 
-  canShowPauseInterstitialBtn() {
+  canShowPauseReviveAdBtn() {
     const db = GameGlobal.databus;
     return AD_ENABLED && db?.isPaused && !db?.isGameOver && !db?.gameCleared;
+  }
+
+  canShowStoredReviveBtn() {
+    const db = GameGlobal.databus;
+    return AD_ENABLED && db?.canUseStoredRevive();
   }
 }
 

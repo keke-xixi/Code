@@ -6,6 +6,7 @@ import { getCurrentLevelCfg } from './config/levels';
 import { PICKUP_TYPE_LIST } from './config/pickupWeapons';
 import { EQUIP_TYPE_LIST } from './config/equipment';
 import ScoreBoard from './runtime/scoreBoard';
+import ReviveStorage from './runtime/reviveStorage';
 
 let instance;
 
@@ -29,6 +30,7 @@ export default class DataBus {
     if (instance) return instance;
     instance = this;
     this.topScores = ScoreBoard.load();
+    this.storedReviveCount = ReviveStorage.load();
   }
 
   reset() {
@@ -67,9 +69,16 @@ export default class DataBus {
     return this.isGameOver && !this.reviveUsed && !this.gameCleared;
   }
 
-  revivePlayer() {
-    if (!this.canRevive()) return false;
-    this.reviveUsed = true;
+  canUseStoredRevive() {
+    return this.isGameOver && !this.gameCleared && this.storedReviveCount > 0;
+  }
+
+  addStoredRevive(amount = 1) {
+    this.storedReviveCount = ReviveStorage.add(amount);
+    return this.storedReviveCount;
+  }
+
+  applyReviveState() {
     this.isGameOver = false;
     this.scoreSaved = false;
 
@@ -81,6 +90,19 @@ export default class DataBus {
     p.hp = Math.max(35, Math.floor(p.maxHp * 0.45));
     p.invincibleTimer = 150;
     return true;
+  }
+
+  revivePlayer() {
+    if (!this.canRevive()) return false;
+    this.reviveUsed = true;
+    return this.applyReviveState();
+  }
+
+  useStoredRevive() {
+    if (!this.canUseStoredRevive()) return false;
+    if (!ReviveStorage.consume()) return false;
+    this.storedReviveCount = ReviveStorage.load();
+    return this.applyReviveState();
   }
 
   applyScoreBonus(ratio = 0.5) {

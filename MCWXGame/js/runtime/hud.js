@@ -61,6 +61,13 @@ export default class HUD extends Emitter {
       h: 28,
     };
 
+    this.reviveCountBadge = {
+      x: SCREEN_WIDTH - 10 - 72,
+      y: this.pauseBtn.y,
+      w: 72,
+      h: 28,
+    };
+
     this.resumeBtn = {
       x: SCREEN_WIDTH / 2 - 145,
       y: SCREEN_HEIGHT / 2 - 10,
@@ -82,18 +89,18 @@ export default class HUD extends Emitter {
       h: 36,
     };
 
-    this.pauseInterstitialAdBtn = {
-      x: SCREEN_WIDTH / 2 - 95,
-      y: SCREEN_HEIGHT / 2 + 92,
-      w: 190,
-      h: 36,
-    };
-
     this.gameClubBtn = {
       x: SCREEN_WIDTH / 2 - 60,
-      y: SCREEN_HEIGHT / 2 + 138,
+      y: SCREEN_HEIGHT / 2 + 92,
       w: 120,
       h: 34,
+    };
+
+    this.pauseReviveAdBtn = {
+      x: 12,
+      y: SCREEN_HEIGHT - 52,
+      w: 148,
+      h: 40,
     };
 
     this.gameClubEndBtn = {
@@ -106,6 +113,13 @@ export default class HUD extends Emitter {
     this.reviveAdBtn = {
       x: SCREEN_WIDTH / 2 - 95,
       y: SCREEN_HEIGHT - 186,
+      w: 190,
+      h: 40,
+    };
+
+    this.storedReviveBtn = {
+      x: SCREEN_WIDTH / 2 - 95,
+      y: SCREEN_HEIGHT - 236,
       w: 190,
       h: 40,
     };
@@ -150,6 +164,9 @@ export default class HUD extends Emitter {
 
   handleTouch(x, y) {
     if (GameGlobal.databus.isGameOver || GameGlobal.databus.gameCleared) {
+      if (GameGlobal.adManager?.canShowStoredReviveBtn?.() && this.hitRect(x, y, this.storedReviveBtn)) {
+        return 'useStoredRevive';
+      }
       if (GameGlobal.adManager?.canShowReviveBtn?.() && this.hitRect(x, y, this.reviveAdBtn)) {
         return 'adRevive';
       }
@@ -165,9 +182,9 @@ export default class HUD extends Emitter {
       if (this.hitRect(x, y, this.resumeBtn)) return 'resume';
       if (this.hitRect(x, y, this.pauseRestartBtn)) return 'restart';
       if (this.hitRect(x, y, this.rankBtn)) return 'rank';
-      if (GameGlobal.adManager?.canShowPauseInterstitialBtn?.()
-        && this.hitRect(x, y, this.pauseInterstitialAdBtn)) {
-        return 'adPauseInterstitial';
+      if (GameGlobal.adManager?.canShowPauseReviveAdBtn?.()
+        && this.hitRect(x, y, this.pauseReviveAdBtn)) {
+        return 'adPauseRevive';
       }
       if (this.hitRect(x, y, this.gameClubBtn)) return 'gameClub';
       return 'paused';
@@ -242,6 +259,8 @@ export default class HUD extends Emitter {
       ctx.fillText('广告', ab.x + ab.w / 2, ab.y + 19);
       ctx.textAlign = 'left';
     }
+
+    this.renderReviveCountPill(ctx);
   }
 
   renderTopBar(ctx) {
@@ -430,10 +449,10 @@ export default class HUD extends Emitter {
     this.drawBtn(ctx, this.resumeBtn, '继续游戏', '#0984e3');
     this.drawBtn(ctx, this.pauseRestartBtn, '重新开始', '#e17055');
     this.drawBtn(ctx, this.rankBtn, this.showRankPanel ? '收起排行' : '积分排行', '#6c5ce7');
-    if (GameGlobal.adManager?.canShowPauseInterstitialBtn?.()) {
-      this.drawAdBtn(ctx, this.pauseInterstitialAdBtn, '看插屏广告', '#00b894');
-    }
     this.drawGameClubBtn(ctx, this.gameClubBtn);
+    if (GameGlobal.adManager?.canShowPauseReviveAdBtn?.()) {
+      this.drawPauseReviveAdBtn(ctx);
+    }
 
     if (this.showRankPanel) {
       this.renderLeaderboard(ctx, SCREEN_HEIGHT * 0.52, GameGlobal.databus.score);
@@ -458,6 +477,10 @@ export default class HUD extends Emitter {
     ctx.fillText(`到达第 ${GameGlobal.databus.currentLevel} 关`, SCREEN_WIDTH / 2, 122);
 
     this.renderLeaderboard(ctx, 138, GameGlobal.databus.score);
+    if (GameGlobal.adManager?.canShowStoredReviveBtn?.()) {
+      const count = GameGlobal.databus.storedReviveCount || 0;
+      this.drawAdBtn(ctx, this.storedReviveBtn, `使用复活 · 剩余${count}次`, '#ff6b81');
+    }
     if (GameGlobal.adManager?.canShowReviveBtn?.()) {
       this.drawAdBtn(ctx, this.reviveAdBtn, '看广告 · 复活+随机技能', '#e17055');
     }
@@ -503,6 +526,48 @@ export default class HUD extends Emitter {
 
   drawGameClubBtn(ctx, b) {
     this.drawBtn(ctx, b, '游戏圈', '#6c5ce7');
+  }
+
+  renderReviveCountPill(ctx) {
+    const count = GameGlobal.databus.storedReviveCount || 0;
+    const b = this.reviveCountBadge;
+    const label = `复活×${count}`;
+
+    ctx.fillStyle = count > 0 ? 'rgba(255,71,87,0.92)' : 'rgba(45,55,80,0.92)';
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 6);
+    ctx.fill();
+    ctx.strokeStyle = count > 0 ? 'rgba(255,200,210,0.7)' : 'rgba(255,255,255,0.25)';
+    ctx.lineWidth = 1.5;
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 6);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, b.x + b.w / 2, b.y + 19);
+    ctx.textAlign = 'left';
+  }
+
+  drawPauseReviveAdBtn(ctx) {
+    const b = this.pauseReviveAdBtn;
+    const count = GameGlobal.databus.storedReviveCount || 0;
+
+    ctx.fillStyle = 'rgba(225,112,85,0.95)';
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1;
+    drawRoundRect(ctx, b.x, b.y, b.w, b.h, 8);
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('📺 看广告 +1复活', b.x + 10, b.y + 17);
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillText(`当前共 ${count} 次`, b.x + 10, b.y + 32);
+    ctx.textAlign = 'left';
   }
 
   drawAdBtn(ctx, b, label, color) {

@@ -145,8 +145,12 @@ export default class Fighter extends Entity {
         GameGlobal.adManager?.showRandomSkillAd?.();
         return;
       }
-      if (touchResult === 'adPauseInterstitial') {
-        GameGlobal.adManager?.showPauseInterstitialAd?.();
+      if (touchResult === 'adPauseRevive') {
+        GameGlobal.adManager?.showPauseReviveAd?.();
+        return;
+      }
+      if (touchResult === 'useStoredRevive') {
+        GameGlobal.adManager?.useStoredRevive?.();
         return;
       }
       if (touchResult === 'paused' || touchResult === 'toggle') return;

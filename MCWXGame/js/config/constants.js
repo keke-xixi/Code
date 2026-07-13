@@ -16,6 +16,10 @@ export const PLAYER_SHOOT_INTERVAL = 8;
 export const STAR_COUNT = 80;
 export const BG_SCROLL_SPEED = 2;
 
+// 子弹性能上限（防止散弹 + 多弹道同屏过多）
+export const MAX_BULLETS = 100;
+export const SHOTGUN_MAX_PELLETS_PER_VOLLEY = 18;
+
 // 技能冷却（帧数，60fps）
 export const SKILL_COOLDOWN = {
   LASER: 360,    // 6秒

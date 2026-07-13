@@ -23,6 +23,7 @@ export default class Bullet extends Entity {
     this.life = 0;
     this.maxLife = 600;
     this.rotation = 0;
+    this.noShadow = false;
   }
 
   init(x, y, type, options = {}) {
@@ -43,12 +44,13 @@ export default class Bullet extends Entity {
     this.vy = options.vy ?? -cfg.speed;
     this.isActive = true;
     this.visible = true;
-    this.hitEnemies = new Set();
+    this.hitEnemies.clear();
     this.life = 0;
     this.maxLife = type === WEAPON_TYPES.LASER ? 45 : 600;
     this.beamHeight = options.beamHeight || this.height;
     this.target = null;
     this.rotation = 0;
+    this.noShadow = type === PICKUP_TYPES.SHOTGUN || type === WEAPON_TYPES.PULSE;
   }
 
   findNearestEnemy() {
@@ -90,10 +92,12 @@ export default class Bullet extends Entity {
   }
 
   update() {
-    if (GameGlobal.databus.isGameOver) return;
+    if (!this.isActive || GameGlobal.databus.isGameOver) return;
 
     this.life++;
-    this.rotation += 0.25;
+    if (this.type === PICKUP_TYPES.BLADE) {
+      this.rotation += 0.25;
+    }
 
     if (this.homing) {
       if (!this.target || !this.target.isActive) {
@@ -258,10 +262,12 @@ export default class Bullet extends Entity {
       return;
     }
 
-    // 默认圆形弹 / 散弹
+    // 默认圆形弹 / 散弹（散弹禁用 shadowBlur，避免同屏大量绘制卡顿）
     ctx.save();
-    ctx.shadowColor = this.color;
-    ctx.shadowBlur = 5;
+    if (!this.noShadow) {
+      ctx.shadowColor = this.color;
+      ctx.shadowBlur = 5;
+    }
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.arc(cx, cy, this.radius, 0, Math.PI * 2);
@@ -301,8 +307,6 @@ export default class Bullet extends Entity {
   }
 
   destroy() {
-    this.isActive = false;
-    this.visible = false;
     GameGlobal.databus.removeBullet(this);
   }
 }

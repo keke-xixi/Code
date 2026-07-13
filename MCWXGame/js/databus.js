@@ -54,7 +54,6 @@ export default class DataBus {
     this.bossTitle = '';
     this.reviveUsed = false;
     this.scoreBonusClaimed = false;
-    this.skillAdCooldown = 0;
   }
 
   gameOver() {
@@ -107,10 +106,6 @@ export default class DataBus {
     this.isPaused = !this.isPaused;
   }
 
-  tickAdCooldown() {
-    if (this.skillAdCooldown > 0) this.skillAdCooldown--;
-  }
-
   addExplosion(x, y, color, size) {
     this.particles.push(new Particle(x, y, color, size));
   }
@@ -124,12 +119,26 @@ export default class DataBus {
     }
   }
 
+  /** 标记子弹待回收（帧末批量 compact，避免 forEach 中 splice 卡顿） */
   removeBullet(bullet) {
-    const idx = this.bullets.indexOf(bullet);
-    if (idx !== -1) {
-      this.bullets.splice(idx, 1);
-      this.pool.recover('bullet', bullet);
+    if (!bullet.isActive) return;
+    bullet.isActive = false;
+    bullet.visible = false;
+  }
+
+  /** 帧末批量回收失效子弹，O(n) 单次遍历替代多次 splice */
+  compactBullets() {
+    const bullets = this.bullets;
+    let write = 0;
+    for (let i = 0; i < bullets.length; i++) {
+      const bullet = bullets[i];
+      if (bullet.isActive) {
+        bullets[write++] = bullet;
+      } else {
+        this.pool.recover('bullet', bullet);
+      }
     }
+    bullets.length = write;
   }
 
   removePickup(pickup) {

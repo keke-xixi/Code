@@ -82,9 +82,16 @@ export default class HUD extends Emitter {
       h: 36,
     };
 
+    this.pauseInterstitialAdBtn = {
+      x: SCREEN_WIDTH / 2 - 95,
+      y: SCREEN_HEIGHT / 2 + 92,
+      w: 190,
+      h: 36,
+    };
+
     this.gameClubBtn = {
       x: SCREEN_WIDTH / 2 - 60,
-      y: SCREEN_HEIGHT / 2 + 92,
+      y: SCREEN_HEIGHT / 2 + 138,
       w: 120,
       h: 34,
     };
@@ -158,6 +165,10 @@ export default class HUD extends Emitter {
       if (this.hitRect(x, y, this.resumeBtn)) return 'resume';
       if (this.hitRect(x, y, this.pauseRestartBtn)) return 'restart';
       if (this.hitRect(x, y, this.rankBtn)) return 'rank';
+      if (GameGlobal.adManager?.canShowPauseInterstitialBtn?.()
+        && this.hitRect(x, y, this.pauseInterstitialAdBtn)) {
+        return 'adPauseInterstitial';
+      }
       if (this.hitRect(x, y, this.gameClubBtn)) return 'gameClub';
       return 'paused';
     }
@@ -218,18 +229,17 @@ export default class HUD extends Emitter {
 
     if (this.canShowInGameAdBtn()) {
       const ab = this.randomSkillAdBtn;
-      const onCd = GameGlobal.databus.skillAdCooldown > 0;
-      ctx.fillStyle = onCd ? 'rgba(20,25,45,0.55)' : 'rgba(0,150,110,0.92)';
+      ctx.fillStyle = 'rgba(0,150,110,0.92)';
       drawRoundRect(ctx, ab.x, ab.y, ab.w, ab.h, 6);
       ctx.fill();
-      ctx.strokeStyle = onCd ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.45)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.45)';
       ctx.lineWidth = 1.5;
       drawRoundRect(ctx, ab.x, ab.y, ab.w, ab.h, 6);
       ctx.stroke();
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 12px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(onCd ? '冷却' : '广告', ab.x + ab.w / 2, ab.y + 19);
+      ctx.fillText('广告', ab.x + ab.w / 2, ab.y + 19);
       ctx.textAlign = 'left';
     }
   }
@@ -420,6 +430,9 @@ export default class HUD extends Emitter {
     this.drawBtn(ctx, this.resumeBtn, '继续游戏', '#0984e3');
     this.drawBtn(ctx, this.pauseRestartBtn, '重新开始', '#e17055');
     this.drawBtn(ctx, this.rankBtn, this.showRankPanel ? '收起排行' : '积分排行', '#6c5ce7');
+    if (GameGlobal.adManager?.canShowPauseInterstitialBtn?.()) {
+      this.drawAdBtn(ctx, this.pauseInterstitialAdBtn, '看插屏广告', '#00b894');
+    }
     this.drawGameClubBtn(ctx, this.gameClubBtn);
 
     if (this.showRankPanel) {

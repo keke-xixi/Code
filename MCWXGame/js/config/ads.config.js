@@ -9,10 +9,10 @@
 export const AD_ENABLED = true;
 
 export const AD_UNITS = {
-  /** 激励视频：复活 / 通关加分 / 暂停随机技能 */
+  /** 激励视频：复活 / 通关加分 / 对局随机技能 */
   rewardedVideo: 'adunit-75603c3f5807e330',
-  /** 插屏：游戏结束（已用过复活或点重新开始时） */
-  interstitial: '',
+  /** 插屏：暂停弹窗纯看广告 / 游戏结束 */
+  interstitial: 'adunit-ec3c730818cb4c3c',
 };
 
 /** 通关看广告积分加成比例 */

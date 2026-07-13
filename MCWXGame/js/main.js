@@ -61,11 +61,12 @@ export default class Main {
   collisionDetection() {
     const { bullets, enemies } = GameGlobal.databus;
 
-    bullets.forEach((bullet) => {
-      if (!bullet.isActive) return;
+    for (let bi = 0; bi < bullets.length; bi++) {
+      const bullet = bullets[bi];
+      if (!bullet.isActive) continue;
 
-      for (let i = 0; i < enemies.length; i++) {
-        const enemy = enemies[i];
+      for (let ei = 0; ei < enemies.length; ei++) {
+        const enemy = enemies[ei];
         if (!enemy.isActive) continue;
         if (bullet.hitEnemies?.has(enemy)) continue;
 
@@ -86,7 +87,7 @@ export default class Main {
           }
         }
       }
-    });
+    }
 
     if (!this.player.isActive) return;
 
@@ -122,9 +123,21 @@ export default class Main {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     this.bg.render(ctx);
-    GameGlobal.databus.enemies.forEach((e) => e.render(ctx));
-    GameGlobal.databus.pickups.forEach((p) => p.render(ctx));
-    GameGlobal.databus.bullets.forEach((b) => b.render(ctx));
+
+    const enemies = GameGlobal.databus.enemies;
+    for (let i = 0; i < enemies.length; i++) {
+      enemies[i].render(ctx);
+    }
+
+    const pickups = GameGlobal.databus.pickups;
+    for (let i = 0; i < pickups.length; i++) {
+      pickups[i].render(ctx);
+    }
+
+    const bullets = GameGlobal.databus.bullets;
+    for (let i = 0; i < bullets.length; i++) {
+      bullets[i].render(ctx);
+    }
     this.player.render(ctx);
     GameGlobal.databus.particles.forEach((p) => p.render(ctx));
     this.hud.render(ctx);
@@ -138,14 +151,26 @@ export default class Main {
     this.bg.update();
     this.player.update();
     this.spawner.update();
-    GameGlobal.databus.bullets.forEach((b) => b.update());
-    GameGlobal.databus.enemies.forEach((e) => e.update());
-    GameGlobal.databus.pickups.forEach((p) => p.update());
+
+    const bullets = GameGlobal.databus.bullets;
+    for (let i = 0; i < bullets.length; i++) {
+      bullets[i].update();
+    }
+
+    const enemies = GameGlobal.databus.enemies;
+    for (let i = 0; i < enemies.length; i++) {
+      enemies[i].update();
+    }
+
+    const pickups = GameGlobal.databus.pickups;
+    for (let i = 0; i < pickups.length; i++) {
+      pickups[i].update();
+    }
 
     GameGlobal.databus.particles = GameGlobal.databus.particles.filter((p) => p.update());
 
-    GameGlobal.databus.tickAdCooldown();
     this.collisionDetection();
+    GameGlobal.databus.compactBullets();
   }
 
   loop() {

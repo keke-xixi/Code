@@ -1,6 +1,7 @@
 import Bullet from './bullet';
 import { WEAPON_CONFIG, WEAPON_TYPES, SKILL_CONFIG } from '../config/weapons';
 import { PICKUP_TYPES, PICKUP_WEAPON_CONFIG } from '../config/pickupWeapons';
+import { MAX_BULLETS, SHOTGUN_MAX_PELLETS_PER_VOLLEY } from '../config/constants';
 
 export default class WeaponSystem {
   constructor(player) {
@@ -60,6 +61,7 @@ export default class WeaponSystem {
   }
 
   spawnBullet(x, y, type, options = {}) {
+    if (GameGlobal.databus.bullets.length >= MAX_BULLETS) return;
     const bullet = GameGlobal.databus.pool.getItemByClass('bullet', Bullet);
     bullet.init(x, y, type, options);
     GameGlobal.databus.bullets.push(bullet);
@@ -106,11 +108,16 @@ export default class WeaponSystem {
       }
       case PICKUP_TYPES.SHOTGUN: {
         const cfg = PICKUP_WEAPON_CONFIG[PICKUP_TYPES.SHOTGUN];
-        const count = cfg.pelletCount || 5;
+        const lanes = this.getLaneOffsets();
+        const baseCount = cfg.pelletCount || 5;
+        // 多弹道时减少每道弹丸数，避免火力升级后同屏子弹暴增
+        const count = Math.max(3, Math.min(baseCount, Math.floor(SHOTGUN_MAX_PELLETS_PER_VOLLEY / lanes.length)));
         const spread = cfg.spreadAngle || 0.5;
-        this.firePattern((off) => {
+        lanes.forEach((off) => {
           for (let i = 0; i < count; i++) {
-            const angle = -spread / 2 + (spread / (count - 1)) * i;
+            const angle = count <= 1
+              ? 0
+              : -spread / 2 + (spread / (count - 1)) * i;
             this.spawnBullet(px + off - cfg.size / 2, py - 10, PICKUP_TYPES.SHOTGUN, {
               vx: Math.sin(angle) * cfg.speed,
               vy: -Math.cos(angle) * cfg.speed,

@@ -68,9 +68,9 @@ class AdManager {
   showing = false;
 
   init() {
-    if (!AD_ENABLED || !AD_UNITS.rewardedVideo || isPcClient()) return;
-    // 手机端提前加载，减少点击后等待
-    this.ensureRewarded();
+    if (!AD_ENABLED || isPcClient()) return;
+    if (AD_UNITS.rewardedVideo) this.ensureRewarded();
+    if (AD_UNITS.interstitial) this.ensureInterstitial();
   }
 
   ensureRewarded() {
@@ -166,20 +166,30 @@ class AdManager {
     });
   }
 
-  showInterstitial() {
-    if (!AD_ENABLED || isPcClient()) return;
+  showInterstitial(onFail) {
+    if (!AD_ENABLED || isPcClient()) {
+      onFail?.('请用手机微信预览');
+      return;
+    }
 
     if (isInterstitialDevSimulate()) {
       console.log('[Ads] dev simulate interstitial');
+      showToast('开发版模拟插屏广告', 2000);
       return;
     }
 
     this.ensureInterstitial();
-    if (!this.interstitial) return;
+    if (!this.interstitial) {
+      onFail?.('当前版本不支持插屏广告');
+      return;
+    }
 
     this.interstitial.show().catch(() => (
-      this.interstitial.load().then(() => this.interstitial.show()).catch(() => {})
-    ));
+      this.interstitial.load().then(() => this.interstitial.show())
+    )).catch((err) => {
+      console.warn('[Ads] interstitial show failed', err);
+      onFail?.(formatAdError(err));
+    });
   }
 
   tryShowGameOverInterstitial() {
@@ -235,19 +245,23 @@ class AdManager {
   showRandomSkillAd() {
     const db = GameGlobal.databus;
     if (db.isGameOver || db.gameCleared || db.isPaused) return;
-    if (db.skillAdCooldown > 0) {
-      showToast(`广告冷却中 ${Math.ceil(db.skillAdCooldown / 60)} 秒`);
-      return;
-    }
 
     this.showRewarded(
       () => {
         const skillName = grantRandomSkill(db.player);
-        db.skillAdCooldown = 3600;
         showToast(`获得技能：${skillName}`, 2500);
       },
       (msg) => showToast(msg || '领取失败'),
     );
+  }
+
+  /** 暂停弹窗：纯看插屏广告，无游戏奖励 */
+  showPauseInterstitialAd() {
+    const db = GameGlobal.databus;
+    if (!db.isPaused || db.isGameOver || db.gameCleared) return;
+
+    showToast('广告加载中…', 1500);
+    this.showInterstitial((msg) => showToast(msg || '广告加载失败'));
   }
 
   canShowReviveBtn() {
@@ -262,6 +276,11 @@ class AdManager {
   canShowRandomSkillBtn() {
     const db = GameGlobal.databus;
     return AD_ENABLED && !db?.isGameOver && !db?.gameCleared && !db?.isPaused;
+  }
+
+  canShowPauseInterstitialBtn() {
+    const db = GameGlobal.databus;
+    return AD_ENABLED && db?.isPaused && !db?.isGameOver && !db?.gameCleared;
   }
 }
 

@@ -1,0 +1,104 @@
+[gd_scene load_steps=3 format=3 uid="uid://mcsteamshop"]
+
+[ext_resource type="Script" path="res://scripts/ui/shop_panel.gd" id="1"]
+[ext_resource type="PackedScene" uid="uid://mcsteamupgradepopup" path="res://scenes/ui/upgrade_popup.tscn" id="2"]
+
+[node name="Shop" type="CanvasLayer"]
+layer = 20
+script = ExtResource("1")
+
+[node name="ShopDim" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.02, 0.04, 0.08, 0.78)
+
+[node name="Panel" type="PanelContainer" parent="."]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -460.0
+offset_top = -340.0
+offset_right = 460.0
+offset_bottom = 340.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="HeaderRow" type="HBoxContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="TitleBlock" type="VBoxContainer" parent="Panel/Margin/VBox/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Title" type="Label" parent="Panel/Margin/VBox/HeaderRow/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
+theme_override_font_sizes/font_size = 32
+text = "▲ 深核工坊"
+
+[node name="Subtitle" type="Label" parent="Panel/Margin/VBox/HeaderRow/TitleBlock"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 0.82, 0.96, 0.85)
+theme_override_font_sizes/font_size = 14
+text = "点升级 · 一句话看懂效果"
+
+[node name="MoneyPill" type="PanelContainer" parent="Panel/Margin/VBox/HeaderRow"]
+layout_mode = 2
+
+[node name="Money" type="Label" parent="Panel/Margin/VBox/HeaderRow/MoneyPill"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.898, 0.4, 1)
+theme_override_font_sizes/font_size = 20
+text = "◆ 0"
+
+[node name="ScrollFrame" type="PanelContainer" parent="Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 470)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ScrollPad" type="MarginContainer" parent="Panel/Margin/VBox/ScrollFrame"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="Scroll" type="ScrollContainer" parent="Panel/Margin/VBox/ScrollFrame/ScrollPad"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+scroll_deadzone = 8
+
+[node name="List" type="VBoxContainer" parent="Panel/Margin/VBox/ScrollFrame/ScrollPad/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+
+[node name="CloseHint" type="Label" parent="Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.45, 0.48, 0.55, 1)
+theme_override_font_sizes/font_size = 13
+text = "Esc 关闭  ·  滚轮仅滚动列表  ·  B 再次打开"
+
+[node name="UpgradePopup" parent="." instance=ExtResource("2")]
+visible = false

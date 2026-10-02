@@ -6,6 +6,7 @@
 | 目录 | 说明 |
 |------|------|
 | MC | 挖矿小游戏 H5 / uni-app（含微信小游戏同步 `MC/minigame`） |
+| MC_STEAM | 同玩法 Godot 4 PC/Steam 版（Deep Core Miner） |
 | MCTF | 鸡窝保卫战 — 横屏塔防微信小游戏 |
 | WLSS | 噬魂荒原 — 横屏大世界吞噬微信小游戏 |
 | MCZD | 找炸弹 — 竖屏叠层消除微信小游戏 |

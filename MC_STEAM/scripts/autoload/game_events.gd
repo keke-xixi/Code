@@ -1,0 +1,16 @@
+extends Node
+
+signal money_changed(amount: int)
+signal depth_changed(depth: int, max_depth: int)
+signal layer_changed(title: String, progress: float)
+signal combo_changed(stacks: int, bonus_pct: float)
+signal ore_collected(name: String, gain: int, world_pos: Vector2)
+signal cell_mined(grid_pos: Vector2i, ore_color: Color, ore_glow: Color, gain: int)
+signal toast(message: String, kind: String)
+signal shop_toggled(open: bool)
+signal run_stats(total_collected: int)
+signal settings_changed()
+signal mining_progress(grid_pos: Vector2i, progress: float, ore_color: Color)
+signal mining_pick_hit(grid_pos: Vector2i, strength: float)
+signal mining_finished()
+signal gear_changed(pickaxe_name: String, dirt_mine_sec: float)

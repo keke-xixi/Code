@@ -72,6 +72,13 @@ func depth_layer_title(y: int) -> String:
 	return "地表"
 
 
+func next_depth_milestone(y: int) -> int:
+	for m in DEPTH_MILESTONES:
+		if y < m:
+			return m
+	return DEPTH_MILESTONES[DEPTH_MILESTONES.size() - 1]
+
+
 func depth_layer_progress(y: int) -> float:
 	for row in DEPTH_RANGES:
 		if y >= int(row.get("min", 0)) and y <= int(row.get("max", 0)):

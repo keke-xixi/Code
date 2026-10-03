@@ -1,14 +1,20 @@
 extends Node
 ## 程序化挖矿音效（无需外部音频文件）
 
-const HIT_POOL: int = 6
+const HIT_POOL: int = 10
 const SAMPLE_RATE: int = 22050
 
 var _hit_players: Array[AudioStreamPlayer] = []
 var _hit_idx: int = 0
 var _break_player: AudioStreamPlayer
+var _level_player: AudioStreamPlayer
 var _hit_streams: Array[AudioStreamWAV] = []
 var _break_streams: Array[AudioStreamWAV] = []
+var _level_stream: AudioStreamWAV
+var _amb_a: AudioStreamPlayer
+var _amb_b: AudioStreamPlayer
+var _amb_front: AudioStreamPlayer
+var _amb_layer_idx: int = -1
 
 
 func _ready() -> void:
@@ -24,10 +30,22 @@ func _ready() -> void:
 	_break_player = AudioStreamPlayer.new()
 	_break_player.bus = &"Master"
 	add_child(_break_player)
+	_level_stream = _build_level_up()
+	_level_player = AudioStreamPlayer.new()
+	_level_player.bus = &"Master"
+	add_child(_level_player)
 	if not GameEvents.mining_pick_hit.is_connected(_on_pick_hit):
 		GameEvents.mining_pick_hit.connect(_on_pick_hit)
 	if not GameEvents.cell_mined.is_connected(_on_cell_mined):
 		GameEvents.cell_mined.connect(_on_cell_mined)
+	if not GameEvents.layer_changed.is_connected(_on_layer_changed):
+		GameEvents.layer_changed.connect(_on_layer_changed)
+	if not GameEvents.settings_changed.is_connected(_sync_ambience_enabled):
+		GameEvents.settings_changed.connect(_sync_ambience_enabled)
+	_amb_a = _make_amb_player()
+	_amb_b = _make_amb_player()
+	_amb_front = _amb_a
+	_set_ambience_layer(0, true)
 
 
 func _on_pick_hit(_grid_pos: Vector2i, strength: float) -> void:
@@ -51,6 +69,112 @@ func play_pick_hit(strength: float = 0.7) -> void:
 	player.play()
 
 
+func play_level_up() -> void:
+	if not UserSettings.sfx_enabled:
+		return
+	_level_player.stream = _level_stream
+	_level_player.volume_db = -4.0
+	_level_player.pitch_scale = 1.0
+	_level_player.play()
+
+
+func _make_amb_player() -> AudioStreamPlayer:
+	var p := AudioStreamPlayer.new()
+	p.bus = &"Master"
+	p.volume_db = -22.0
+	add_child(p)
+	return p
+
+
+func _on_layer_changed(title: String, _progress: float) -> void:
+	var idx: int = _layer_index_for_title(title)
+	if idx == _amb_layer_idx:
+		return
+	_set_ambience_layer(idx, false)
+
+
+func _layer_index_for_title(title: String) -> int:
+	for i in range(GameData.DEPTH_RANGES.size()):
+		if str(GameData.DEPTH_RANGES[i].get("title", "")) == title:
+			return i
+	return GameData.DEPTH_RANGES.size() - 1
+
+
+func _set_ambience_layer(layer_idx: int, instant: bool) -> void:
+	_amb_layer_idx = layer_idx
+	if not UserSettings.music_enabled:
+		_amb_a.stop()
+		_amb_b.stop()
+		return
+	var stream: AudioStream = _resolve_ambience_stream(layer_idx)
+	var back: AudioStreamPlayer = _amb_b if _amb_front == _amb_a else _amb_a
+	back.stream = stream
+	back.volume_db = -22.0
+	back.play()
+	if instant:
+		_amb_front.stop()
+		_amb_front = back
+		_amb_front.volume_db = -22.0
+		return
+	var front: AudioStreamPlayer = _amb_front
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(front, "volume_db", -40.0, 0.7)
+	tw.tween_property(back, "volume_db", -22.0, 0.7)
+	tw.chain().tween_callback(func() -> void:
+		front.stop()
+		_amb_front = back
+	)
+
+
+func _sync_ambience_enabled() -> void:
+	if UserSettings.music_enabled:
+		_set_ambience_layer(maxi(_amb_layer_idx, 0), true)
+	else:
+		_amb_a.stop()
+		_amb_b.stop()
+
+
+func _resolve_ambience_stream(layer_idx: int) -> AudioStream:
+	var title: String = str(GameData.DEPTH_RANGES[mini(layer_idx, GameData.DEPTH_RANGES.size() - 1)].get("title", ""))
+	var candidates: PackedStringArray = PackedStringArray([
+		"res://audio/layers/%02d.ogg" % layer_idx,
+		"res://audio/layers/%02d.wav" % layer_idx,
+		"res://audio/layers/%s.ogg" % title,
+		"res://audio/ambience.ogg",
+		"res://audio/ambience.wav",
+	])
+	for path in candidates:
+		if not ResourceLoader.exists(path):
+			continue
+		var loaded: Resource = load(path)
+		if loaded is AudioStream:
+			return loaded as AudioStream
+	return _build_ambience_loop(layer_idx)
+
+
+func _build_ambience_loop(layer_idx: int) -> AudioStreamWAV:
+	var depth_t: float = 1.0 - float(layer_idx) / float(maxi(GameData.DEPTH_RANGES.size() - 1, 1))
+	var base_hz: float = lerpf(42.0, 92.0, depth_t)
+	var duration: float = 3.0
+	var n: int = int(SAMPLE_RATE * duration)
+	var pcm := PackedFloat32Array()
+	pcm.resize(n)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = layer_idx * 991 + 17
+	for i in range(n):
+		var t: float = float(i) / float(SAMPLE_RATE)
+		var wobble: float = sin(TAU * 0.07 * t + float(layer_idx)) * 3.0
+		var f: float = base_hz + wobble
+		var hum: float = sin(TAU * f * t) * 0.22
+		var sub: float = sin(TAU * f * 0.5 * t) * 0.12
+		var noise: float = rng.randf_range(-1.0, 1.0) * 0.04
+		pcm[i] = hum + sub + noise
+	var wav := _float_to_wav(pcm)
+	wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
+	return wav
+
+
 func play_break(weight: float = 0.6) -> void:
 	if not UserSettings.sfx_enabled:
 		return
@@ -59,6 +183,20 @@ func play_break(weight: float = 0.6) -> void:
 	_break_player.volume_db = lerpf(-10.0, -2.0, weight)
 	_break_player.pitch_scale = lerpf(0.88, 1.05, weight)
 	_break_player.play()
+
+
+func _build_level_up() -> AudioStreamWAV:
+	var duration: float = 0.35
+	var n: int = int(SAMPLE_RATE * duration)
+	var pcm := PackedFloat32Array()
+	pcm.resize(n)
+	for i in range(n):
+		var t: float = float(i) / float(SAMPLE_RATE)
+		var env: float = exp(-t * 8.0)
+		var f0: float = lerpf(320.0, 880.0, clampf(t / 0.28, 0.0, 1.0))
+		var wave: float = sin(TAU * f0 * t) * 0.55 + sin(TAU * f0 * 2.0 * t) * 0.15
+		pcm[i] = wave * env
+	return _float_to_wav(pcm)
 
 
 func _build_pick_hit(tone: float) -> AudioStreamWAV:

@@ -39,15 +39,19 @@ horizontal_alignment = 1
 
 [node name="ShowOre" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "土里显示矿色"
+text = "矿色预览"
 
 [node name="InstantMine" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "一挖即得"
+text = "即挖即得"
 
 [node name="Sfx" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "挖矿音效"
+text = "音效"
+
+[node name="Music" type="CheckButton" parent="Panel/Margin/VBox"]
+layout_mode = 2
+text = "环境音"
 
 [node name="Shake" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2
@@ -63,4 +67,5 @@ horizontal_alignment = 1
 [connection signal="toggled" from="Panel/Margin/VBox/ShowOre" to="." method="_on_show_ore_toggled"]
 [connection signal="toggled" from="Panel/Margin/VBox/InstantMine" to="." method="_on_instant_mine_toggled"]
 [connection signal="toggled" from="Panel/Margin/VBox/Sfx" to="." method="_on_sfx_toggled"]
+[connection signal="toggled" from="Panel/Margin/VBox/Music" to="." method="_on_music_toggled"]
 [connection signal="toggled" from="Panel/Margin/VBox/Shake" to="." method="_on_shake_toggled"]

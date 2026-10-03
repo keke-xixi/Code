@@ -58,6 +58,12 @@ theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 17
 text = "⛏ 无镐 · 土 1.5s · 稀矿更慢"
 
+[node name="Absorb" type="Label" parent="Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.92, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "🌀 E  3格"
+
 [node name="Toast" type="Label" parent="Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
@@ -68,6 +74,43 @@ layout_mode = 2
 size_flags_vertical = 8
 theme_override_colors/font_color = Color(0.65, 0.68, 0.75, 1)
 theme_override_font_sizes/font_size = 16
+
+[node name="OreBag" type="PanelContainer" parent="."]
+anchors_preset = 4
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 12.0
+offset_top = -220.0
+offset_right = 200.0
+offset_bottom = 220.0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="OreBag"]
+layout_mode = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
+
+[node name="VBox" type="VBoxContainer" parent="OreBag/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="OreBag/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
+theme_override_font_sizes/font_size = 16
+text = "矿石背包"
+
+[node name="Hint" type="Label" parent="OreBag/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.68, 0.75, 1)
+theme_override_font_sizes/font_size = 11
+text = "→ 兑换 1 个"
+
+[node name="List" type="VBoxContainer" parent="OreBag/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="MineRow" type="PanelContainer" parent="."]
 anchors_preset = 7
@@ -123,22 +166,22 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 20
-text = "▸ 新手提示"
+text = "提示"
 
 [node name="L1" type="Label" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "WASD 朝相邻格移动，自动挖矿"
+text = "WASD 邻格移动挖矿"
 
 [node name="L2" type="Label" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "B 商店升级镐子，越挖越快"
+text = "B 商店 · 左栏兑换 · 镐可矿石升级"
 
 [node name="L3" type="Label" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "O 设置 · F5 随时存档"
+text = "O 设置 · F5 存档"
 
 [node name="Ok" type="Button" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2

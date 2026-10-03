@@ -4,8 +4,10 @@ signal dismissed
 
 @onready var _dim: ColorRect = $Dim
 @onready var _panel: PanelContainer = $Panel
-@onready var _ribbon: Label = $Panel/Margin/VBox/Ribbon
-@onready var _icon: Label = $Panel/Margin/VBox/IconBadge
+@onready var _ribbon_wrap: PanelContainer = $Panel/Margin/VBox/RibbonWrap
+@onready var _ribbon: Label = $Panel/Margin/VBox/RibbonWrap/Ribbon
+@onready var _icon_wrap: PanelContainer = $Panel/Margin/VBox/IconWrap
+@onready var _icon: Label = $Panel/Margin/VBox/IconWrap/IconBadge
 @onready var _badge: Label = $Panel/Margin/VBox/Badge
 @onready var _tagline: Label = $Panel/Margin/VBox/Tagline
 @onready var _cost: Label = $Panel/Margin/VBox/Cost
@@ -23,7 +25,8 @@ func _ready() -> void:
 
 
 func _apply_base_style() -> void:
-	_panel.add_theme_stylebox_override("panel", _game_panel_style(UiStyle.GOLD))
+	_panel.add_theme_stylebox_override("panel", UiStyle.pixel_frame(UiStyle.GOLD))
+	_icon_wrap.add_theme_stylebox_override("panel", _icon_plate_style())
 	_ribbon.add_theme_font_size_override("font_size", 22)
 	_icon.add_theme_font_size_override("font_size", 56)
 	_badge.add_theme_font_size_override("font_size", 26)
@@ -37,8 +40,14 @@ func show_info(info: Dictionary) -> void:
 	var kind: String = str(info.get("kind", "ok"))
 	var accent: Color = UiStyle.GOLD if kind == "ok" else UiStyle.WARN
 	_ribbon.text = str(info.get("title", ""))
-	_ribbon.add_theme_color_override("font_color", accent)
-	_ribbon.add_theme_font_size_override("font_size", 28)
+	_ribbon.add_theme_font_size_override("font_size", 28 if kind == "ok" else 24)
+	if kind == "ok":
+		_ribbon.add_theme_color_override("font_color", Color("#1a0f04"))
+		_ribbon_wrap.add_theme_stylebox_override("panel", _ribbon_bar_style(UiStyle.COIN))
+		MineAudio.play_level_up()
+	else:
+		_ribbon.add_theme_color_override("font_color", UiStyle.TEXT)
+		_ribbon_wrap.add_theme_stylebox_override("panel", _ribbon_bar_style(UiStyle.WARN))
 	_icon.text = str(info.get("icon", "⛏"))
 	_badge.text = str(info.get("badge", ""))
 	_tagline.text = str(info.get("tagline", info.get("hint", "")))
@@ -48,7 +57,7 @@ func show_info(info: Dictionary) -> void:
 	_cost.add_theme_color_override("font_color", UiStyle.COIN if kind == "ok" else UiStyle.TEXT_DIM)
 	_badge.add_theme_color_override("font_color", UiStyle.TEXT)
 	_tagline.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
-	_panel.add_theme_stylebox_override("panel", _game_panel_style(accent))
+	_panel.add_theme_stylebox_override("panel", UiStyle.pixel_frame(accent))
 	visible = true
 	_play_in()
 
@@ -99,22 +108,36 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 
-func _game_panel_style(accent: Color) -> StyleBoxFlat:
+func _icon_plate_style() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#1a1520")
-	sb.border_width_left = 4
-	sb.border_width_top = 4
-	sb.border_width_right = 4
-	sb.border_width_bottom = 6
-	sb.border_color = accent
-	sb.corner_radius_top_left = 6
-	sb.corner_radius_top_right = 6
-	sb.corner_radius_bottom_left = 6
-	sb.corner_radius_bottom_right = 6
-	sb.shadow_color = Color(0, 0, 0, 0.6)
-	sb.shadow_size = 14
-	sb.content_margin_left = 20
-	sb.content_margin_right = 20
-	sb.content_margin_top = 16
-	sb.content_margin_bottom = 16
+	sb.bg_color = Color("#0d1118")
+	sb.border_width_left = 3
+	sb.border_width_top = 3
+	sb.border_width_right = 3
+	sb.border_width_bottom = 4
+	sb.border_color = UiStyle.GOLD_DIM
+	sb.corner_radius_top_left = 0
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	return sb
+
+
+func _ribbon_bar_style(fill: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.border_width_bottom = 3
+	sb.border_color = fill.darkened(0.35)
+	sb.corner_radius_top_left = 0
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
 	return sb

@@ -82,10 +82,13 @@ static func card_panel(stripe: Color) -> StyleBoxFlat:
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
 	sb.border_color = Color(stripe, 0.9)
-	sb.corner_radius_top_left = 8
-	sb.corner_radius_top_right = 8
-	sb.corner_radius_bottom_left = 8
-	sb.corner_radius_bottom_right = 8
+	sb.corner_radius_top_left = 0
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
 	sb.content_margin_left = 14
 	sb.content_margin_right = 12
 	sb.content_margin_top = 10

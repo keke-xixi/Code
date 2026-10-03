@@ -7,34 +7,34 @@ const CATALOG: Array[Dictionary] = [
 	{
 		"id": "pickaxe",
 		"name": "泥稿",
-		"desc": "1级泥土约1s；每升1级挖掘速度×2",
+		"desc": "每级挖掘×2",
 		"prices": [400, 2000, 9000, 35000, 120000],
 	},
 	{
 		"id": "auto_bag",
 		"name": "自动矿袋",
-		"desc": "凿开即入账",
+		"desc": "凿开入账",
 		"prices": [800, 3500, 12000, 45000, 150000],
 		"auto_on_break": true,
 	},
 	{
 		"id": "pickup",
 		"name": "磁力拾取",
-		"desc": "移动后拾取周围已暴露矿石",
+		"desc": "移动捡暴露矿",
 		"prices": [1200, 6000, 22000, 80000, 250000],
 		"pickup_radius": [1, 2, 3, 4, 6],
 	},
 	{
 		"id": "blast",
 		"name": "共振破岩",
-		"desc": "凿开时震碎邻格",
+		"desc": "连带碎邻格",
 		"prices": [2500, 10000, 40000, 120000, 350000],
 		"bonus_break_radius": [1, 1, 2, 2, 3],
 	},
 	{
 		"id": "detector",
 		"name": "稀有探测",
-		"desc": "高亮附近高价值矿脉",
+		"desc": "高亮稀有矿",
 		"prices": [1500, 8000, 30000, 90000, 200000],
 		"detector_radius": [2, 3, 4, 5, 8],
 		"show_rarity_from": ["rare", "rare", "uncommon", "uncommon", "common"],
@@ -42,7 +42,7 @@ const CATALOG: Array[Dictionary] = [
 	{
 		"id": "absorb",
 		"name": "残矿吸纳",
-		"desc": "E 键吸收范围内残矿",
+		"desc": "E 吸残矿",
 		"prices": [5000, 20000, 75000, 200000, 500000],
 		"absorb_radius": [3, 5, 8, 12, 999],
 		"absorb_cooldown": [8.0, 6.0, 4.0, 2.5, 1.0],
@@ -50,7 +50,7 @@ const CATALOG: Array[Dictionary] = [
 	{
 		"id": "fortune",
 		"name": "深潜财富",
-		"desc": "金币与深度加成",
+		"desc": "兑换金币加成",
 		"prices": [3000, 15000, 60000, 180000, 400000],
 		"gold_multiplier": [1.1, 1.2, 1.35, 1.5, 1.75],
 		"depth_gold_pct": [0.0, 0.02, 0.04, 0.06, 0.1],
@@ -85,6 +85,12 @@ static func pickaxe_display_name(level: int) -> String:
 	return names[mini(level - 1, names.size() - 1)]
 
 
+## 下一级镐子升级对应的矿石 type_id（1=泥土 … 5=钻石）
+static func pickaxe_ore_for_next_level(owned: Dictionary) -> int:
+	var next_lv: int = int(owned.get("pickaxe", 0)) + 1
+	return clampi(next_lv, 1, 5)
+
+
 static func catalog_entry(cat_id: String) -> Dictionary:
 	for cat in CATALOG:
 		if str(cat.get("id", "")) == cat_id:
@@ -104,14 +110,14 @@ static func success_popup(cat_id: String, new_level: int, cost: int) -> Dictiona
 	return {
 		"kind": "ok",
 		"icon": icon_for(cat_id),
-		"title": "升级！",
+		"title": "LEVEL UP",
 		"badge": "%s  Lv.%d" % [name, new_level],
 		"tagline": short_effect(cat_id, new_level),
 		"cost_line": "-%s" % fmt_coins(cost),
 	}
 
 
-static func fail_popup(reason: String, cat_id: String, owned: Dictionary, money: int) -> Dictionary:
+static func fail_popup(reason: String, cat_id: String, owned: Dictionary, money: int, ore_type: int = 0) -> Dictionary:
 	var level: int = int(owned.get(cat_id, 0))
 	var name: String = display_name_for(cat_id, maxi(level, 1))
 	var price: int = UpgradeSystem.new().next_price(cat_id, owned)
@@ -120,6 +126,8 @@ static func fail_popup(reason: String, cat_id: String, owned: Dictionary, money:
 		tagline = "还差 %s" % fmt_coins(price - money)
 	elif reason == "已满级":
 		tagline = "已经满级啦"
+	elif reason == "矿石不足" and ore_type > 0:
+		tagline = "需要 1×%s" % GameData.ore_meta(ore_type).get("name", "")
 	return {
 		"kind": "warn",
 		"icon": "!",
@@ -152,7 +160,7 @@ static func short_effect(cat_id: String, level: int) -> String:
 			return "E 吸 %d 格残矿" % int(ar[mini(level - 1, ar.size() - 1)])
 		"fortune":
 			var gm: Array = catalog_entry(cat_id).get("gold_multiplier", [])
-			return "金币 ×%.1f" % float(gm[mini(level - 1, gm.size() - 1)])
+			return "兑换金币 ×%.1f" % float(gm[mini(level - 1, gm.size() - 1)])
 		_:
 			return str(catalog_entry(cat_id).get("desc", ""))
 

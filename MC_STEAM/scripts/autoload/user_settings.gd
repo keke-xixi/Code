@@ -6,6 +6,7 @@ const PATH := "user://mc_steam_settings.json"
 var show_ore_preview: bool = false
 var instant_mine_on_break: bool = true
 var sfx_enabled: bool = true
+var music_enabled: bool = true
 var screen_shake: bool = true
 var tutorial_dismissed: bool = false
 
@@ -28,6 +29,7 @@ func load_settings() -> void:
 	show_ore_preview = bool(d.get("show_ore_preview", false))
 	instant_mine_on_break = bool(d.get("instant_mine_on_break", true))
 	sfx_enabled = bool(d.get("sfx_enabled", true))
+	music_enabled = bool(d.get("music_enabled", true))
 	screen_shake = bool(d.get("screen_shake", true))
 	tutorial_dismissed = bool(d.get("tutorial_dismissed", false))
 
@@ -37,6 +39,7 @@ func save_settings() -> void:
 		"show_ore_preview": show_ore_preview,
 		"instant_mine_on_break": instant_mine_on_break,
 		"sfx_enabled": sfx_enabled,
+		"music_enabled": music_enabled,
 		"screen_shake": screen_shake,
 		"tutorial_dismissed": tutorial_dismissed,
 	}
@@ -61,6 +64,12 @@ func set_instant_mine(v: bool) -> void:
 
 func set_sfx_enabled(v: bool) -> void:
 	sfx_enabled = v
+	save_settings()
+	GameEvents.settings_changed.emit()
+
+
+func set_music_enabled(v: bool) -> void:
+	music_enabled = v
 	save_settings()
 	GameEvents.settings_changed.emit()
 

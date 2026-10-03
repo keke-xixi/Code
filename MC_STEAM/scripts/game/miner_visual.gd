@@ -67,7 +67,8 @@ func move_and_mine(
 		).set_trans(Tween.TRANS_LINEAR)
 		_seq.set_parallel(false)
 	elif need_move:
-		_seq.tween_property(self, "position", target, move_duration).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		var pit_d: float = move_duration
+		_seq.tween_property(self, "position", target, pit_d).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	elif has_mine:
 		_seq.tween_interval(0.01)
 		_seq.tween_method(
@@ -137,6 +138,19 @@ func _set_mine_progress(p: float, ore_col: Color) -> void:
 		GameEvents.mining_progress.emit(grid_pos, p, ore_col)
 		_last_prog_emit_ms = now_ms
 	queue_redraw()
+
+
+func abort_step(stay_grid: Vector2i) -> void:
+	_kill_seq()
+	set_process(false)
+	grid_pos = stay_grid
+	var cs: int = GameData.CELL_SIZE
+	position = Vector2(stay_grid) * cs + Vector2(cs * 0.5, cs * 0.5)
+	_mine_progress = 0.0
+	_set_mine_k(0.0)
+	_pick_swing = 0.0
+	_last_hit_idx = -1
+	GameEvents.mining_finished.emit()
 
 
 func _kill_seq() -> void:

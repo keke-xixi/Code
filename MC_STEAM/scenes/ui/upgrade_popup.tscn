@@ -44,18 +44,27 @@ layout_mode = 2
 theme_override_constants/separation = 8
 alignment = 1
 
-[node name="Ribbon" type="Label" parent="Panel/Margin/VBox"]
+[node name="RibbonWrap" type="PanelContainer" parent="Panel/Margin/VBox"]
+layout_mode = 2
+
+[node name="Ribbon" type="Label" parent="Panel/Margin/VBox/RibbonWrap"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.1, 0.07, 0.03, 1)
-theme_override_font_sizes/font_size = 22
-text = "升级！"
+theme_override_font_sizes/font_size = 28
+text = "LEVEL UP"
 horizontal_alignment = 1
 
-[node name="IconBadge" type="Label" parent="Panel/Margin/VBox"]
+[node name="IconWrap" type="PanelContainer" parent="Panel/Margin/VBox"]
 layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="IconBadge" type="Label" parent="Panel/Margin/VBox/IconWrap"]
+layout_mode = 2
+custom_minimum_size = Vector2(96, 96)
 theme_override_font_sizes/font_size = 56
 text = "⛏"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Badge" type="Label" parent="Panel/Margin/VBox"]
 layout_mode = 2

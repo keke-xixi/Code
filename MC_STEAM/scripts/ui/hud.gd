@@ -1,6 +1,8 @@
 extends CanvasLayer
 
 const BASE_HINT := "WASD · B · O"
+const ORE_BAG_FONT := 22
+const ORE_BAG_SWATCH := 20
 
 @onready var money_label: Label = $Margin/VBox/TopBar/Money
 @onready var depth_label: Label = $Margin/VBox/TopBar/Depth
@@ -15,8 +17,7 @@ const BASE_HINT := "WASD · B · O"
 @onready var mine_label: Label = $MineRow/HBox/MineLabel
 @onready var mine_bar: ProgressBar = $MineRow/HBox/MineBar
 @onready var tutorial_panel: PanelContainer = $TutorialPanel
-@onready var ore_bag: PanelContainer = $OreBag
-@onready var ore_list: VBoxContainer = $OreBag/Margin/VBox/List
+@onready var ore_list: VBoxContainer = $OreBag/VBox/List
 
 var _toast_timer: float = 0.0
 var _session: GameSession
@@ -36,7 +37,6 @@ func _ready() -> void:
 	GameEvents.mining_finished.connect(_on_mining_finished)
 	GameEvents.ore_stock_changed.connect(_refresh_ore_bag)
 	toast_label.modulate.a = 0.0
-	ore_bag.add_theme_stylebox_override("panel", UiStyle.pixel_frame(Color("#5a8a6a")))
 	hint_label.text = BASE_HINT
 	absorb_label.visible = false
 	_style_bar()
@@ -193,49 +193,27 @@ func _refresh_ore_bag() -> void:
 		any = true
 		var meta: Dictionary = GameData.ore_meta(type_id)
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
+		row.add_theme_constant_override("separation", 12)
 		var swatch := ColorRect.new()
-		swatch.custom_minimum_size = Vector2(10, 10)
+		swatch.custom_minimum_size = Vector2(ORE_BAG_SWATCH, ORE_BAG_SWATCH)
 		swatch.color = meta.get("color", Color.GRAY)
 		row.add_child(swatch)
 		var name_lbl := Label.new()
 		name_lbl.text = str(meta.get("name", ""))
-		name_lbl.add_theme_font_size_override("font_size", 13)
-		name_lbl.custom_minimum_size = Vector2(52, 0)
+		name_lbl.add_theme_font_size_override("font_size", ORE_BAG_FONT)
+		name_lbl.custom_minimum_size = Vector2(76, 0)
 		row.add_child(name_lbl)
 		var cnt_lbl := Label.new()
 		cnt_lbl.text = "×%d" % count
-		cnt_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cnt_lbl.add_theme_font_size_override("font_size", 13)
+		cnt_lbl.add_theme_font_size_override("font_size", ORE_BAG_FONT)
 		row.add_child(cnt_lbl)
-		var unit: int = _session.ore_unit_sell_price(type_id)
-		var sell_btn := Button.new()
-		sell_btn.text = "→◆%s" % _fmt(unit)
-		sell_btn.add_theme_font_size_override("font_size", 11)
-		sell_btn.custom_minimum_size = Vector2(72, 24)
-		UiStyle.apply_action_button(sell_btn, Color("#6a9080"))
-		sell_btn.pressed.connect(_sell_ore.bind(type_id))
-		row.add_child(sell_btn)
 		ore_list.add_child(row)
 	if not any:
 		var empty := Label.new()
 		empty.text = "（暂无）"
-		empty.add_theme_font_size_override("font_size", 12)
+		empty.add_theme_font_size_override("font_size", 18)
 		empty.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
 		ore_list.add_child(empty)
-
-
-func _sell_ore(type_id: int) -> void:
-	if _session == null:
-		return
-	var res: Dictionary = _session.sell_ore(type_id, 1)
-	if bool(res.get("ok", false)):
-		GameEvents.toast.emit(
-			"%s → +◆%s" % [str(res.get("name", "")), _fmt(int(res.get("coins", 0)))],
-			"ok",
-		)
-	else:
-		GameEvents.toast.emit(str(res.get("reason", "兑换失败")), "warn")
 
 
 func _on_gear(pickaxe_name: String, dirt_sec: float, pickaxe_level: int) -> void:

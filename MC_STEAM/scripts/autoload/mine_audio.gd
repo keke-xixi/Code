@@ -18,10 +18,10 @@ var _amb_layer_idx: int = -1
 
 
 func _ready() -> void:
+	for i in range(5):
+		_hit_streams.append(_build_pick_hit(float(i) / 4.0))
 	for i in range(3):
-		_hit_streams.append(_build_pick_hit(0.85 + float(i) * 0.08))
-	for i in range(2):
-		_break_streams.append(_build_break(0.9 + float(i) * 0.15))
+		_break_streams.append(_build_break(0.55 + float(i) * 0.22))
 	for _i in range(HIT_POOL):
 		var p := AudioStreamPlayer.new()
 		p.bus = &"Master"
@@ -53,7 +53,7 @@ func _on_pick_hit(_grid_pos: Vector2i, strength: float) -> void:
 
 
 func _on_cell_mined(_grid_pos: Vector2i, _ore_color: Color, _ore_glow: Color, gain: int) -> void:
-	var w: float = clampf(float(gain) / 120.0, 0.35, 1.0)
+	var w: float = clampf(maxf(0.52, float(gain) / 80.0), 0.45, 1.0)
 	play_break(w)
 
 
@@ -64,8 +64,9 @@ func play_pick_hit(strength: float = 0.7) -> void:
 	_hit_idx += 1
 	var si: int = int(clampf(strength, 0.0, 1.0) * float(_hit_streams.size() - 1))
 	player.stream = _hit_streams[si]
-	player.volume_db = lerpf(-11.0, -2.0, strength)
-	player.pitch_scale = lerpf(0.92, 1.12, strength)
+	player.volume_db = lerpf(-9.5, -4.0, strength)
+	var jitter: float = randf_range(0.97, 1.04)
+	player.pitch_scale = lerpf(0.94, 1.08, strength) * jitter
 	player.play()
 
 
@@ -180,8 +181,8 @@ func play_break(weight: float = 0.6) -> void:
 		return
 	var si: int = int(clampf(weight, 0.0, 1.0) * float(_break_streams.size() - 1))
 	_break_player.stream = _break_streams[si]
-	_break_player.volume_db = lerpf(-10.0, -2.0, weight)
-	_break_player.pitch_scale = lerpf(0.88, 1.05, weight)
+	_break_player.volume_db = lerpf(-8.5, -3.5, weight)
+	_break_player.pitch_scale = lerpf(0.96, 1.06, weight) * randf_range(0.98, 1.02)
 	_break_player.play()
 
 
@@ -200,34 +201,53 @@ func _build_level_up() -> AudioStreamWAV:
 
 
 func _build_pick_hit(tone: float) -> AudioStreamWAV:
-	var duration: float = 0.07
+	var duration: float = 0.11
 	var n: int = int(SAMPLE_RATE * duration)
 	var pcm := PackedFloat32Array()
 	pcm.resize(n)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = int(tone * 1000.0)
+	rng.seed = int(tone * 1337.0) + 41
+	var f0: float = lerpf(680.0, 1180.0, tone)
+	var f1: float = f0 * 2.62
+	var f2: float = f0 * 4.05
 	for i in range(n):
 		var t: float = float(i) / float(SAMPLE_RATE)
-		var env: float = exp(-t * 55.0)
-		var noise: float = rng.randf_range(-1.0, 1.0)
-		var ping: float = sin(TAU * (180.0 + tone * 120.0) * t) * 0.35
-		pcm[i] = (noise * 0.55 + ping) * env * 0.85
+		var attack: float = 1.0 - exp(-t * 620.0)
+		var decay: float = exp(-t * 32.0)
+		var env: float = attack * decay
+		var bend: float = exp(-t * 18.0)
+		var f: float = f0 * lerpf(1.0, 0.92, 1.0 - bend)
+		var ping: float = sin(TAU * f * t) * 0.46
+		ping += sin(TAU * f1 * t) * 0.2
+		ping += sin(TAU * f2 * t) * 0.09
+		var click: float = 0.0
+		if t < 0.0035:
+			click = rng.randf_range(-0.35, 0.35) * (1.0 - t / 0.0035)
+		pcm[i] = (ping + click) * env * 0.82
 	return _float_to_wav(pcm)
 
 
 func _build_break(weight: float) -> AudioStreamWAV:
-	var duration: float = 0.22 + weight * 0.12
+	var duration: float = 0.14 + weight * 0.16
 	var n: int = int(SAMPLE_RATE * duration)
 	var pcm := PackedFloat32Array()
 	pcm.resize(n)
 	var rng := RandomNumberGenerator.new()
-	rng.seed = int(weight * 777.0)
+	rng.seed = int(weight * 911.0) + 3
+	var f_chime: float = lerpf(440.0, 587.0, weight)
+	var noise_lp: float = 0.0
 	for i in range(n):
 		var t: float = float(i) / float(SAMPLE_RATE)
-		var env: float = exp(-t * (12.0 + weight * 8.0))
-		var noise: float = rng.randf_range(-1.0, 1.0)
-		var rumble: float = sin(TAU * (60.0 + weight * 40.0) * t) * 0.25
-		pcm[i] = (noise * 0.7 + rumble) * env
+		var env: float = exp(-t * (10.0 + weight * 5.0))
+		var raw_n: float = rng.randf_range(-1.0, 1.0)
+		noise_lp = lerpf(noise_lp, raw_n, 0.12)
+		var grit: float = noise_lp * exp(-t * 22.0) * 0.28
+		var chime_env: float = exp(-t * 11.0) * (1.0 - exp(-t * 200.0))
+		var chime: float = sin(TAU * f_chime * t) * 0.32
+		chime += sin(TAU * f_chime * 1.498 * t) * 0.14
+		chime += sin(TAU * f_chime * 2.0 * t) * 0.06
+		var thump: float = sin(TAU * lerpf(72.0, 110.0, weight) * t) * exp(-t * 28.0) * 0.16
+		pcm[i] = (grit + chime * chime_env + thump) * env
 	return _float_to_wav(pcm)
 
 

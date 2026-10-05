@@ -265,13 +265,13 @@ func buy_upgrade(cat_id: String, use_ore: bool = false) -> Dictionary:
 		if not _spend_ore_stock(ore_type, 1):
 			return {"ok": false, "reason": "矿石不足", "ore_type": ore_type}
 		owned_upgrades[cat_id] = int(owned_upgrades.get(cat_id, 0)) + 1
-		var new_level: int = int(owned_upgrades.get(cat_id, 0))
+		var ore_level: int = int(owned_upgrades.get(cat_id, 0))
 		_request_state_flush(true)
 		emit_gear()
 		return {
 			"ok": true,
 			"cost": 0,
-			"level": new_level,
+			"level": ore_level,
 			"cat_id": cat_id,
 			"paid_ore": ore_type,
 		}

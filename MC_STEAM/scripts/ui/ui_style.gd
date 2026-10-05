@@ -171,6 +171,68 @@ static func stripe_for_category(cat_id: String) -> Color:
 			return GOLD
 
 
+static func shop_card_panel() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#12161c", 0.94)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color("#ffffff", 0.28)
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.corner_radius_bottom_left = 4
+	sb.corner_radius_bottom_right = 4
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	return sb
+
+
+static func shop_card_slot() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#080a0e", 0.72)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color("#ffffff", 0.16)
+	sb.corner_radius_top_left = 2
+	sb.corner_radius_top_right = 2
+	sb.corner_radius_bottom_left = 2
+	sb.corner_radius_bottom_right = 2
+	sb.content_margin_left = 8
+	sb.content_margin_top = 8
+	sb.content_margin_right = 8
+	sb.content_margin_bottom = 8
+	return sb
+
+
+static func shop_card_upgrade_btn(accent: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(accent, 0.12)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(accent, 0.55)
+	sb.corner_radius_top_left = 3
+	sb.corner_radius_top_right = 3
+	sb.corner_radius_bottom_left = 3
+	sb.corner_radius_bottom_right = 3
+	return sb
+
+
+static func apply_shop_card_button(btn: Button, accent: Color) -> void:
+	btn.add_theme_stylebox_override("normal", shop_card_upgrade_btn(accent))
+	btn.add_theme_stylebox_override("hover", shop_card_upgrade_btn(Color(accent.lightened(0.15), 1.0)))
+	btn.add_theme_stylebox_override("pressed", shop_card_upgrade_btn(accent))
+	btn.add_theme_stylebox_override("disabled", action_button_disabled())
+	btn.add_theme_color_override("font_color", TEXT)
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+
+
 static func apply_action_button(btn: Button, accent: Color = GOLD) -> void:
 	btn.add_theme_stylebox_override("normal", action_button(accent))
 	btn.add_theme_stylebox_override("hover", action_button_hover(accent))

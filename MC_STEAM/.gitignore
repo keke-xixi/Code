@@ -2,3 +2,6 @@
 *.import
 export/
 export_presets.cfg
+
+# Cursor 粘贴截图误落到 assets/ui 的临时文件
+assets/ui/c__Users*

@@ -29,6 +29,7 @@ UserSettings="*res://scripts/autoload/user_settings.gd"
 MineAudio="*res://scripts/autoload/mine_audio.gd"
 InputPad="*res://scripts/autoload/input_pad.gd"
 SteamManager="*res://scripts/steam/steam_manager.gd"
+FavourArt="*res://scripts/autoload/favour_art.gd"
 
 [display]
 
@@ -36,7 +37,8 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/size/mode=2
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
+window/stretch/aspect="keep"
+window/stretch/scale_mode="integer"
 
 [input]
 

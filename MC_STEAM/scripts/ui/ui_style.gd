@@ -15,6 +15,47 @@ const OK := Color("#5fd38d")
 const WARN := Color("#e85d5d")
 
 
+## 标准局内弹窗外壳（浅描边 + 紫阴影）— 状态 / 兑换等弹窗统一用此样式
+static func favour_popup_frame(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#0a0e14", 0.97)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
+	sb.border_color = Color(accent, 0.55).lerp(Color("#d0ecff"), 0.45)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.shadow_color = Color("#5c35c3", 0.5)
+	sb.shadow_size = 18
+	sb.shadow_offset = Vector2(0, 6)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	return sb
+
+
+static func game_modal_frame(accent: Color = GOLD) -> StyleBoxFlat:
+	return favour_popup_frame(accent)
+
+
+static func favour_popup_title_bar(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#141c28")
+	sb.border_width_bottom = 2
+	sb.border_color = Color(accent, 0.85)
+	sb.corner_radius_top_left = 4
+	sb.corner_radius_top_right = 4
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	return sb
+
+
 static func pixel_frame(accent: Color = GOLD) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PANEL
@@ -54,6 +95,30 @@ static func frame_panel(accent: Color = GOLD, radius: int = 14) -> StyleBoxFlat:
 	sb.shadow_offset = Vector2(0, 4)
 	sb.content_margin_left = 4
 	sb.content_margin_right = 4
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
+
+
+static func stat_cell_panel(accent: Color = CYAN) -> StyleBoxFlat:
+	return game_inset_block(accent)
+
+
+## 游戏内信息块：无描边框，仅左侧色条 + 深色底（避免弹窗里「线框套线框」）
+static func game_inset_block(accent: Color = CYAN) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#0c1016")
+	sb.border_width_left = 4
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	sb.border_color = Color(accent, 0.9)
+	sb.corner_radius_top_left = 0
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	sb.content_margin_left = 6
+	sb.content_margin_right = 6
 	sb.content_margin_top = 4
 	sb.content_margin_bottom = 4
 	return sb
@@ -241,3 +306,87 @@ static func apply_action_button(btn: Button, accent: Color = GOLD) -> void:
 	btn.add_theme_color_override("font_color", TEXT)
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	btn.add_theme_font_size_override("font_size", 16)
+
+
+static func compact_gold_chip() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#18140c")
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
+	sb.border_color = Color(COIN, 0.55)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
+
+
+static func compact_gold_chip_hover() -> StyleBoxFlat:
+	var sb := compact_gold_chip()
+	sb.bg_color = Color("#2a2210")
+	sb.border_color = Color(COIN, 0.9)
+	return sb
+
+
+static func apply_trade_open_button(btn: Button) -> void:
+	btn.add_theme_stylebox_override("normal", compact_gold_chip())
+	btn.add_theme_stylebox_override("hover", compact_gold_chip_hover())
+	btn.add_theme_stylebox_override("pressed", compact_gold_chip_hover())
+	btn.add_theme_stylebox_override("disabled", action_button_disabled())
+	btn.add_theme_color_override("font_color", COIN)
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_font_size_override("font_size", 15)
+
+
+static func icon_tool_button(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#12161c")
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
+	sb.border_color = Color(accent, 0.75)
+	sb.corner_radius_top_left = 0
+	sb.corner_radius_top_right = 0
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
+
+
+static func icon_tool_button_hover(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := icon_tool_button(accent)
+	sb.bg_color = Color("#1e2430")
+	sb.border_color = Color(accent, 1.0)
+	return sb
+
+
+static func apply_icon_tool_button(btn: Button, accent: Color = GOLD) -> void:
+	btn.add_theme_stylebox_override("normal", icon_tool_button(accent))
+	btn.add_theme_stylebox_override("hover", icon_tool_button_hover(accent))
+	btn.add_theme_stylebox_override("pressed", icon_tool_button_hover(accent))
+	btn.add_theme_stylebox_override("disabled", action_button_disabled())
+	btn.text = ""
+
+
+static func apply_icon_only_button(btn: Button) -> void:
+	var empty := StyleBoxEmpty.new()
+	btn.flat = true
+	btn.text = ""
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("disabled", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_color_override("font_color", Color(1, 1, 1, 0))
+	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 0))
+	btn.modulate = Color(1, 1, 1, 1)

@@ -45,7 +45,7 @@ func _sync_from_settings() -> void:
 
 func _on_show_ore_toggled(toggled: bool) -> void:
 	UserSettings.set_show_ore_preview(toggled)
-	GameEvents.toast.emit("预览 %s" % ("开" if toggled else "关"), "ok")
+	GameEvents.toast.emit("透视矿层 %s（调试）" % ("开" if toggled else "关"), "ok")
 
 
 func _on_instant_mine_toggled(toggled: bool) -> void:

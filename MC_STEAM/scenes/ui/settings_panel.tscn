@@ -39,7 +39,7 @@ horizontal_alignment = 1
 
 [node name="ShowOre" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2
-text = "矿色预览"
+text = "透视矿层（调试，默认关）"
 
 [node name="InstantMine" type="CheckButton" parent="Panel/Margin/VBox"]
 layout_mode = 2

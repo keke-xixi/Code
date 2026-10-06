@@ -59,10 +59,12 @@ func _on_cell_mined(grid_pos: Vector2i, ore_color: Color, ore_glow: Color, _gain
 	var cs: int = GameData.CELL_SIZE
 	var center := Vector2(grid_pos) * cs + Vector2(cs * 0.5, cs * 0.5)
 	var h: int = _hash_pos(grid_pos)
+	var dirt_like: bool = ore_color.g < 0.35 and ore_color.r > ore_color.g * 1.4
+	var rock_bits: int = 2 if dirt_like else 6
 	for i in range(14):
 		var ang: float = float(i) / 14.0 * TAU + float(h % 100) * 0.03
 		var spd: float = 110.0 + float((h + i * 17) % 130)
-		var is_rock: bool = i < 6
+		var is_rock: bool = i < rock_bits
 		_push_debris(
 			center + Vector2(randf_range(-6.0, 6.0), randf_range(-6.0, 6.0)),
 			Vector2(cos(ang), sin(ang)) * spd + Vector2(0, -35.0),
@@ -70,6 +72,16 @@ func _on_cell_mined(grid_pos: Vector2i, ore_color: Color, ore_glow: Color, _gain
 			(Color("#5c5048") if i % 2 == 0 else Color("#3d3530")) if is_rock else (ore_color if i % 2 == 0 else ore_glow),
 			3.5 + float((h + i) % 5),
 			float((h + i * 19) % 360),
+		)
+	for j in range(4):
+		var ang2: float = float(j) / 4.0 * TAU + 0.5
+		_push_debris(
+			center,
+			Vector2(cos(ang2), sin(ang2)) * 75.0 + Vector2(0, -50.0),
+			0.32,
+			Color("#ffe566"),
+			4.0,
+			float(j * 90),
 		)
 
 

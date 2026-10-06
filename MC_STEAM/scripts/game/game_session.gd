@@ -22,6 +22,9 @@ var _full_map_dirty: bool = false
 var _state_flush_pending: bool = false
 
 
+const TEST_ORE_EACH: int = 10
+
+
 func new_run() -> void:
 	bounds = GameData.WORLD_DEFAULT.duplicate(true)
 	player = Vector2i(int(bounds.get("spawn_x", 12)), int(bounds.get("spawn_y", 8)))
@@ -82,6 +85,13 @@ func ore_count(type_id: int) -> int:
 	return int(ore_stock.get(type_id, 0))
 
 
+func seed_test_ore_stock(each: int = TEST_ORE_EACH) -> void:
+	ore_stock = {}
+	for tid in GameData.ORE_TYPES.keys():
+		ore_stock[int(tid)] = maxi(0, each)
+	GameEvents.ore_stock_changed.emit()
+
+
 func _load_ore_stock(raw: Variant) -> void:
 	ore_stock = {}
 	if raw is Dictionary:
@@ -131,6 +141,8 @@ func sell_ore(type_id: int, count: int = 1) -> Dictionary:
 		return {"ok": false, "reason": "扣除失败"}
 	money += coins
 	GameEvents.money_changed.emit(money)
+	if coins > 0:
+		GameEvents.coins_earned.emit(coins)
 	_request_state_flush(true)
 	var meta: Dictionary = GameData.ore_meta(type_id)
 	return {

@@ -1,6 +1,7 @@
 extends Node
 
 signal money_changed(amount: int)
+signal coins_earned(amount: int)
 signal depth_changed(depth: int, max_depth: int)
 signal layer_changed(title: String, progress: float)
 signal combo_changed(stacks: int, bonus_pct: float)

@@ -8,7 +8,7 @@
 |------|-----------|----------|
 | 操作 | 触屏滑动 | WASD / 方向键 + 鼠标点邻格 |
 | 镜头 | 手动缩放偏移 | 平滑跟随 + 滚轮缩放 + 稀有矿震屏 |
-| 反馈 | Toast | 飘字金币 + 连击 HUD + 层进度条 |
+| 反馈 | Toast | 飘字（矿色）+ 金币飞入 + 连击芯片 + Toast 底栏 |
 | 成长 | 抽卡页 | **深核工坊**（6 类升级，对齐 MC 商店思路） |
 | 存档 | `uni.storage` | `user://mc_steam_save.json`，F5 手动 + 定时自动 |
 | 上架 | 微信 | 预留 `scripts/steam/steam_manager.gd`（GodotSteam 接入点） |
@@ -47,10 +47,17 @@
 - 矿图 **8×8 分块** 局部重绘 + state 合并 · FX 分层
 - 环境音可放 `audio/ambience.ogg` 或 `audio/layers/`（见该目录 README）
 
+### 美术与反馈（素材 `assets/ui/`）
+
+- **金币**：四叶草金币图（HUD / 商店 / 兑换弹窗）
+- **动效**：兑换金币飞入左上角、弹窗弹出、Toast 底栏、连击芯片、碎矿金色火花
+- **音效**：程序化 **兑币** 短音（`coins_earned`）
+- **主菜单 / 局内**：背景图 + 暗角；读档短 **Loading** 层
+- 素材说明见 `assets/ui/README.md`（同目录未引用文件可后删）
+
 ### 已知限制
 
 - 大地图仍为 Dictionary + `_draw`，极深时建议后续改 Chunk
-- 无外部 BGM/贴图，音效为程序化生成
 - Steam 接入仅为 `steam_manager.gd` 占位
 
 ## 目录结构

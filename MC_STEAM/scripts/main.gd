@@ -32,9 +32,15 @@ var _pad_move_cd: float = 0.0
 var _step_input_cd: float = 0.0
 var _cancel_cd: float = 0.0
 var _last_pointer_at: float = 0.0
+var _cam_pan_offset: Vector2 = Vector2.ZERO
+var _cam_pan_drag: bool = false
+var _lmb_down: bool = false
+var _lmb_start: Vector2 = Vector2.ZERO
+var _lmb_dragged: bool = false
 const STEP_INPUT_GAP: float = 0.05
 const POINTER_COALESCE: float = 0.045
 const CANCEL_GAP: float = 0.1
+const MAP_DRAG_THRESHOLD: float = 8.0
 
 
 func _ready() -> void:
@@ -45,6 +51,7 @@ func _ready() -> void:
 	GameEvents.mining_pick_hit.connect(_on_mining_pick_hit)
 	GameEvents.shop_toggled.connect(_on_shop_toggled)
 	_bind_menu()
+	_sync_menu_hud_visibility()
 	if SaveManager.has_save():
 		menu.show_continue(true)
 	else:
@@ -54,6 +61,7 @@ func _ready() -> void:
 func _apply_move_input(dir: Vector2i) -> void:
 	if dir == Vector2i.ZERO:
 		return
+	_cam_pan_offset = Vector2.ZERO
 	_last_facing = dir
 	if _step_locked:
 		if _is_retreat_to_pit(dir):
@@ -103,16 +111,30 @@ func _overlay_blocks_play() -> bool:
 
 
 func _bind_menu() -> void:
-	menu.get_node("Panel/Margin/VBox/NewGame").pressed.connect(_start_new)
-	menu.get_node("Panel/Margin/VBox/Continue").pressed.connect(_start_continue)
-	menu.get_node("Panel/Margin/VBox/Quit").pressed.connect(func(): get_tree().quit())
+	var vbox: Node = menu.get_node("Root/Center/Panel/Margin/VBox")
+	vbox.get_node("NewGame").pressed.connect(_start_new)
+	vbox.get_node("Continue").pressed.connect(_start_continue)
+	vbox.get_node("TestAccount").pressed.connect(_start_test_account)
+	vbox.get_node("Quit").pressed.connect(func(): get_tree().quit())
 
 
 func _start_new() -> void:
-	SaveManager.delete_save()
-	session.new_run()
-	_fresh_run = true
-	_begin_play()
+	_with_loading(func() -> void:
+		SaveManager.delete_save()
+		session.new_run()
+		_fresh_run = true
+		_begin_play()
+	)
+
+
+func _start_test_account() -> void:
+	_with_loading(func() -> void:
+		SaveManager.delete_save()
+		session.new_run()
+		session.seed_test_ore_stock(GameSession.TEST_ORE_EACH)
+		_fresh_run = true
+		_begin_play()
+	)
 
 
 func _is_fresh_run() -> bool:
@@ -120,14 +142,36 @@ func _is_fresh_run() -> bool:
 
 
 func _start_continue() -> void:
-	_fresh_run = false
-	session.load_from(SaveManager.load_session())
-	_begin_play()
+	_with_loading(func() -> void:
+		_fresh_run = false
+		session.load_from(SaveManager.load_session())
+		_begin_play()
+	)
+
+
+func _with_loading(job: Callable) -> void:
+	var overlay: Node = get_node_or_null("LoadingOverlay")
+	if overlay != null and overlay.has_method("show_loading"):
+		overlay.call("show_loading")
+	var finish := func() -> void:
+		job.call()
+		if overlay != null and overlay.has_method("hide_loading"):
+			overlay.call("hide_loading")
+	get_tree().create_timer(0.34).timeout.connect(finish, CONNECT_ONE_SHOT)
+
+
+func _sync_menu_hud_visibility() -> void:
+	hud.visible = not menu.visible
 
 
 func _begin_play() -> void:
 	menu.visible = false
+	_sync_menu_hud_visibility()
 	_queued_dir = Vector2i.ZERO
+	_cam_pan_offset = Vector2.ZERO
+	_cam_pan_drag = false
+	_lmb_down = false
+	_lmb_dragged = false
 	_step_target = session.player
 	_view_chunk = Vector2i(-99999, -99999)
 	miner.set_grid_position(session.player, true)
@@ -199,8 +243,20 @@ func _unhandled_input(event: InputEvent) -> void:
 	if dir != Vector2i.ZERO:
 		_apply_move_input(dir)
 		return
+	var zmin: float = float(GameData.ZOOM.get("min", 0.45))
+	var zmax: float = float(GameData.ZOOM.get("max", 2.2))
+	var zstep: float = float(GameData.ZOOM.get("step", 0.1))
+	if event.is_action_pressed("zoom_in"):
+		_zoom = clampf(_zoom + zstep, zmin, zmax)
+		camera.zoom = Vector2.ONE * _zoom
+		return
+	if event.is_action_pressed("zoom_out"):
+		_zoom = clampf(_zoom - zstep, zmin, zmax)
+		camera.zoom = Vector2.ONE * _zoom
+		return
 	if _step_locked:
 		return
+	_handle_map_pointer_input(event)
 
 
 func request_move_to(target: Vector2i) -> void:
@@ -231,6 +287,7 @@ func request_move_to(target: Vector2i) -> void:
 	var step: Dictionary = session.try_move_to(target)
 	if not bool(step.get("ok", false)):
 		return
+	_cam_pan_offset = Vector2.ZERO
 	_after_step(step)
 
 
@@ -401,7 +458,13 @@ func _on_mining_pick_hit(_grid_pos: Vector2i, strength: float) -> void:
 func _on_ore_collected(ore_name: String, gain: int, world_pos: Vector2) -> void:
 	var floater: Node = FLOAT_SCENE.instantiate()
 	float_root.add_child(floater)
-	floater.spawn("%s  +%d" % [ore_name, gain], world_pos)
+	var tint: Color = Color(1, 0.92, 0.45, 1)
+	for tid in GameData.ORE_TYPES.keys():
+		var meta: Dictionary = GameData.ore_meta(int(tid))
+		if str(meta.get("name", "")) == ore_name:
+			tint = meta.get("glow", meta.get("color", tint))
+			break
+	floater.spawn("%s +%d" % [ore_name, gain], world_pos, tint)
 	var unit_price: int = 1
 	for tid in GameData.ORE_TYPES.keys():
 		var meta: Dictionary = GameData.ore_meta(int(tid))
@@ -414,23 +477,48 @@ func _on_ore_collected(ore_name: String, gain: int, world_pos: Vector2) -> void:
 		_camera_shake(1.8)
 
 
-func _update_camera(instant: bool, delta: float = 0.016) -> void:
+func _player_camera_anchor() -> Vector2:
 	var cs: int = GameData.CELL_SIZE
-	var target: Vector2
 	if _step_locked:
-		target = miner.global_position
-	else:
-		target = Vector2(session.player) * cs + Vector2(cs * 0.5, cs * 0.5)
+		return miner.global_position
+	return Vector2(session.player) * cs + Vector2(cs * 0.5, cs * 0.5)
+
+
+func _is_map_panning() -> bool:
+	return _cam_pan_drag or (_lmb_down and _lmb_dragged)
+
+
+func _pan_camera_by_screen(relative: Vector2) -> void:
+	var z: float = maxf(_zoom, 0.01)
+	camera.position -= relative / z
+	_cam_pan_offset = camera.position - _player_camera_anchor()
+	_sync_camera_view_chunk()
+
+
+func _sync_camera_view_chunk() -> void:
+	var cs: int = GameData.CELL_SIZE
+	var chunk := Vector2i(
+		int(floor(camera.position.x / float(cs * 2))),
+		int(floor(camera.position.y / float(cs * 2))),
+	)
+	if chunk != _view_chunk:
+		_view_chunk = chunk
+		mine_world.mark_view_dirty()
+
+
+func _update_camera(instant: bool, delta: float = 0.016) -> void:
+	if _is_map_panning():
+		_cam_pan_offset = camera.position - _player_camera_anchor()
+		_sync_camera_view_chunk()
+		return
+	var target: Vector2 = _player_camera_anchor() + _cam_pan_offset
 	var snap: bool = instant or _step_locked or camera.position.distance_squared_to(target) < 36.0
 	if snap:
 		camera.position = target
 	else:
 		var t: float = clampf(delta * 14.0, 0.0, 1.0)
 		camera.position = camera.position.lerp(target, t)
-	var chunk := Vector2i(int(floor(camera.position.x / float(cs * 2))), int(floor(camera.position.y / float(cs * 2))))
-	if chunk != _view_chunk:
-		_view_chunk = chunk
-		mine_world.mark_view_dirty()
+	_sync_camera_view_chunk()
 
 
 func _apply_camera_shake(delta: float) -> void:
@@ -480,19 +568,56 @@ func _camera_shake(amount: float) -> void:
 	_shake_amp = maxf(_shake_amp, amount)
 
 
-func _input(event: InputEvent) -> void:
+func _pointer_over_ui() -> bool:
+	var c: Control = get_viewport().gui_get_hovered_control()
+	if c == null:
+		return false
+	var n: Node = c
+	while n != null:
+		if n == mine_world:
+			return false
+		if n is CanvasLayer:
+			return true
+		n = n.get_parent()
+	return c is BaseButton
+
+
+func _handle_map_pointer_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		if _cam_pan_drag:
+			_pan_camera_by_screen(mm.relative)
+			get_viewport().set_input_as_handled()
+			return
+		if _lmb_down and not _overlay_blocks_play():
+			if not _lmb_dragged and _lmb_start.distance_to(mm.position) >= MAP_DRAG_THRESHOLD:
+				_lmb_dragged = true
+			if _lmb_dragged:
+				_pan_camera_by_screen(mm.relative)
+				get_viewport().set_input_as_handled()
+				return
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
+			if not _overlay_blocks_play() and not _pointer_over_ui():
+				_cam_pan_drag = mb.pressed
+				get_viewport().set_input_as_handled()
+			return
+		if mb.button_index == MOUSE_BUTTON_LEFT and not _overlay_blocks_play() and not _pointer_over_ui():
+			if mb.pressed:
+				_lmb_down = true
+				_lmb_start = mb.position
+				_lmb_dragged = false
+			else:
+				if _lmb_down and not _lmb_dragged:
+					request_move_to(mine_world.grid_from_global(mb.global_position))
+				_lmb_down = false
+				_lmb_dragged = false
+			get_viewport().set_input_as_handled()
+			return
 	if _overlay_blocks_play():
 		if event is InputEventMouseButton:
-			var mb := event as InputEventMouseButton
-			if mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			var mb2 := event as InputEventMouseButton
+			if mb2.button_index == MOUSE_BUTTON_WHEEL_UP or mb2.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 				get_viewport().set_input_as_handled()
 		return
-	var zmin: float = float(GameData.ZOOM.get("min", 0.45))
-	var zmax: float = float(GameData.ZOOM.get("max", 2.2))
-	var zstep: float = float(GameData.ZOOM.get("step", 0.1))
-	if event.is_action_pressed("zoom_in"):
-		_zoom = clampf(_zoom + zstep, zmin, zmax)
-		camera.zoom = Vector2.ONE * _zoom
-	elif event.is_action_pressed("zoom_out"):
-		_zoom = clampf(_zoom - zstep, zmin, zmax)
-		camera.zoom = Vector2.ONE * _zoom

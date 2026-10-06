@@ -8,6 +8,8 @@ var _hit_players: Array[AudioStreamPlayer] = []
 var _hit_idx: int = 0
 var _break_player: AudioStreamPlayer
 var _level_player: AudioStreamPlayer
+var _coin_player: AudioStreamPlayer
+var _coin_stream: AudioStreamWAV
 var _hit_streams: Array[AudioStreamWAV] = []
 var _break_streams: Array[AudioStreamWAV] = []
 var _level_stream: AudioStreamWAV
@@ -34,6 +36,12 @@ func _ready() -> void:
 	_level_player = AudioStreamPlayer.new()
 	_level_player.bus = &"Master"
 	add_child(_level_player)
+	_coin_stream = _build_coin()
+	_coin_player = AudioStreamPlayer.new()
+	_coin_player.bus = &"Master"
+	add_child(_coin_player)
+	if not GameEvents.coins_earned.is_connected(_on_coins_earned):
+		GameEvents.coins_earned.connect(_on_coins_earned)
 	if not GameEvents.mining_pick_hit.is_connected(_on_pick_hit):
 		GameEvents.mining_pick_hit.connect(_on_pick_hit)
 	if not GameEvents.cell_mined.is_connected(_on_cell_mined):
@@ -77,6 +85,43 @@ func play_level_up() -> void:
 	_level_player.volume_db = -4.0
 	_level_player.pitch_scale = 1.0
 	_level_player.play()
+
+
+func play_coin() -> void:
+	if not UserSettings.sfx_enabled:
+		return
+	_coin_player.stream = _coin_stream
+	_coin_player.volume_db = -6.0
+	_coin_player.pitch_scale = randf_range(0.98, 1.06)
+	_coin_player.play()
+
+
+func _on_coins_earned(_amount: int) -> void:
+	play_coin()
+
+
+func _build_coin() -> AudioStreamWAV:
+	var duration: float = 0.22
+	var n: int = int(duration * float(SAMPLE_RATE))
+	var data := PackedByteArray()
+	data.resize(n * 2)
+	var freqs: PackedFloat32Array = PackedFloat32Array([880.0, 1174.0, 1568.0])
+	for i in range(n):
+		var t: float = float(i) / float(SAMPLE_RATE)
+		var env: float = exp(-t * 14.0) * (1.0 - smoothstep(0.14, 0.22, t))
+		var s: float = 0.0
+		for fi in range(freqs.size()):
+			var gate: float = smoothstep(float(fi) * 0.06, float(fi) * 0.06 + 0.04, t)
+			s += sin(TAU * freqs[fi] * t) * gate * (0.35 / float(freqs.size()))
+		var v: int = int(clampf(s * env * 28000.0, -32767.0, 32767.0))
+		data[i * 2] = v & 0xFF
+		data[i * 2 + 1] = (v >> 8) & 0xFF
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = SAMPLE_RATE
+	wav.stereo = false
+	wav.data = data
+	return wav
 
 
 func _make_amb_player() -> AudioStreamPlayer:

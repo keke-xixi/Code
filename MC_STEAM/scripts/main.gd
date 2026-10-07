@@ -3,6 +3,7 @@ extends Node2D
 @onready var camera: Camera2D = $Camera2D
 @onready var mine_world: Node2D = $MineWorld
 @onready var miner: Node2D = $Miner
+@onready var map_pan_capture: ColorRect = $MapPanLayer/PanCapture
 @onready var hud: CanvasLayer = $HUD
 @onready var shop: CanvasLayer = $Shop
 @onready var settings: CanvasLayer = $Settings
@@ -37,6 +38,7 @@ var _cam_pan_drag: bool = false
 var _lmb_down: bool = false
 var _lmb_start: Vector2 = Vector2.ZERO
 var _lmb_dragged: bool = false
+var _pan_deferred_view_dirty: bool = false
 const STEP_INPUT_GAP: float = 0.05
 const POINTER_COALESCE: float = 0.045
 const CANCEL_GAP: float = 0.1
@@ -46,6 +48,7 @@ const MAP_DRAG_THRESHOLD: float = 8.0
 func _ready() -> void:
 	add_to_group("game_main")
 	camera.position_smoothing_enabled = false
+	map_pan_capture.gui_input.connect(_on_map_pan_gui_input)
 	mine_world.setup(session)
 	GameEvents.ore_collected.connect(_on_ore_collected)
 	GameEvents.mining_pick_hit.connect(_on_mining_pick_hit)
@@ -104,6 +107,7 @@ func _poll_pad_move(delta: float) -> void:
 
 func _on_shop_toggled(open: bool) -> void:
 	_shop_open = open
+	_sync_map_pan_capture()
 
 
 func _overlay_blocks_play() -> bool:
@@ -162,6 +166,21 @@ func _with_loading(job: Callable) -> void:
 
 func _sync_menu_hud_visibility() -> void:
 	hud.visible = not menu.visible
+	_sync_map_pan_capture()
+
+
+func _sync_map_pan_capture() -> void:
+	if map_pan_capture == null:
+		return
+	var active: bool = not menu.visible and not _shop_open and not settings.visible
+	map_pan_capture.mouse_filter = (
+		Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
+	)
+	if not active:
+		_cam_pan_drag = false
+		_lmb_down = false
+		_lmb_dragged = false
+		_finish_map_pan()
 
 
 func _begin_play() -> void:
@@ -185,6 +204,7 @@ func _begin_play() -> void:
 		hud.call("bind_session", session)
 	if hud.has_method("maybe_show_tutorial"):
 		hud.call("maybe_show_tutorial", _is_fresh_run())
+	_sync_map_pan_capture()
 
 
 func _process(delta: float) -> void:
@@ -208,6 +228,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _shop_open:
 			return
 		settings.toggle()
+		_sync_map_pan_capture()
 		return
 	if event.is_action_pressed("toggle_shop"):
 		if settings.visible:
@@ -216,6 +237,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			shop.close_panel()
 		else:
 			shop.open(session)
+		_sync_map_pan_capture()
 		return
 	if _shop_open or settings.visible:
 		return
@@ -254,9 +276,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		_zoom = clampf(_zoom - zstep, zmin, zmax)
 		camera.zoom = Vector2.ONE * _zoom
 		return
-	if _step_locked:
-		return
-	_handle_map_pointer_input(event)
 
 
 func request_move_to(target: Vector2i) -> void:
@@ -489,9 +508,11 @@ func _is_map_panning() -> bool:
 
 
 func _pan_camera_by_screen(relative: Vector2) -> void:
+	if relative.length_squared() < 0.0001:
+		return
 	var z: float = maxf(_zoom, 0.01)
-	camera.position -= relative / z
-	_cam_pan_offset = camera.position - _player_camera_anchor()
+	_cam_pan_offset -= relative / z
+	camera.position = _player_camera_anchor() + _cam_pan_offset
 	_sync_camera_view_chunk()
 
 
@@ -503,13 +524,15 @@ func _sync_camera_view_chunk() -> void:
 	)
 	if chunk != _view_chunk:
 		_view_chunk = chunk
-		mine_world.mark_view_dirty()
+		if _is_map_panning():
+			_pan_deferred_view_dirty = true
+		else:
+			mine_world.mark_view_dirty()
 
 
 func _update_camera(instant: bool, delta: float = 0.016) -> void:
 	if _is_map_panning():
-		_cam_pan_offset = camera.position - _player_camera_anchor()
-		_sync_camera_view_chunk()
+		camera.position = _player_camera_anchor() + _cam_pan_offset
 		return
 	var target: Vector2 = _player_camera_anchor() + _cam_pan_offset
 	var snap: bool = instant or _step_locked or camera.position.distance_squared_to(target) < 36.0
@@ -522,6 +545,10 @@ func _update_camera(instant: bool, delta: float = 0.016) -> void:
 
 
 func _apply_camera_shake(delta: float) -> void:
+	if _is_map_panning():
+		if camera.offset != Vector2.ZERO:
+			camera.offset = Vector2.ZERO
+		return
 	if _shake_amp > 0.04:
 		camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake_amp
 		_shake_amp = lerpf(_shake_amp, 0.0, clampf(delta * 20.0, 0.0, 1.0))
@@ -568,42 +595,20 @@ func _camera_shake(amount: float) -> void:
 	_shake_amp = maxf(_shake_amp, amount)
 
 
-func _pointer_over_ui() -> bool:
-	var c: Control = get_viewport().gui_get_hovered_control()
-	if c == null:
-		return false
-	var n: Node = c
-	while n != null:
-		if n == mine_world:
-			return false
-		if n is CanvasLayer:
-			return true
-		n = n.get_parent()
-	return c is BaseButton
-
-
-func _handle_map_pointer_input(event: InputEvent) -> void:
-	if event is InputEventMouseMotion:
-		var mm := event as InputEventMouseMotion
-		if _cam_pan_drag:
-			_pan_camera_by_screen(mm.relative)
-			get_viewport().set_input_as_handled()
-			return
-		if _lmb_down and not _overlay_blocks_play():
-			if not _lmb_dragged and _lmb_start.distance_to(mm.position) >= MAP_DRAG_THRESHOLD:
-				_lmb_dragged = true
-			if _lmb_dragged:
-				_pan_camera_by_screen(mm.relative)
-				get_viewport().set_input_as_handled()
-				return
+func _on_map_pan_gui_input(event: InputEvent) -> void:
+	if _overlay_blocks_play():
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
-		if mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
-			if not _overlay_blocks_play() and not _pointer_over_ui():
-				_cam_pan_drag = mb.pressed
-				get_viewport().set_input_as_handled()
+		if mb.button_index == MOUSE_BUTTON_WHEEL_UP or mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
 			return
-		if mb.button_index == MOUSE_BUTTON_LEFT and not _overlay_blocks_play() and not _pointer_over_ui():
+		if mb.button_index == MOUSE_BUTTON_RIGHT or mb.button_index == MOUSE_BUTTON_MIDDLE:
+			_cam_pan_drag = mb.pressed
+			if not mb.pressed:
+				_finish_map_pan()
+			map_pan_capture.accept_event()
+			return
+		if mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
 				_lmb_down = true
 				_lmb_start = mb.position
@@ -613,11 +618,21 @@ func _handle_map_pointer_input(event: InputEvent) -> void:
 					request_move_to(mine_world.grid_from_global(mb.global_position))
 				_lmb_down = false
 				_lmb_dragged = false
-			get_viewport().set_input_as_handled()
+				_finish_map_pan()
+			map_pan_capture.accept_event()
 			return
-	if _overlay_blocks_play():
-		if event is InputEventMouseButton:
-			var mb2 := event as InputEventMouseButton
-			if mb2.button_index == MOUSE_BUTTON_WHEEL_UP or mb2.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-				get_viewport().set_input_as_handled()
+	if event is InputEventMouseMotion:
+		var mm := event as InputEventMouseMotion
+		if _lmb_down and not _lmb_dragged:
+			if _lmb_start.distance_to(mm.position) >= MAP_DRAG_THRESHOLD:
+				_lmb_dragged = true
+		if _cam_pan_drag or _lmb_dragged:
+			_pan_camera_by_screen(mm.relative)
+			map_pan_capture.accept_event()
+
+
+func _finish_map_pan() -> void:
+	if not _pan_deferred_view_dirty:
 		return
+	_pan_deferred_view_dirty = false
+	mine_world.mark_view_dirty()

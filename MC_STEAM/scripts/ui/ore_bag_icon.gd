@@ -11,8 +11,8 @@ func _init(type_id: int = 1, side: float = 34.0) -> void:
 	ore_type_id = type_id
 	custom_minimum_size = Vector2(side, side)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	clip_contents = false
+	clip_contents = true
 
 
 func _draw() -> void:
-	OreVisual.draw_ui_icon(self, Rect2(Vector2.ZERO, size), ore_type_id)
+	OreVisual.draw_bag_icon(self, Rect2(Vector2.ZERO, size), ore_type_id)

@@ -449,51 +449,6 @@ layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="ConfirmBox" type="PanelContainer" parent="OreTradePanel/Margin/VBox"]
-visible = false
-layout_mode = 2
-
-[node name="ConfirmMargin" type="MarginContainer" parent="OreTradePanel/Margin/VBox/ConfirmBox"]
-layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 10
-
-[node name="ConfirmVBox" type="VBoxContainer" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="ConfirmTag" type="Label" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
-theme_override_font_sizes/font_size = 14
-text = "确认交易"
-horizontal_alignment = 1
-
-[node name="ConfirmText" type="Label" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.91, 0.93, 0.96, 1)
-theme_override_font_sizes/font_size = 15
-text = "确认兑换？"
-horizontal_alignment = 1
-autowrap_mode = 3
-
-[node name="ConfirmRow" type="HBoxContainer" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox"]
-layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 12
-
-[node name="ConfirmCancel" type="Button" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox/ConfirmRow"]
-custom_minimum_size = Vector2(84, 40)
-layout_mode = 2
-text = "取消"
-
-[node name="ConfirmOk" type="Button" parent="OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox/ConfirmRow"]
-custom_minimum_size = Vector2(104, 40)
-layout_mode = 2
-text = "确认"
-
 [node name="CloseRow" type="CenterContainer" parent="OreTradePanel/Margin/VBox"]
 layout_mode = 2
 
@@ -502,6 +457,113 @@ custom_minimum_size = Vector2(100, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "关闭"
+
+[node name="OreTradeConfirmBackdrop" type="ColorRect" parent="."]
+visible = false
+z_index = 46
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.02, 0.04, 0.08, 0.72)
+
+[node name="OreTradeConfirmPanel" type="PanelContainer" parent="."]
+visible = false
+z_index = 47
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -158.0
+offset_top = -108.0
+offset_right = 158.0
+offset_bottom = 108.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ConfirmMargin" type="MarginContainer" parent="OreTradeConfirmPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="ConfirmVBox" type="VBoxContainer" parent="OreTradeConfirmPanel/ConfirmMargin"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="ConfirmTag" type="Label" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
+theme_override_font_sizes/font_size = 16
+text = "确认交易"
+horizontal_alignment = 1
+
+[node name="ConfirmText" type="Label" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.91, 0.93, 0.96, 1)
+theme_override_font_sizes/font_size = 15
+text = "确认兑换？"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="ConfirmQtyRow" type="HBoxContainer" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 8
+
+[node name="QtyLabel" type="Label" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
+theme_override_font_sizes/font_size = 14
+text = "数量"
+vertical_alignment = 1
+
+[node name="QtyMinus" type="Button" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "−"
+
+[node name="QtySpin" type="SpinBox" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow"]
+custom_minimum_size = Vector2(76, 34)
+layout_mode = 2
+alignment = 1
+min_value = 1.0
+max_value = 99.0
+value = 1.0
+rounded = true
+update_on_text_changed = true
+
+[node name="QtyPlus" type="Button" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow"]
+custom_minimum_size = Vector2(34, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "+"
+
+[node name="QtyMax" type="Button" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow"]
+custom_minimum_size = Vector2(52, 34)
+layout_mode = 2
+theme_override_font_sizes/font_size = 13
+text = "全部"
+
+[node name="ConfirmRow" type="HBoxContainer" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="ConfirmCancel" type="Button" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmRow"]
+custom_minimum_size = Vector2(84, 40)
+layout_mode = 2
+text = "取消"
+
+[node name="ConfirmOk" type="Button" parent="OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmRow"]
+custom_minimum_size = Vector2(104, 40)
+layout_mode = 2
+text = "确认"
 
 [node name="OreBag" type="MarginContainer" parent="."]
 anchors_preset = 4

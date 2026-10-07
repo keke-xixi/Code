@@ -26,6 +26,18 @@ script = ExtResource("3")
 position_smoothing_enabled = true
 position_smoothing_speed = 8.0
 
+[node name="MapPanLayer" type="CanvasLayer" parent="."]
+layer = 5
+
+[node name="PanCapture" type="ColorRect" parent="MapPanLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0, 0, 0, 0)
+
 [node name="HUD" parent="." instance=ExtResource("4")]
 
 [node name="Shop" parent="." instance=ExtResource("5")]

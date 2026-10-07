@@ -29,9 +29,11 @@ func _spawn_one(from: Vector2, to: Vector2, delay: float) -> void:
 		tr.custom_minimum_size = Vector2(26, 26)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		node = tr
 	else:
 		node = UiIcons.coin(24.0, false)
+		node.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	node.scale = Vector2(0.3, 0.3)
 	node.global_position = from + Vector2(randf_range(-14, 14), randf_range(-10, 10))
 	add_child(node)

@@ -2,7 +2,7 @@ extends CanvasLayer
 
 const BASE_HINT := "WASD · B · O · F5"
 const ORE_BAG_FONT := 22
-const ORE_BAG_SWATCH := 34
+const ORE_BAG_SWATCH := 40
 const GAME_POPUP_HALF_W := 170.0
 const GAME_POPUP_HALF_H := 192.0
 
@@ -30,10 +30,27 @@ const GAME_POPUP_HALF_H := 192.0
 @onready var ore_trade_backdrop: ColorRect = $OreTradeBackdrop
 @onready var ore_trade_panel: PanelContainer = $OreTradePanel
 @onready var ore_trade_list: VBoxContainer = $OreTradePanel/Margin/VBox/TradeList
-@onready var ore_trade_confirm_box: PanelContainer = $OreTradePanel/Margin/VBox/ConfirmBox
-@onready var ore_trade_confirm_text: Label = $OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox/ConfirmText
-@onready var ore_trade_confirm_ok: Button = $OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox/ConfirmRow/ConfirmOk
-@onready var ore_trade_confirm_cancel: Button = $OreTradePanel/Margin/VBox/ConfirmBox/ConfirmMargin/ConfirmVBox/ConfirmRow/ConfirmCancel
+@onready var ore_trade_confirm_backdrop: ColorRect = $OreTradeConfirmBackdrop
+@onready var ore_trade_confirm_panel: PanelContainer = $OreTradeConfirmPanel
+@onready var ore_trade_confirm_text: Label = $OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmText
+@onready var ore_trade_confirm_ok: Button = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmRow/ConfirmOk
+)
+@onready var ore_trade_confirm_cancel: Button = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmRow/ConfirmCancel
+)
+@onready var ore_trade_confirm_spin: SpinBox = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow/QtySpin
+)
+@onready var ore_trade_confirm_qty_minus: Button = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow/QtyMinus
+)
+@onready var ore_trade_confirm_qty_plus: Button = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow/QtyPlus
+)
+@onready var ore_trade_confirm_qty_max: Button = (
+	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow/QtyMax
+)
 @onready var status_fab: Button = $StatusFab
 @onready var status_backdrop: ColorRect = $StatusBackdrop
 @onready var status_panel: PanelContainer = $StatusPanel
@@ -53,7 +70,9 @@ var _milestone_text: String = "10"
 var _pick_name: String = "无镐"
 var _pick_lv: int = 0
 var _pending_trade_type_id: int = -1
+var _pending_trade_max_count: int = 0
 var _popup_busy: bool = false
+var _trade_confirm_busy: bool = false
 
 
 func _ready() -> void:
@@ -85,6 +104,8 @@ func _ready() -> void:
 	status_panel.visible = false
 	ore_trade_panel.visible = false
 	ore_trade_backdrop.visible = false
+	ore_trade_confirm_panel.visible = false
+	ore_trade_confirm_backdrop.visible = false
 	mine_row.visible = false
 	status_fab.pressed.connect(_toggle_status_panel)
 	status_backdrop.gui_input.connect(_on_status_backdrop_input)
@@ -103,6 +124,11 @@ func _ready() -> void:
 	ore_trade_panel.get_node("Margin/VBox/CloseRow/Close").pressed.connect(_close_trade_panel)
 	ore_trade_confirm_cancel.pressed.connect(_hide_trade_confirm)
 	ore_trade_confirm_ok.pressed.connect(_execute_pending_trade)
+	ore_trade_confirm_backdrop.gui_input.connect(_on_trade_confirm_backdrop_input)
+	ore_trade_confirm_spin.value_changed.connect(_on_trade_confirm_qty_changed)
+	ore_trade_confirm_qty_minus.pressed.connect(_bump_trade_confirm_qty.bind(-1))
+	ore_trade_confirm_qty_plus.pressed.connect(_bump_trade_confirm_qty.bind(1))
+	ore_trade_confirm_qty_max.pressed.connect(_set_trade_confirm_qty_max)
 	_refresh_status_panel()
 	_start_status_fab_idle()
 	_style_ore_bag()
@@ -223,7 +249,7 @@ func _style_trade_ui() -> void:
 	_set_button_glyph(ore_trade_open, UiIcons.exchange(46.0))
 	_icon_only_hover(ore_trade_open)
 	ore_trade_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.GOLD))
-	ore_trade_confirm_box.add_theme_stylebox_override("panel", UiStyle.game_inset_block(UiStyle.GOLD))
+	ore_trade_confirm_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.GOLD))
 	var trade_title: Label = ore_trade_panel.get_node("Margin/VBox/Title") as Label
 	if trade_title != null:
 		trade_title.add_theme_color_override("font_color", UiStyle.COIN)
@@ -248,7 +274,7 @@ func _style_trade_ui() -> void:
 		if sub_arrow != null:
 			sub_arrow.visible = false
 		if sub_row.get_node_or_null("SubArrowGfx") == null and sub_arrow != null:
-			var sub_gfx := ExchangeArrow.new(26.0, 16.0)
+			var sub_gfx := ExchangeArrow.new(26.0, 16.0, ExchangeArrow.Style.CHEVRON)
 			sub_gfx.name = "SubArrowGfx"
 			sub_gfx.tint = UiStyle.TEXT_DIM.lightened(0.25)
 			sub_row.add_child(sub_gfx)
@@ -262,6 +288,10 @@ func _style_trade_ui() -> void:
 		sub_coin.add_child(UiIcons.coin(18.0))
 	UiStyle.apply_action_button(ore_trade_confirm_cancel, UiStyle.CYAN)
 	UiStyle.apply_action_button(ore_trade_confirm_ok, UiStyle.GOLD)
+	UiStyle.apply_action_button(ore_trade_confirm_qty_minus, UiStyle.CYAN)
+	UiStyle.apply_action_button(ore_trade_confirm_qty_plus, UiStyle.CYAN)
+	UiStyle.apply_action_button(ore_trade_confirm_qty_max, UiStyle.GOLD)
+	ore_trade_confirm_spin.add_theme_font_size_override("font_size", 15)
 	UiStyle.apply_action_button(ore_trade_panel.get_node("Margin/VBox/CloseRow/Close") as Button, UiStyle.GOLD)
 
 
@@ -274,7 +304,7 @@ func bind_session(game_session: GameSession) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		if ore_trade_confirm_box.visible:
+		if ore_trade_confirm_panel.visible:
 			_hide_trade_confirm()
 			get_viewport().set_input_as_handled()
 			return
@@ -335,6 +365,37 @@ func is_trade_open() -> bool:
 	return ore_trade_panel.visible
 
 
+## 仅当鼠标在可交互 HUD 上时拦截地图拖拽/点格（全屏 IGNORE 层不挡）
+func pointer_blocks_world_input() -> bool:
+	if ore_trade_backdrop.visible or status_backdrop.visible or ore_trade_confirm_backdrop.visible:
+		return true
+	var c: Control = get_viewport().gui_get_hovered_control()
+	if c == null:
+		return false
+	var n: Node = c
+	while n != null and n != self:
+		if n is Control:
+			var ctrl := n as Control
+			if not ctrl.visible:
+				n = n.get_parent()
+				continue
+			if ctrl.mouse_filter == Control.MOUSE_FILTER_IGNORE:
+				n = n.get_parent()
+				continue
+			if ctrl == ore_trade_panel and not ore_trade_panel.visible:
+				n = n.get_parent()
+				continue
+			if ctrl == status_panel and not status_panel.visible:
+				n = n.get_parent()
+				continue
+			if ctrl == ore_trade_confirm_panel and not ore_trade_confirm_panel.visible:
+				n = n.get_parent()
+				continue
+			return true
+		n = n.get_parent()
+	return false
+
+
 func _open_trade_panel() -> void:
 	if _popup_busy:
 		return
@@ -365,10 +426,20 @@ func _close_trade_panel() -> void:
 
 
 func _on_trade_backdrop_input(event: InputEvent) -> void:
+	if ore_trade_confirm_panel.visible:
+		return
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 			_close_trade_panel()
+			get_viewport().set_input_as_handled()
+
+
+func _on_trade_confirm_backdrop_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			_hide_trade_confirm()
 			get_viewport().set_input_as_handled()
 
 
@@ -410,7 +481,7 @@ func _refresh_trade_list() -> void:
 		cnt_lbl.text = "×%d" % count
 		cnt_lbl.add_theme_font_size_override("font_size", 16)
 		row.add_child(cnt_lbl)
-		var arrow := ExchangeArrow.new(30.0, 20.0)
+		var arrow := ExchangeArrow.new(30.0, 20.0, ExchangeArrow.Style.CHEVRON)
 		arrow.tint = ore_color.lightened(0.35)
 		row.add_child(arrow)
 		var price_box := HBoxContainer.new()
@@ -428,10 +499,10 @@ func _refresh_trade_list() -> void:
 		var sell_btn := Button.new()
 		sell_btn.custom_minimum_size = Vector2(36, 36)
 		sell_btn.focus_mode = Control.FOCUS_NONE
-		sell_btn.tooltip_text = "兑换全部"
+		sell_btn.tooltip_text = "选择数量兑换"
 		sell_btn.pressed.connect(_request_trade_confirm.bind(type_id))
 		UiStyle.apply_icon_only_button(sell_btn)
-		_set_button_glyph(sell_btn, UiIcons.exchange(28.0))
+		_set_button_glyph(sell_btn, ExchangeArrow.new(26.0, 26.0, ExchangeArrow.Style.CHECK))
 		_icon_only_hover(sell_btn)
 		row.add_child(sell_btn)
 		ore_trade_list.add_child(card)
@@ -449,20 +520,58 @@ func _request_trade_confirm(type_id: int) -> void:
 	var count: int = _session.ore_count(type_id)
 	if count <= 0:
 		return
-	var meta: Dictionary = GameData.ore_meta(type_id)
-	var unit: int = _session.ore_unit_sell_price(type_id)
-	var est: int = unit * count
 	_pending_trade_type_id = type_id
+	_pending_trade_max_count = count
+	ore_trade_confirm_spin.min_value = 1
+	ore_trade_confirm_spin.max_value = float(count)
+	ore_trade_confirm_spin.value = float(count)
+	_refresh_trade_confirm_preview()
+	if _trade_confirm_busy or ore_trade_confirm_panel.visible:
+		return
+	ore_trade_confirm_backdrop.move_to_front()
+	ore_trade_confirm_panel.move_to_front()
+	UiJuice.modal_open(ore_trade_confirm_panel, ore_trade_confirm_backdrop)
+
+
+func _on_trade_confirm_qty_changed(_value: float) -> void:
+	_refresh_trade_confirm_preview()
+
+
+func _bump_trade_confirm_qty(delta: int) -> void:
+	var n: int = int(ore_trade_confirm_spin.value) + delta
+	n = clampi(n, 1, maxi(1, _pending_trade_max_count))
+	ore_trade_confirm_spin.value = float(n)
+
+
+func _set_trade_confirm_qty_max() -> void:
+	if _pending_trade_max_count > 0:
+		ore_trade_confirm_spin.value = float(_pending_trade_max_count)
+
+
+func _refresh_trade_confirm_preview() -> void:
+	if _session == null or _pending_trade_type_id < 0:
+		return
+	var meta: Dictionary = GameData.ore_meta(_pending_trade_type_id)
+	var unit: int = _session.ore_unit_sell_price(_pending_trade_type_id)
+	var n: int = clampi(int(ore_trade_confirm_spin.value), 1, maxi(1, _pending_trade_max_count))
+	var est: int = unit * n
 	ore_trade_confirm_text.text = (
 		"%s ×%d  →  约 %s 金币\n（单价 %s，连击可加成）"
-		% [str(meta.get("name", "")), count, _fmt(est), _fmt(unit)]
+		% [str(meta.get("name", "")), n, _fmt(est), _fmt(unit)]
 	)
-	ore_trade_confirm_box.visible = true
 
 
 func _hide_trade_confirm() -> void:
-	_pending_trade_type_id = -1
-	ore_trade_confirm_box.visible = false
+	if not ore_trade_confirm_panel.visible and _pending_trade_type_id < 0:
+		return
+	if _trade_confirm_busy:
+		return
+	_trade_confirm_busy = true
+	UiJuice.modal_close(ore_trade_confirm_panel, ore_trade_confirm_backdrop, func() -> void:
+		_trade_confirm_busy = false
+		_pending_trade_type_id = -1
+		_pending_trade_max_count = 0
+	)
 
 
 func _execute_pending_trade() -> void:
@@ -475,7 +584,8 @@ func _execute_pending_trade() -> void:
 		_hide_trade_confirm()
 		_refresh_trade_list()
 		return
-	var res: Dictionary = _session.sell_ore(type_id, have)
+	var want: int = clampi(int(ore_trade_confirm_spin.value), 1, have)
+	var res: Dictionary = _session.sell_ore(type_id, want)
 	_hide_trade_confirm()
 	if bool(res.get("ok", false)):
 		_on_toast("%s ×%d → +%s 金币" % [res.get("name", ""), res.get("sold", 0), _fmt(int(res.get("coins", 0)))], "ok")

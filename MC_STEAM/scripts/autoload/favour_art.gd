@@ -12,6 +12,7 @@ const KEY_PATHS: Dictionary = {
 	"ore_coin": ["game/money.png", "game/gold3.png"],
 	"ore_4": ["game/gold.png", "game/gold2.png"],
 	"ore_5": ["game/zs.png"],
+	"ore_iron_bag": ["game/mine2.png", "game/mine.png", "game/wq.png"],
 	"sell": ["game/gold2.png", "game/circle.png"],
 	"score": ["game/score.png"],
 	"btn_game": ["game/start.png", "jijia/start.png"],

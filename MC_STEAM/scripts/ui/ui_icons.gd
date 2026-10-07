@@ -124,6 +124,16 @@ static func bag(size: float = 22.0) -> Control:
 	return TexGlyph.new(_load_tex_key("icon_bag"), size, false)
 
 
+static func bag_ore_texture(type_id: int, side_px: int) -> Texture2D:
+	# 背包只用语义明确的贴图；铁矿/钻石用矢量（mine2/zs 缩成小图会像光球）
+	if type_id != 4:
+		return null
+	var tex: Texture2D = _load_tex_key("coin")
+	if tex == null:
+		tex = _load_tex_key("ore_gold")
+	return _texture_for_display(tex, side_px)
+
+
 static func sell(size: float = 18.0) -> Control:
 	return TexGlyph.new(_load_tex_key("sell"), size, false)
 

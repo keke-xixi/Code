@@ -152,7 +152,32 @@ static func draw_ui_icon(canvas: CanvasItem, rect: Rect2, type_id: int) -> void:
 
 
 static func draw_bag_icon(canvas: CanvasItem, rect: Rect2, type_id: int) -> void:
-	draw_ui_icon(canvas, rect, type_id)
+	var pad: Rect2 = rect.grow(-2)
+	var c: Vector2 = pad.get_center()
+	var s: float = minf(pad.size.x, pad.size.y)
+	var r: float = s * 0.4
+	var meta: Dictionary = GameData.ore_meta(type_id)
+	var ore_color: Color = meta.get("color", Color.GRAY)
+	var ore_glow: Color = meta.get("glow", Color.WHITE)
+	match type_id:
+		1:
+			_draw_bag_dirt_cartoon(canvas, c, r, 1.0)
+		2:
+			_draw_bag_stone_icon(canvas, pad)
+		3:
+			_draw_bag_iron_ingot_icon(canvas, pad)
+		4:
+			_draw_bag_gold_icon(canvas, pad)
+		5:
+			_draw_bag_diamond_icon(canvas, pad)
+		6:
+			_draw_red_matter_crystal(canvas, c, r, ore_color, ore_glow, 1.0)
+		7:
+			_draw_void_crystal_shard(canvas, c, r, ore_color, ore_glow, 1.0)
+		8:
+			_draw_black_hole_fragment(canvas, c, r, 1.0)
+		_:
+			draw_ui_icon(canvas, rect, type_id)
 
 
 static func _host_shell_kind(grid_y: int) -> String:
@@ -256,6 +281,347 @@ static func _draw_crystal_shard(canvas: CanvasItem, c: Vector2, r: float, ore_co
 	canvas.draw_colored_polygon(pts, ore_color)
 	canvas.draw_polyline(pts, ore_glow, 2.0, true)
 	canvas.draw_circle(c, r * 0.25, Color(1, 1, 1, 0.45 * alpha))
+
+
+static func _draw_bag_dirt_cartoon(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var mound: PackedVector2Array = PackedVector2Array([
+		c + Vector2(-r * 1.05, r * 0.35),
+		c + Vector2(-r * 0.85, -r * 0.15),
+		c + Vector2(-r * 0.2, -r * 0.55),
+		c + Vector2(r * 0.45, -r * 0.45),
+		c + Vector2(r * 0.95, r * 0.05),
+		c + Vector2(r * 0.75, r * 0.55),
+		c + Vector2(-r * 0.15, r * 0.65),
+	])
+	canvas.draw_colored_polygon(mound, Color("#8b5a2b", alpha))
+	canvas.draw_colored_polygon(
+		PackedVector2Array([
+			c + Vector2(-r * 0.5, -r * 0.05),
+			c + Vector2(r * 0.15, -r * 0.35),
+			c + Vector2(r * 0.55, r * 0.05),
+			c + Vector2(-r * 0.1, r * 0.25),
+		]),
+		Color("#a06838", 0.85 * alpha),
+	)
+	canvas.draw_polyline(mound, Color("#3d2818", alpha), 2.5, true)
+	canvas.draw_circle(c + Vector2(r * 0.35, r * 0.15), r * 0.11, Color("#5c4030", 0.55 * alpha))
+	canvas.draw_circle(c + Vector2(-r * 0.45, r * 0.2), r * 0.08, Color("#c4925a", 0.5 * alpha))
+	for i in range(3):
+		var gx: float = c.x - r * 0.05 + float(i) * 3.5
+		canvas.draw_line(Vector2(gx, c.y - r * 0.62), Vector2(gx + 1.5, c.y - r * 0.78), Color("#6bc04a", alpha), 2.0)
+
+
+static func _draw_bag_stone_icon(canvas: CanvasItem, rect: Rect2) -> void:
+	var c: Vector2 = rect.get_center()
+	var r: float = minf(rect.size.x, rect.size.y) * 0.46
+	_draw_bag_stone_cartoon(canvas, c, r, 1.0)
+
+
+static func _draw_bag_stone_cartoon(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var main: PackedVector2Array = PackedVector2Array([
+		c + Vector2(-r * 0.78, r * 0.22),
+		c + Vector2(-r * 0.68, -r * 0.38),
+		c + Vector2(r * 0.05, -r * 0.72),
+		c + Vector2(r * 0.75, -r * 0.28),
+		c + Vector2(r * 0.68, r * 0.38),
+		c + Vector2(-r * 0.08, r * 0.68),
+	])
+	canvas.draw_colored_polygon(main, Color("#6d6964", alpha))
+	canvas.draw_colored_polygon(
+		PackedVector2Array([
+			c + Vector2(-r * 0.42, -r * 0.28),
+			c + Vector2(r * 0.28, -r * 0.38),
+			c + Vector2(r * 0.22, r * 0.02),
+			c + Vector2(-r * 0.18, r * 0.08),
+		]),
+		Color("#9a9590", 0.88 * alpha),
+	)
+	canvas.draw_polyline(main, Color("#2a2826", alpha), 2.0, true)
+	canvas.draw_line(
+		c + Vector2(-r * 0.1, -r * 0.15),
+		c + Vector2(r * 0.42, r * 0.28),
+		Color("#3d3a36", 0.75 * alpha),
+		1.8,
+	)
+	canvas.draw_line(
+		c + Vector2(-r * 0.35, r * 0.05),
+		c + Vector2(-r * 0.08, r * 0.42),
+		Color("#4a4743", 0.6 * alpha),
+		1.5,
+	)
+	var pebble: PackedVector2Array = PackedVector2Array([
+		c + Vector2(-r * 0.82, r * 0.48),
+		c + Vector2(-r * 0.58, r * 0.62),
+		c + Vector2(-r * 0.48, r * 0.42),
+	])
+	canvas.draw_colored_polygon(pebble, Color("#5a5652", alpha))
+	canvas.draw_polyline(pebble, Color("#2a2826", alpha), 1.5, true)
+	canvas.draw_circle(c + Vector2(-r * 0.15, -r * 0.35), r * 0.09, Color(1, 1, 1, 0.28 * alpha))
+
+
+static func _draw_bag_iron_ingot_icon(canvas: CanvasItem, rect: Rect2) -> void:
+	var c: Vector2 = rect.get_center()
+	var r: float = minf(rect.size.x, rect.size.y) * 0.44
+	_draw_iron_ingot_bag(canvas, c, r, 1.0)
+
+
+static func _draw_bag_gold_icon(canvas: CanvasItem, rect: Rect2) -> void:
+	var c: Vector2 = rect.get_center()
+	var r: float = minf(rect.size.x, rect.size.y) * 0.44
+	_draw_gold_bar_ingot_3d(canvas, c, r, 1.0)
+
+
+static func _draw_bag_diamond_icon(canvas: CanvasItem, rect: Rect2) -> void:
+	var c: Vector2 = rect.get_center()
+	var r: float = minf(rect.size.x, rect.size.y) * 0.36
+	_draw_brilliant_diamond_bag(canvas, c, r, 1.0)
+
+
+## 参考金条：上窄下宽 + 顶面侧棱
+static func _draw_gold_bar_ingot_3d(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var depth: float = r * 0.14
+	var top_y: float = c.y - r * 0.4
+	var bot_y: float = c.y + r * 0.46
+	var top_w: float = r * 0.68
+	var bot_w: float = r * 0.9
+	var front: PackedVector2Array = PackedVector2Array([
+		Vector2(c.x - bot_w, bot_y),
+		Vector2(c.x + bot_w, bot_y),
+		Vector2(c.x + top_w, top_y),
+		Vector2(c.x - top_w, top_y),
+	])
+	canvas.draw_colored_polygon(front, Color("#ffb300", alpha))
+	var top: PackedVector2Array = PackedVector2Array([
+		Vector2(c.x - top_w, top_y),
+		Vector2(c.x + top_w, top_y),
+		Vector2(c.x + top_w * 0.92, top_y - depth),
+		Vector2(c.x - top_w + depth * 0.25, top_y - depth),
+	])
+	canvas.draw_colored_polygon(top, Color("#ffe082", alpha))
+	canvas.draw_polyline(front, Color("#5d4037", alpha), 2.4, true)
+	canvas.draw_polyline(top, Color("#6d4c00", 0.85 * alpha), 1.8, true)
+	var mid_y: float = c.y + r * 0.02
+	canvas.draw_line(
+		Vector2(c.x - bot_w * 0.58, mid_y - r * 0.06),
+		Vector2(c.x + bot_w * 0.58, mid_y - r * 0.06),
+		Color("#fff8e1", 0.75 * alpha),
+		2.0,
+	)
+	canvas.draw_line(
+		Vector2(c.x - bot_w * 0.42, mid_y + r * 0.14),
+		Vector2(c.x + bot_w * 0.42, mid_y + r * 0.14),
+		Color("#ff8f00", 0.45 * alpha),
+		1.5,
+	)
+	canvas.draw_line(
+		Vector2(c.x - top_w * 0.65, top_y + 2.0),
+		Vector2(c.x + top_w * 0.55, top_y + 2.0),
+		Color(1, 1, 1, 0.5 * alpha),
+		2.2,
+	)
+
+
+## 参考明亮式切工：台面 + 冠部 + 深色亭部
+static func _draw_brilliant_diamond_bag(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var cy: float = c.y + r * 0.06
+	var core: Vector2 = Vector2(c.x, cy - r * 0.06)
+	var apex: Vector2 = Vector2(c.x, cy - r * 0.82)
+	var girdle_l: Vector2 = Vector2(c.x - r * 0.76, cy + r * 0.04)
+	var girdle_r: Vector2 = Vector2(c.x + r * 0.76, cy + r * 0.04)
+	var culet: Vector2 = Vector2(c.x, cy + r * 0.68)
+	canvas.draw_colored_polygon(PackedVector2Array([girdle_l, culet, core]), Color("#0d47a1", alpha))
+	canvas.draw_colored_polygon(PackedVector2Array([girdle_r, culet, core]), Color("#1976d2", alpha))
+	canvas.draw_colored_polygon(PackedVector2Array([apex, girdle_l, core]), Color("#0288d1", alpha))
+	canvas.draw_colored_polygon(PackedVector2Array([apex, girdle_r, core]), Color("#4fc3f7", alpha))
+	var tw: float = r * 0.46
+	var table: PackedVector2Array = PackedVector2Array([
+		Vector2(c.x - tw, cy - r * 0.24),
+		Vector2(c.x + tw, cy - r * 0.24),
+		Vector2(c.x + tw * 0.82, cy - r * 0.36),
+		Vector2(c.x - tw * 0.82, cy - r * 0.36),
+	])
+	canvas.draw_colored_polygon(table, Color("#e1f5fe", alpha))
+	canvas.draw_polyline(table, Color("#01579b", 0.9 * alpha), 1.8, true)
+	canvas.draw_line(girdle_l, girdle_r, Color("#01579b", alpha), 2.4)
+	canvas.draw_line(Vector2(c.x - tw, cy - r * 0.24), culet, Color("#0277bd", 0.45 * alpha), 1.2)
+	canvas.draw_line(Vector2(c.x + tw, cy - r * 0.24), culet, Color("#81d4fa", 0.4 * alpha), 1.2)
+	canvas.draw_line(apex, culet, Color("#01579b", 0.55 * alpha), 1.5)
+	canvas.draw_polyline(
+		PackedVector2Array([apex, girdle_r, culet, girdle_l, apex]),
+		Color("#062028", alpha),
+		2.0,
+		true,
+	)
+	canvas.draw_circle(Vector2(c.x - tw * 0.35, cy - r * 0.3), r * 0.065, Color(1, 1, 1, 0.92 * alpha))
+	canvas.draw_circle(Vector2(c.x + tw * 0.15, cy - r * 0.32), r * 0.035, Color(1, 1, 1, 0.55 * alpha))
+
+
+## 背包用横向铁锭（不超出 clip，避免右侧裁切线）
+static func _draw_iron_ingot_bag(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var w: float = r * 0.88
+	var h: float = r * 0.34
+	var ear: float = r * 0.12
+	var body: PackedVector2Array = PackedVector2Array([
+		Vector2(c.x - w, c.y - h * 0.55),
+		Vector2(c.x - w + ear, c.y - h),
+		Vector2(c.x + w - ear, c.y - h),
+		Vector2(c.x + w, c.y - h * 0.55),
+		Vector2(c.x + w, c.y + h * 0.55),
+		Vector2(c.x + w - ear, c.y + h),
+		Vector2(c.x - w + ear, c.y + h),
+		Vector2(c.x - w, c.y + h * 0.55),
+	])
+	canvas.draw_colored_polygon(body, Color("#607d8b", alpha))
+	canvas.draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(c.x - w * 0.75, c.y - h * 0.65),
+			Vector2(c.x + w * 0.75, c.y - h * 0.65),
+			Vector2(c.x + w * 0.55, c.y - h * 0.05),
+			Vector2(c.x - w * 0.55, c.y - h * 0.05),
+		]),
+		Color("#b0bec5", alpha),
+	)
+	canvas.draw_polyline(body, Color("#263238", alpha), 2.2, true)
+	canvas.draw_line(
+		Vector2(c.x - w * 0.45, c.y - h * 0.15),
+		Vector2(c.x + w * 0.35, c.y + h * 0.45),
+		Color("#eceff1", 0.6 * alpha),
+		2.0,
+	)
+	canvas.draw_line(
+		Vector2(c.x - w * 0.2, c.y + h * 0.05),
+		Vector2(c.x + w * 0.15, c.y + h * 0.35),
+		Color("#455a64", 0.45 * alpha),
+		1.5,
+	)
+
+
+static func _draw_bag_gold_cartoon(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var nug: PackedVector2Array = PackedVector2Array([
+		c + Vector2(-r * 0.55, r * 0.15),
+		c + Vector2(-r * 0.75, -r * 0.25),
+		c + Vector2(-r * 0.15, -r * 0.65),
+		c + Vector2(r * 0.55, -r * 0.45),
+		c + Vector2(r * 0.85, r * 0.05),
+		c + Vector2(r * 0.45, r * 0.65),
+		c + Vector2(-r * 0.05, r * 0.55),
+	])
+	canvas.draw_colored_polygon(nug, Color("#b8860b", alpha))
+	canvas.draw_colored_polygon(
+		PackedVector2Array([
+			c + Vector2(-r * 0.35, -r * 0.05),
+			c + Vector2(r * 0.25, -r * 0.25),
+			c + Vector2(r * 0.35, r * 0.2),
+			c + Vector2(-r * 0.05, r * 0.25),
+		]),
+		Color("#ffd54f", alpha),
+	)
+	canvas.draw_polyline(nug, Color("#6d4c00", alpha), 2.5, true)
+	canvas.draw_circle(c + Vector2(-r * 0.22, -r * 0.18), r * 0.18, Color(1, 1, 1, 0.38 * alpha))
+	canvas.draw_circle(c + Vector2(-r * 0.28, -r * 0.24), r * 0.07, Color(1, 1, 1, 0.8 * alpha))
+
+
+static func _draw_iron_ore_chunk(
+	canvas: CanvasItem,
+	c: Vector2,
+	r: float,
+	ore_color: Color,
+	ore_glow: Color,
+	alpha: float,
+) -> void:
+	_draw_metal_nugget(canvas, c, r * 0.92, ore_color, ore_glow, alpha)
+	var streak: Color = Color("#b8c5d0", 0.55 * alpha)
+	canvas.draw_line(c + Vector2(-r * 0.5, r * 0.05), c + Vector2(r * 0.15, -r * 0.35), streak, 2.0)
+	canvas.draw_line(c + Vector2(-r * 0.1, r * 0.45), c + Vector2(r * 0.45, r * 0.15), streak, 1.5)
+	canvas.draw_circle(c + Vector2(-r * 0.35, r * 0.2), r * 0.12, Color("#5a6570", 0.7 * alpha))
+
+
+static func _draw_gold_ore_nugget(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var pts: PackedVector2Array = PackedVector2Array()
+	for i in range(6):
+		var a: float = float(i) * TAU / 6.0 + 0.35
+		var rad: float = r * (0.95 if i % 2 == 0 else 0.72)
+		pts.append(c + Vector2(cos(a), sin(a)) * rad)
+	canvas.draw_colored_polygon(pts, Color("#c99208", alpha))
+	canvas.draw_colored_polygon(
+		PackedVector2Array([c + Vector2(-r * 0.35, -r * 0.2), c + Vector2(r * 0.1, -r * 0.45), c + Vector2(r * 0.4, r * 0.05)]),
+		Color("#ffe566", 0.75 * alpha),
+	)
+	canvas.draw_polyline(pts, Color("#e8b923", alpha), 2.0, true)
+	canvas.draw_line(
+		c + Vector2(-r * 0.4, -r * 0.05),
+		c + Vector2(r * 0.35, r * 0.3),
+		Color(1, 1, 1, 0.45 * alpha),
+		2.0,
+	)
+
+
+static func _draw_red_matter_crystal(
+	canvas: CanvasItem,
+	c: Vector2,
+	r: float,
+	ore_color: Color,
+	ore_glow: Color,
+	alpha: float,
+) -> void:
+	var body: PackedVector2Array = PackedVector2Array([
+		c + Vector2(0, -r * 1.15),
+		c + Vector2(r * 0.55, -r * 0.15),
+		c + Vector2(r * 0.35, r * 0.95),
+		c + Vector2(-r * 0.35, r * 0.95),
+		c + Vector2(-r * 0.55, -r * 0.15),
+	])
+	canvas.draw_colored_polygon(body, Color(ore_color, alpha))
+	canvas.draw_polyline(body, Color(ore_glow, alpha), 2.0, true)
+	canvas.draw_line(c + Vector2(-r * 0.15, -r * 0.5), c + Vector2(0, r * 0.55), Color("#ff9fbd", 0.5 * alpha), 1.8)
+	canvas.draw_line(c + Vector2(r * 0.2, -r * 0.2), c + Vector2(0, r * 0.55), Color("#8a0028", 0.45 * alpha), 1.5)
+
+
+static func _draw_void_crystal_shard(
+	canvas: CanvasItem,
+	c: Vector2,
+	r: float,
+	ore_color: Color,
+	ore_glow: Color,
+	alpha: float,
+) -> void:
+	var left: PackedVector2Array = PackedVector2Array([
+		c + Vector2(-r * 0.25, -r * 1.05),
+		c + Vector2(-r * 0.65, r * 0.15),
+		c + Vector2(-r * 0.15, r * 0.85),
+		c + Vector2(r * 0.05, r * 0.05),
+	])
+	var right: PackedVector2Array = PackedVector2Array([
+		c + Vector2(r * 0.05, r * 0.05),
+		c + Vector2(r * 0.55, -r * 0.35),
+		c + Vector2(r * 0.35, -r * 1.0),
+		c + Vector2(-r * 0.25, -r * 1.05),
+	])
+	canvas.draw_colored_polygon(left, Color(ore_color.darkened(0.15), alpha))
+	canvas.draw_colored_polygon(right, Color(ore_glow, alpha))
+	canvas.draw_polyline(left, Color("#2a1840", alpha), 1.5, true)
+	canvas.draw_polyline(right, Color("#d4a5ff", 0.85 * alpha), 1.5, true)
+	canvas.draw_circle(c + Vector2(-r * 0.05, -r * 0.35), r * 0.1, Color(1, 1, 1, 0.35 * alpha))
+
+
+static func _draw_black_hole_fragment(canvas: CanvasItem, c: Vector2, r: float, alpha: float) -> void:
+	var shard: PackedVector2Array = PackedVector2Array()
+	for i in range(5):
+		var a: float = float(i) * TAU / 5.0 - PI * 0.5
+		var rad: float = r * (1.0 if i == 0 else 0.78 + float(i % 2) * 0.12)
+		shard.append(c + Vector2(cos(a), sin(a)) * rad)
+	canvas.draw_colored_polygon(shard, Color("#12121f", alpha))
+	canvas.draw_polyline(shard, Color("#4a4a8a", 0.9 * alpha), 2.0, true)
+	canvas.draw_arc(c + Vector2(r * 0.08, r * 0.05), r * 0.38, 0.2, TAU - 0.35, 14, Color("#9966cc", 0.75 * alpha), 2.2)
+	canvas.draw_circle(c + Vector2(r * 0.12, r * 0.08), r * 0.14, Color(0, 0, 0, 0.92 * alpha))
+	for i in range(3):
+		var ang: float = float(i) * TAU / 3.0 + 0.5
+		canvas.draw_line(
+			c + Vector2(cos(ang), sin(ang)) * r * 0.22,
+			c + Vector2(cos(ang), sin(ang)) * r * 0.55,
+			Color("#6b5b9a", 0.4 * alpha),
+			1.2,
+		)
 
 
 static func _draw_metal_nugget(canvas: CanvasItem, c: Vector2, r: float, ore_color: Color, ore_glow: Color, alpha: float) -> void:

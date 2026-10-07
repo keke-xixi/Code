@@ -29,6 +29,11 @@ const PATHS := {
 	],
 	"ore_4": ["res://assets/favour_mirror/game/gold.png"],
 	"ore_5": ["res://assets/favour_mirror/game/zs.png"],
+	"ore_iron_bag": [
+		"res://assets/favour_mirror/game/mine2.png",
+		"res://assets/favour_mirror/game/mine.png",
+		"res://assets/favour_mirror/game/wq.png",
+	],
 	"ore_diamond": ["res://assets/favour_mirror/game/zs.png"],
 	"ore_gold": [
 		"res://assets/favour_mirror/game/gold.png",

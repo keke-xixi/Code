@@ -1,16 +1,18 @@
 extends CanvasLayer
 
-@onready var panel: PanelContainer = $Panel
-@onready var ore_check: CheckButton = $Panel/Margin/VBox/ShowOre
-@onready var instant_check: CheckButton = $Panel/Margin/VBox/InstantMine
-@onready var sfx_check: CheckButton = $Panel/Margin/VBox/Sfx
-@onready var music_check: CheckButton = $Panel/Margin/VBox/Music
-@onready var shake_check: CheckButton = $Panel/Margin/VBox/Shake
+@onready var panel: PanelContainer = $Center/Panel
+@onready var ore_check: CheckButton = $Center/Panel/Margin/VBox/ShowOre
+@onready var instant_check: CheckButton = $Center/Panel/Margin/VBox/InstantMine
+@onready var sfx_check: CheckButton = $Center/Panel/Margin/VBox/Sfx
+@onready var music_check: CheckButton = $Center/Panel/Margin/VBox/Music
+@onready var shake_check: CheckButton = $Center/Panel/Margin/VBox/Shake
 
 
 func _ready() -> void:
 	visible = false
 	panel.add_theme_stylebox_override("panel", UiStyle.pixel_frame(UiStyle.CYAN))
+	# 高度随内容，避免底部大块空白
+	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_sync_from_settings()
 	GameEvents.settings_changed.connect(_sync_from_settings)
 

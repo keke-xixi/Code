@@ -9,24 +9,25 @@ const PATHS := {
 		"res://assets/favour_mirror/game/gold2.png",
 		"res://assets/ui/coin_clover.png",
 	],
-	"trade": [
+	## 左上角金币数：绿钱袋（抠底）
+	"money_hud": [
+		"res://assets/ui/money_bag.png",
 		"res://assets/favour_mirror/game/money.png",
-		"res://assets/favour_mirror/game/gold2.png",
+	],
+	"trade": [
+		"res://assets/ui/money_bag.png",
+		"res://assets/favour_mirror/game/money.png",
 		"res://assets/ui/coin_stack.png",
 	],
 	"icon_exchange": [
-		"res://assets/favour_mirror/game/gold3.png",
-		"res://assets/favour_mirror/game/gold2.png",
-		"res://assets/ui/coin_stack.png",
+		"res://assets/ui/money_bag.png",
+		"res://assets/favour_mirror/game/money.png",
 	],
 	"icon_status": [
-		"res://assets/favour_mirror/game/wq.png",
-		"res://assets/favour_mirror/game/score.png",
+		"res://assets/ui/sz.png",
 	],
-	"icon_bag": [
-		"res://assets/favour_mirror/mouse/bx2.png",
-		"res://assets/favour_mirror/mouse/bx4.png",
-	],
+	## 背包标题左侧：无贴图时用矢量背包（勿用钱袋）
+	"icon_bag": [],
 	"ore_4": ["res://assets/favour_mirror/game/gold.png"],
 	"ore_5": ["res://assets/favour_mirror/game/zs.png"],
 	"ore_iron_bag": [

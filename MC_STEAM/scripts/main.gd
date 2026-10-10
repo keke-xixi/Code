@@ -156,12 +156,14 @@ func _start_continue() -> void:
 func _with_loading(job: Callable) -> void:
 	var overlay: Node = get_node_or_null("LoadingOverlay")
 	if overlay != null and overlay.has_method("show_loading"):
-		overlay.call("show_loading")
+		overlay.call("show_loading", "加载中")
 	var finish := func() -> void:
 		job.call()
 		if overlay != null and overlay.has_method("hide_loading"):
 			overlay.call("hide_loading")
-	get_tree().create_timer(0.34).timeout.connect(finish, CONNECT_ONE_SHOT)
+		elif overlay != null:
+			overlay.visible = false
+	get_tree().create_timer(0.48).timeout.connect(finish, CONNECT_ONE_SHOT)
 
 
 func _sync_menu_hud_visibility() -> void:

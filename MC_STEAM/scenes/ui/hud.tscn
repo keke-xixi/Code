@@ -193,23 +193,24 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -170.0
-offset_top = -192.0
-offset_right = 170.0
-offset_bottom = 192.0
+offset_left = -188.0
+offset_top = 0.0
+offset_right = 188.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_vertical = 4
 
 [node name="Margin" type="MarginContainer" parent="StatusPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 18
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 18
-theme_override_constants/margin_bottom = 16
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
 
 [node name="VBox" type="VBoxContainer" parent="StatusPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 14
+theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="StatusPanel/Margin/VBox"]
 layout_mode = 2
@@ -220,9 +221,9 @@ horizontal_alignment = 1
 
 [node name="TitleSub" type="Label" parent="StatusPanel/Margin/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
-theme_override_font_sizes/font_size = 13
-text = "探险概况"
+theme_override_colors/font_color = Color(0.494, 0.91, 1, 1)
+theme_override_font_sizes/font_size = 15
+text = "矿层 · 地表"
 horizontal_alignment = 1
 
 [node name="StatGrid" type="GridContainer" parent="StatusPanel/Margin/VBox"]
@@ -232,63 +233,76 @@ theme_override_constants/v_separation = 10
 columns = 2
 
 [node name="DepthCell" type="PanelContainer" parent="StatusPanel/Margin/VBox/StatGrid"]
-custom_minimum_size = Vector2(118, 68)
+custom_minimum_size = Vector2(130, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="DM" type="MarginContainer" parent="StatusPanel/Margin/VBox/StatGrid/DepthCell"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="DV" type="VBoxContainer" parent="StatusPanel/Margin/VBox/StatGrid/DepthCell/DM"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="DepthTag" type="Label" parent="StatusPanel/Margin/VBox/StatGrid/DepthCell/DM/DV"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 12
 text = "当前深度"
 horizontal_alignment = 1
 
 [node name="DepthVal" type="Label" parent="StatusPanel/Margin/VBox/StatGrid/DepthCell/DM/DV"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.996, 0.898, 0.4, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 30
 text = "0"
 horizontal_alignment = 1
 
 [node name="MilestoneCell" type="PanelContainer" parent="StatusPanel/Margin/VBox/StatGrid"]
-custom_minimum_size = Vector2(118, 68)
+custom_minimum_size = Vector2(130, 76)
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="MM" type="MarginContainer" parent="StatusPanel/Margin/VBox/StatGrid/MilestoneCell"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 6
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="MV" type="VBoxContainer" parent="StatusPanel/Margin/VBox/StatGrid/MilestoneCell/MM"]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 4
 
 [node name="MilestoneTag" type="Label" parent="StatusPanel/Margin/VBox/StatGrid/MilestoneCell/MM/MV"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 12
 text = "下段目标"
 horizontal_alignment = 1
 
 [node name="MilestoneVal" type="Label" parent="StatusPanel/Margin/VBox/StatGrid/MilestoneCell/MM/MV"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.494, 0.91, 1, 1)
-theme_override_font_sizes/font_size = 26
+theme_override_font_sizes/font_size = 30
 text = "10"
+horizontal_alignment = 1
+
+[node name="MileBar" type="ProgressBar" parent="StatusPanel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
+max_value = 100.0
+show_percentage = false
+
+[node name="MileHint" type="Label" parent="StatusPanel/Margin/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
+theme_override_font_sizes/font_size = 12
+text = "距下段还有 —"
 horizontal_alignment = 1
 
 [node name="GearCell" type="PanelContainer" parent="StatusPanel/Margin/VBox"]
@@ -301,54 +315,62 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 12
 theme_override_constants/margin_bottom = 10
 
-[node name="GH" type="HBoxContainer" parent="StatusPanel/Margin/VBox/GearCell/GM"]
+[node name="GV" type="VBoxContainer" parent="StatusPanel/Margin/VBox/GearCell/GM"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="GearTag" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GV"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
+theme_override_font_sizes/font_size = 12
+text = "镐具"
+
+[node name="GH" type="HBoxContainer" parent="StatusPanel/Margin/VBox/GearCell/GM/GV"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="GearTag" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GH"]
-custom_minimum_size = Vector2(44, 0)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
-theme_override_font_sizes/font_size = 13
-text = "装备"
-vertical_alignment = 1
-
-[node name="Pickaxe" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GH"]
+[node name="Pickaxe" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GV/GH"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 17
+theme_override_font_sizes/font_size = 18
 text = "⛏ 无镐"
 vertical_alignment = 1
 
-[node name="PickLv" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GH"]
+[node name="PickLv" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GV/GH"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 16
 text = "Lv.0"
 vertical_alignment = 1
+
+[node name="GearHint" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GV"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.66, 0.72, 1)
+theme_override_font_sizes/font_size = 13
+text = "挖土约 — 秒 · B 开工坊升级"
 
 [node name="KeysCell" type="PanelContainer" parent="StatusPanel/Margin/VBox"]
 layout_mode = 2
 
 [node name="KM" type="MarginContainer" parent="StatusPanel/Margin/VBox/KeysCell"]
 layout_mode = 2
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 8
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 2
+theme_override_constants/margin_top = 2
+theme_override_constants/margin_right = 2
+theme_override_constants/margin_bottom = 2
 
 [node name="KV" type="VBoxContainer" parent="StatusPanel/Margin/VBox/KeysCell/KM"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 8
 
 [node name="KeysTag" type="Label" parent="StatusPanel/Margin/VBox/KeysCell/KM/KV"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.541, 0.573, 0.62, 1)
 theme_override_font_sizes/font_size = 12
-text = "快捷键"
-horizontal_alignment = 1
+text = "操作"
 
 [node name="Keys" type="Label" parent="StatusPanel/Margin/VBox/KeysCell/KM/KV"]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
 theme_override_font_sizes/font_size = 14
@@ -356,16 +378,16 @@ text = "WASD · B · O · F5"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ExtraSlot" type="Control" parent="StatusPanel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 72)
+[node name="KeyChips" type="HFlowContainer" parent="StatusPanel/Margin/VBox/KeysCell/KM/KV"]
 layout_mode = 2
-size_flags_vertical = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
 
 [node name="CloseRow" type="CenterContainer" parent="StatusPanel/Margin/VBox"]
 layout_mode = 2
 
 [node name="Close" type="Button" parent="StatusPanel/Margin/VBox/CloseRow"]
-custom_minimum_size = Vector2(100, 44)
+custom_minimum_size = Vector2(120, 40)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "关闭"
@@ -591,7 +613,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 24
-text = "矿石背包"
+text = "背包"
 
 [node name="TitleSpacer" type="Control" parent="OreBag/VBox/TitleRow"]
 layout_mode = 2

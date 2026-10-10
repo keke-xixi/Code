@@ -45,6 +45,8 @@ static func should_prepare_hud_icon(relative_or_path: String) -> bool:
 		p.ends_with("gold3.png")
 		or p.ends_with("gold_coin.png")
 		or p.ends_with("gold2.png")
+		or p.ends_with("money_bag.png")
+		or p.ends_with("money.png")
 	)
 
 

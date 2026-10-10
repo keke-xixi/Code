@@ -56,9 +56,14 @@ const GAME_POPUP_HALF_H := 192.0
 @onready var status_panel: PanelContainer = $StatusPanel
 @onready var status_depth_val: Label = $StatusPanel/Margin/VBox/StatGrid/DepthCell/DM/DV/DepthVal
 @onready var status_milestone_val: Label = $StatusPanel/Margin/VBox/StatGrid/MilestoneCell/MM/MV/MilestoneVal
-@onready var status_pickaxe: Label = $StatusPanel/Margin/VBox/GearCell/GM/GH/Pickaxe
-@onready var status_pick_lv: Label = $StatusPanel/Margin/VBox/GearCell/GM/GH/PickLv
+@onready var status_pickaxe: Label = $StatusPanel/Margin/VBox/GearCell/GM/GV/GH/Pickaxe
+@onready var status_pick_lv: Label = $StatusPanel/Margin/VBox/GearCell/GM/GV/GH/PickLv
+@onready var status_gear_hint: Label = $StatusPanel/Margin/VBox/GearCell/GM/GV/GearHint
 @onready var status_keys: Label = $StatusPanel/Margin/VBox/KeysCell/KM/KV/Keys
+@onready var status_key_chips: HFlowContainer = $StatusPanel/Margin/VBox/KeysCell/KM/KV/KeyChips
+@onready var status_title_sub: Label = $StatusPanel/Margin/VBox/TitleSub
+@onready var status_mile_bar: ProgressBar = $StatusPanel/Margin/VBox/MileBar
+@onready var status_mile_hint: Label = $StatusPanel/Margin/VBox/MileHint
 
 var _toast_timer: float = 0.0
 var _session: GameSession
@@ -66,13 +71,19 @@ var _absorb_radius: int = 0
 var _absorb_cd: float = 0.0
 var _depth_text: String = "深 0"
 var _depth_num: int = 0
+var _max_depth_seen: int = 0
 var _milestone_text: String = "10"
+var _milestone_target: int = 10
 var _pick_name: String = "无镐"
 var _pick_lv: int = 0
+var _dirt_mine_sec: float = 1.0
+var _layer_title: String = "地表"
+var _layer_progress: float = 0.0
 var _pending_trade_type_id: int = -1
 var _pending_trade_max_count: int = 0
 var _popup_busy: bool = false
 var _trade_confirm_busy: bool = false
+var _status_keys_built: bool = false
 
 
 func _ready() -> void:
@@ -161,7 +172,7 @@ func _style_ore_bag() -> void:
 	if title != null:
 		title.add_theme_color_override("font_color", UiStyle.COIN)
 	if title_row != null and title_row.get_node_or_null("BagIcon") == null:
-		var bag_icon: Control = UiIcons.bag(32.0)
+		var bag_icon: Control = UiIcons.bag(36.0)
 		bag_icon.name = "BagIcon"
 		title_row.add_child(bag_icon)
 		title_row.move_child(bag_icon, 0)
@@ -169,52 +180,158 @@ func _style_ore_bag() -> void:
 
 func _style_status_ui() -> void:
 	status_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.CYAN))
+	# 区块用轻卡片，去掉左侧色条 / 硬分隔线
 	status_panel.get_node("Margin/VBox/StatGrid/DepthCell").add_theme_stylebox_override(
-		"panel", UiStyle.game_inset_block(UiStyle.CYAN)
+		"panel", UiStyle.soft_card(UiStyle.GOLD)
 	)
 	status_panel.get_node("Margin/VBox/StatGrid/MilestoneCell").add_theme_stylebox_override(
-		"panel", UiStyle.game_inset_block(UiStyle.CYAN)
+		"panel", UiStyle.soft_card(UiStyle.CYAN)
 	)
 	status_panel.get_node("Margin/VBox/GearCell").add_theme_stylebox_override(
-		"panel", UiStyle.game_inset_block(UiStyle.GOLD)
+		"panel", UiStyle.soft_card(UiStyle.GOLD)
 	)
+	# 操作区：不套线框，靠芯片本身分组
 	status_panel.get_node("Margin/VBox/KeysCell").add_theme_stylebox_override(
-		"panel", UiStyle.game_inset_block(Color("#5a6270"))
+		"panel", StyleBoxEmpty.new()
 	)
 	var title: Label = status_panel.get_node("Margin/VBox/Title") as Label
 	if title != null:
 		title.add_theme_color_override("font_color", UiStyle.GOLD)
 		title.add_theme_font_size_override("font_size", 22)
 	var st_vbox: VBoxContainer = status_panel.get_node("Margin/VBox") as VBoxContainer
-	if st_vbox != null and st_vbox.get_node_or_null("TitleBar") == null and title != null:
-		var bar := PanelContainer.new()
-		bar.name = "TitleBar"
-		bar.add_theme_stylebox_override("panel", UiStyle.favour_popup_title_bar(UiStyle.CYAN))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		bar.add_child(row)
-		row.add_child(UiIcons.status(22.0))
-		title.get_parent().remove_child(title)
-		row.add_child(title)
-		st_vbox.add_child(bar)
-		st_vbox.move_child(bar, 0)
+	if st_vbox != null:
+		st_vbox.add_theme_constant_override("separation", 10)
+	if st_vbox != null and title != null:
+		var bar: PanelContainer = st_vbox.get_node_or_null("TitleBar") as PanelContainer
+		if bar == null:
+			bar = PanelContainer.new()
+			bar.name = "TitleBar"
+			bar.add_theme_stylebox_override("panel", UiStyle.favour_popup_title_soft())
+			var row := HBoxContainer.new()
+			row.name = "Row"
+			row.add_theme_constant_override("separation", 8)
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			bar.add_child(row)
+			row.add_child(UiIcons.status_mark(26.0))
+			title.get_parent().remove_child(title)
+			row.add_child(title)
+			st_vbox.add_child(bar)
+			st_vbox.move_child(bar, 0)
+		else:
+			bar.add_theme_stylebox_override("panel", UiStyle.favour_popup_title_soft())
+			var row2: HBoxContainer = bar.get_node_or_null("Row") as HBoxContainer
+			if row2 != null:
+				for c in row2.get_children():
+					if c != title:
+						c.queue_free()
+				row2.add_child(UiIcons.status_mark(26.0))
+				row2.move_child(row2.get_child(row2.get_child_count() - 1), 0)
+	if status_title_sub != null:
+		status_title_sub.add_theme_color_override("font_color", UiStyle.CYAN)
+	_style_status_mile_bar()
+	_build_status_key_chips()
 	var close_btn: Button = status_panel.get_node("Margin/VBox/CloseRow/Close") as Button
 	if close_btn != null:
 		UiStyle.apply_action_button(close_btn, UiStyle.CYAN)
-	status_fab.custom_minimum_size = Vector2(48, 48)
-	status_fab.tooltip_text = "状态 · 深度 · 快捷键"
+	status_fab.custom_minimum_size = Vector2(56, 56)
+	status_fab.tooltip_text = "状态 · 深度 · 操作"
 	UiStyle.apply_icon_only_button(status_fab)
-	_set_button_glyph(status_fab, UiIcons.status(38.0))
+	_set_button_glyph(status_fab, UiIcons.status(52.0))
 	_icon_only_hover(status_fab)
 
 
+func _style_status_mile_bar() -> void:
+	if status_mile_bar == null:
+		return
+	var bg := StyleBoxFlat.new()
+	bg.bg_color = Color("#121820", 0.95)
+	bg.corner_radius_top_left = 4
+	bg.corner_radius_top_right = 4
+	bg.corner_radius_bottom_left = 4
+	bg.corner_radius_bottom_right = 4
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = UiStyle.CYAN
+	fill.corner_radius_top_left = 4
+	fill.corner_radius_top_right = 4
+	fill.corner_radius_bottom_left = 4
+	fill.corner_radius_bottom_right = 4
+	status_mile_bar.add_theme_stylebox_override("background", bg)
+	status_mile_bar.add_theme_stylebox_override("fill", fill)
+
+
+func _build_status_key_chips() -> void:
+	if status_key_chips == null or _status_keys_built:
+		return
+	_status_keys_built = true
+	if status_keys != null:
+		status_keys.visible = false
+	for c in status_key_chips.get_children():
+		c.queue_free()
+	var items: Array = [
+		["WASD", "移动"],
+		["鼠标", "点邻格"],
+		["B", "工坊"],
+		["O", "设置"],
+		["F5", "存档"],
+	]
+	if _absorb_radius > 0:
+		items.append(["E", "吸纳"])
+	for it in items:
+		status_key_chips.add_child(_make_status_key_chip(str(it[0]), str(it[1])))
+
+
+func _rebuild_status_key_chips() -> void:
+	_status_keys_built = false
+	_build_status_key_chips()
+
+
+func _make_status_key_chip(key: String, desc: String) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#151c28", 0.96)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(UiStyle.CYAN, 0.28)
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 5
+	sb.content_margin_bottom = 5
+	chip.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	chip.add_child(row)
+	var k := Label.new()
+	k.text = key
+	k.add_theme_font_size_override("font_size", 13)
+	k.add_theme_color_override("font_color", UiStyle.COIN)
+	row.add_child(k)
+	var d := Label.new()
+	d.text = desc
+	d.add_theme_font_size_override("font_size", 12)
+	d.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
+	row.add_child(d)
+	return chip
+
+
 func _apply_game_popup_size() -> void:
-	for panel in [status_panel, ore_trade_panel]:
-		panel.offset_left = -GAME_POPUP_HALF_W
-		panel.offset_right = GAME_POPUP_HALF_W
-		panel.offset_top = -GAME_POPUP_HALF_H
-		panel.offset_bottom = GAME_POPUP_HALF_H
+	# 状态：宽度固定、高度随内容（避免底部空洞）
+	status_panel.set_anchors_preset(Control.PRESET_CENTER)
+	status_panel.offset_left = -188.0
+	status_panel.offset_right = 188.0
+	status_panel.offset_top = 0.0
+	status_panel.offset_bottom = 0.0
+	status_panel.custom_minimum_size = Vector2(376, 0)
+	status_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ore_trade_panel.offset_left = -GAME_POPUP_HALF_W
+	ore_trade_panel.offset_right = GAME_POPUP_HALF_W
+	ore_trade_panel.offset_top = -GAME_POPUP_HALF_H
+	ore_trade_panel.offset_bottom = GAME_POPUP_HALF_H
 
 
 func _setup_money_badge() -> void:
@@ -228,7 +345,7 @@ func _setup_money_badge() -> void:
 		money_badge.move_child(slot, 0)
 	for c in slot.get_children():
 		c.queue_free()
-	slot.add_child(UiIcons.coin(48.0, false))
+	slot.add_child(UiIcons.money_hud(48.0, false))
 	toast_panel.add_theme_stylebox_override("panel", UiStyle.game_inset_block(UiStyle.GOLD))
 
 
@@ -246,7 +363,7 @@ func _set_button_glyph(btn: Button, icon: Control) -> void:
 func _style_trade_ui() -> void:
 	ore_trade_open.custom_minimum_size = Vector2(52, 52)
 	UiStyle.apply_icon_only_button(ore_trade_open)
-	_set_button_glyph(ore_trade_open, UiIcons.exchange(46.0))
+	_set_button_glyph(ore_trade_open, UiIcons.exchange(40.0))
 	_icon_only_hover(ore_trade_open)
 	ore_trade_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.GOLD))
 	ore_trade_confirm_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.GOLD))
@@ -555,10 +672,7 @@ func _refresh_trade_confirm_preview() -> void:
 	var unit: int = _session.ore_unit_sell_price(_pending_trade_type_id)
 	var n: int = clampi(int(ore_trade_confirm_spin.value), 1, maxi(1, _pending_trade_max_count))
 	var est: int = unit * n
-	ore_trade_confirm_text.text = (
-		"%s ×%d  →  约 %s 金币\n（单价 %s，连击可加成）"
-		% [str(meta.get("name", "")), n, _fmt(est), _fmt(unit)]
-	)
+	ore_trade_confirm_text.text = "%s ×%d  →  约 %s 金币" % [str(meta.get("name", "")), n, _fmt(est)]
 
 
 func _hide_trade_confirm() -> void:
@@ -599,10 +713,38 @@ func _refresh_status_panel() -> void:
 	status_milestone_val.text = _milestone_text
 	status_pickaxe.text = "⛏ %s" % _pick_name
 	status_pick_lv.text = "Lv.%d" % _pick_lv
-	var keys: String = BASE_HINT
-	if _absorb_radius > 0:
-		keys += " · E"
-	status_keys.text = keys
+	if status_title_sub != null:
+		status_title_sub.text = "矿层 · %s" % _layer_title
+	if status_gear_hint != null:
+		status_gear_hint.text = "挖土约 %.1f 秒 · B 开工坊升级" % _dirt_mine_sec
+	_refresh_status_mile()
+	if status_keys != null:
+		var keys: String = BASE_HINT
+		if _absorb_radius > 0:
+			keys += " · E"
+		status_keys.text = keys
+
+
+func _refresh_status_mile() -> void:
+	if status_mile_bar == null:
+		return
+	var next_m: int = _milestone_target
+	if next_m <= _depth_num or _milestone_text == "满":
+		status_mile_bar.value = 100.0
+		if status_mile_hint != null:
+			status_mile_hint.text = "已达当前深度里程碑"
+		return
+	# 以上一里程碑为起点
+	var prev: int = 0
+	for m in GameData.DEPTH_MILESTONES:
+		if int(m) >= next_m:
+			break
+		prev = int(m)
+	var span: float = float(maxi(1, next_m - prev))
+	var prog: float = clampf(float(_depth_num - prev) / span, 0.0, 1.0)
+	status_mile_bar.value = prog * 100.0
+	if status_mile_hint != null:
+		status_mile_hint.text = "距下段还有 %d 层" % maxi(0, next_m - _depth_num)
 
 
 func _style_bar() -> void:
@@ -668,8 +810,11 @@ func _on_tutorial_ok() -> void:
 
 
 func _on_tool_hints(absorb_radius: int, absorb_cooldown: float) -> void:
+	var absorb_changed: bool = absorb_radius != _absorb_radius
 	_absorb_radius = absorb_radius
 	_absorb_cd = absorb_cooldown
+	if absorb_changed:
+		_rebuild_status_key_chips()
 	_refresh_absorb_label()
 
 
@@ -712,7 +857,9 @@ func _on_coins_earned(amount: int) -> void:
 
 func _on_depth(depth: int, max_d: int) -> void:
 	_depth_num = depth
+	_max_depth_seen = maxi(_max_depth_seen, max_d)
 	var next_m: int = GameData.next_depth_milestone(depth)
+	_milestone_target = next_m
 	if next_m > depth:
 		_depth_text = "深 %d · 下段 %d" % [depth, next_m]
 		_milestone_text = str(next_m)
@@ -724,8 +871,11 @@ func _on_depth(depth: int, max_d: int) -> void:
 
 
 func _on_layer(title: String, progress: float) -> void:
+	_layer_title = title
+	_layer_progress = progress
 	layer_label.text = title
 	layer_bar.value = progress * 100.0
+	_refresh_status_panel()
 
 
 func _on_combo(stacks: int, bonus: float) -> void:
@@ -777,6 +927,7 @@ func _refresh_ore_bag() -> void:
 func _on_gear(pickaxe_name: String, dirt_sec: float, pickaxe_level: int) -> void:
 	_pick_name = pickaxe_name
 	_pick_lv = pickaxe_level
+	_dirt_mine_sec = dirt_sec
 	var dia: float = GameData.ore_mine_sec(5, pickaxe_level)
 	gear_label.text = "⛏ %s · 土 %.1fs · 钻 %.1fs" % [pickaxe_name, dirt_sec, dia]
 	_refresh_status_panel()

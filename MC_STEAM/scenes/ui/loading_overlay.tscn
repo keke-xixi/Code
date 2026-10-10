@@ -12,7 +12,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.04, 0.08, 0.78)
+mouse_filter = 0
+color = Color(0.0, 0.106, 0.18, 0.78)
 
 [node name="Center" type="CenterContainer" parent="Root"]
 anchors_preset = 15
@@ -20,27 +21,21 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Root/Center"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 18
 
-[node name="Coin" type="TextureRect" parent="Root/Center/VBox"]
-custom_minimum_size = Vector2(72, 72)
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="Gif" type="TextureRect" parent="Root/Center/VBox"]
-visible = false
+[node name="SpinnerHost" type="Control" parent="Root/Center/VBox"]
 custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
+size_flags_horizontal = 4
+mouse_filter = 2
 
 [node name="Label" type="Label" parent="Root/Center/VBox"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.996, 0.898, 0.4, 1)
-theme_override_font_sizes/font_size = 20
-text = "加载中…"
+theme_override_colors/font_color = Color(0.62, 0.79, 1, 1)
+theme_override_font_sizes/font_size = 18
+text = "加载中"
 horizontal_alignment = 1

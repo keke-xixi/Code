@@ -3,10 +3,12 @@ extends Node
 
 const KEY_PATHS: Dictionary = {
 	"coin": ["game/gold3.png", "game/gold2.png", "game/gold_coin.png"],
-	"trade": ["game/gold3.png", "game/gold2.png"],
-	"icon_exchange": ["game/gold3.png", "game/gold2.png"],
-	"icon_status": ["game/wq.png", "game/score.png", "game/center.png"],
-	"icon_bag": ["mouse/bx2.png", "mouse/bx4.png", "mouse/bx1.png"],
+	"money_hud": [],
+	"trade": [],
+	# 背包 / 兑换 / 右下角设置：用 res://assets/ui 语义图，勿被 favour 金币·宝箱覆盖
+	"icon_exchange": [],
+	"icon_status": [],
+	"icon_bag": [],
 	"ore_diamond": ["game/zs.png"],
 	"ore_gold": ["game/gold.png", "game/gold2.png"],
 	"ore_coin": ["game/money.png", "game/gold3.png"],

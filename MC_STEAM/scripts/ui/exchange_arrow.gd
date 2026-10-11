@@ -45,6 +45,7 @@ func _draw_chevron() -> void:
 	var cy: float = h * 0.5
 	var body: Color = tint
 	var shine: Color = Color(1, 1, 1, 0.55)
+	# 原双箭头样式（用户偏好）
 	for i in range(2):
 		var ox: float = 4.0 + float(i) * 9.0
 		var tip := Vector2(w - 4.0 - float(i) * 2.0, cy)

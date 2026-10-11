@@ -111,34 +111,227 @@ static func shop_module_card(accent: Color = GOLD) -> StyleBoxFlat:
 	return sb
 
 
-## 兑换列表矿石行：保留色边，略染底色，边距更贴列表
-static func trade_ore_card(accent: Color = GOLD) -> StyleBoxFlat:
+## 主菜单底板占位（实际绘制见 menu_title_plate.gd）
+static func menu_vault_frame() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#121820").lerp(Color(accent, 1.0), 0.1)
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
+	sb.bg_color = Color(0, 0, 0, 0)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	return sb
+
+
+## 深核琥珀：近黑底 + 琥珀金主色 + 青紫点缀
+const MENU_AMBER := Color("#e8a825")
+const MENU_AMBER_HI := Color("#ffe08a")
+const MENU_CYAN := Color("#6ec8ff")
+const MENU_VIOLET := Color("#8b7cf8")
+const MENU_INK := Color("#0a0d14")
+
+
+static func menu_primary_btn(accent: Color = MENU_AMBER) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#c88918").lerp(Color(accent, 1.0), 0.5)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	# 胶囊：圆角取满高
+	sb.corner_radius_top_left = 999
+	sb.corner_radius_top_right = 999
+	sb.corner_radius_bottom_left = 999
+	sb.corner_radius_bottom_right = 999
+	sb.content_margin_left = 28
+	sb.content_margin_right = 28
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	sb.shadow_color = Color(accent, 0.45)
+	sb.shadow_size = 16
+	sb.shadow_offset = Vector2(0, 5)
+	return sb
+
+
+static func menu_primary_btn_hover(accent: Color = MENU_AMBER) -> StyleBoxFlat:
+	var sb := menu_primary_btn(accent)
+	sb.bg_color = Color("#e0a020").lerp(Color(accent.lightened(0.12), 1.0), 0.55)
+	sb.shadow_size = 22
+	return sb
+
+
+static func menu_ghost_btn(accent: Color = MENU_AMBER) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#0c121c", 0.45)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(accent, 0.45)
+	sb.corner_radius_top_left = 999
+	sb.corner_radius_top_right = 999
+	sb.corner_radius_bottom_left = 999
+	sb.corner_radius_bottom_right = 999
+	sb.content_margin_left = 22
+	sb.content_margin_right = 22
+	sb.content_margin_top = 11
+	sb.content_margin_bottom = 11
+	return sb
+
+
+static func menu_ghost_btn_hover(accent: Color = MENU_AMBER) -> StyleBoxFlat:
+	var sb := menu_ghost_btn(accent)
+	sb.bg_color = Color("#141c28", 0.72).lerp(Color(accent, 1.0), 0.16)
+	sb.border_color = Color(accent.lightened(0.2), 0.85)
+	sb.shadow_color = Color(accent, 0.25)
+	sb.shadow_size = 10
+	sb.shadow_offset = Vector2(0, 2)
+	return sb
+
+
+static func apply_menu_button(btn: Button, accent: Color = MENU_AMBER, primary: bool = false) -> void:
+	var a: Color = accent
+	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	if primary:
+		btn.add_theme_stylebox_override("normal", menu_primary_btn(a))
+		btn.add_theme_stylebox_override("hover", menu_primary_btn_hover(a))
+		btn.add_theme_stylebox_override("pressed", menu_primary_btn_hover(a))
+		btn.add_theme_color_override("font_color", Color("#1a1208"))
+		btn.add_theme_color_override("font_hover_color", Color("#0c0804"))
+		btn.add_theme_font_size_override("font_size", 20)
+	else:
+		btn.add_theme_stylebox_override("normal", menu_ghost_btn(a))
+		btn.add_theme_stylebox_override("hover", menu_ghost_btn_hover(a))
+		btn.add_theme_stylebox_override("pressed", menu_ghost_btn_hover(a))
+		btn.add_theme_color_override("font_color", Color("#e8ecf4").lerp(Color(a, 1.0), 0.2))
+		btn.add_theme_color_override("font_hover_color", Color.WHITE)
+		btn.add_theme_font_size_override("font_size", 16)
+	btn.add_theme_stylebox_override("disabled", action_button_disabled())
+
+
+## 兑换弹窗外壳：与工坊同一套（浅描边 + 紫阴影），内边距略宽
+static func trade_vault_frame() -> StyleBoxFlat:
+	var sb := favour_popup_frame(GOLD)
+	sb.content_margin_left = 18
+	sb.content_margin_right = 18
+	sb.content_margin_top = 16
+	sb.content_margin_bottom = 16
+	return sb
+
+
+## 兑换标题：无描边，仅暖色底带
+static func trade_title_ribbon() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#1a1610", 0.7)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
 	sb.border_width_bottom = 2
-	sb.border_color = Color(accent, 0.62)
+	sb.border_color = Color(GOLD, 0.45)
 	sb.corner_radius_top_left = 10
 	sb.corner_radius_top_right = 10
 	sb.corner_radius_bottom_left = 10
 	sb.corner_radius_bottom_right = 10
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	return sb
+
+
+## 副标题：无边框浅底
+static func trade_sub_chip() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#121820", 0.45)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
 	sb.content_margin_left = 8
 	sb.content_margin_right = 8
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	return sb
+
+
+## 兑换行描边色：过深的矿色（如黑洞）提亮，避免「没框」
+static func trade_slot_accent(accent: Color, glow: Color = Color(0, 0, 0, 0)) -> Color:
+	var base: Color = accent
+	if glow.a > 0.01 and accent.get_luminance() < 0.32:
+		base = glow
+	if base.get_luminance() < 0.38:
+		base = base.lightened(0.35)
+	# 再保底：发灰的深色提到可读的冷蓝紫
+	if base.get_luminance() < 0.42:
+		base = base.lerp(Color("#8eb0ff"), 0.55)
+	return base
+
+
+## 矿石名称/数量文字色：跟矿色走，并提亮保证可读
+static func ore_ink_color(accent: Color, glow: Color = Color(0, 0, 0, 0)) -> Color:
+	var c: Color = trade_slot_accent(accent, glow)
+	if c.get_luminance() < 0.58:
+		c = c.lightened(0.42)
+	return c.lerp(Color("#f2f4f8"), 0.28)
+
+
+static func ore_count_color(accent: Color, glow: Color = Color(0, 0, 0, 0)) -> Color:
+	return ore_ink_color(accent, glow).lerp(Color("#dce2ea"), 0.2)
+
+
+## 兑换行：左侧色条为主 + 极淡外框，深色矿也能看见
+static func trade_ore_slot(accent: Color = GOLD, glow: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
+	var bar: Color = trade_slot_accent(accent, glow)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#151b26", 0.9).lerp(Color(bar, 1.0), 0.12)
+	sb.border_width_left = 5
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(bar, 0.85)
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 16
+	sb.content_margin_right = 14
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 14
+	return sb
+
+
+## 背包矿石行：同色系浅底框
+static func bag_ore_slot(accent: Color = GOLD, glow: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
+	var bar: Color = trade_slot_accent(accent, glow)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#121820", 0.82).lerp(Color(bar, 1.0), 0.1)
+	sb.border_width_left = 3
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(bar, 0.7)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.content_margin_left = 10
+	sb.content_margin_right = 12
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	return sb
 
 
 static func trade_check_btn() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(OK, 0.16)
+	sb.bg_color = Color(OK, 0.14)
 	sb.border_width_left = 1
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 2
-	sb.border_color = Color(OK, 0.7)
+	sb.border_color = Color(OK, 0.65)
 	sb.corner_radius_top_left = 9
 	sb.corner_radius_top_right = 9
 	sb.corner_radius_bottom_left = 9
@@ -149,7 +342,7 @@ static func trade_check_btn() -> StyleBoxFlat:
 static func trade_check_btn_hover() -> StyleBoxFlat:
 	var sb := trade_check_btn()
 	sb.bg_color = Color(OK, 0.28)
-	sb.border_color = Color(OK, 0.95)
+	sb.border_color = Color(OK, 0.9)
 	return sb
 
 

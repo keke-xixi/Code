@@ -8,6 +8,8 @@ const PATH_TRADE := "res://assets/ui/coin_stack.png"
 const PATH_SELL := "res://assets/ui/coin_stack.png"
 const PATH_STATUS := "res://assets/ui/sz.png"
 
+static var _scaled_cache: Dictionary = {}
+
 
 class TexGlyph extends Control:
 	var _inner: TextureRect
@@ -196,14 +198,21 @@ static func _load_tex(path: String) -> Texture2D:
 static func _texture_for_display(tex: Texture2D, side_px: int) -> Texture2D:
 	if tex == null or side_px <= 0:
 		return tex
+	var cache_key: String = "%d@%d" % [tex.get_instance_id(), side_px]
+	if _scaled_cache.has(cache_key):
+		return _scaled_cache[cache_key] as Texture2D
 	var img: Image = tex.get_image()
 	if img == null or img.is_empty():
 		return tex
 	if img.get_width() == side_px and img.get_height() == side_px:
+		_scaled_cache[cache_key] = tex
 		return tex
 	var scaled: Image = img.duplicate()
-	scaled.resize(side_px, side_px, Image.INTERPOLATE_LANCZOS)
-	return ImageTexture.create_from_image(scaled)
+	# 双线性足够清晰，比 Lanczos 快很多（进局/列表大量图标）
+	scaled.resize(side_px, side_px, Image.INTERPOLATE_BILINEAR)
+	var out: Texture2D = ImageTexture.create_from_image(scaled)
+	_scaled_cache[cache_key] = out
+	return out
 
 
 static func _load_tex_key(key: String) -> Texture2D:

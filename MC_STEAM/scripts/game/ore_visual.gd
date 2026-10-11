@@ -611,15 +611,15 @@ static func _draw_black_hole_fragment(canvas: CanvasItem, c: Vector2, r: float, 
 		var rad: float = r * (1.0 if i == 0 else 0.78 + float(i % 2) * 0.12)
 		shard.append(c + Vector2(cos(a), sin(a)) * rad)
 	canvas.draw_colored_polygon(shard, Color("#12121f", alpha))
-	canvas.draw_polyline(shard, Color("#4a4a8a", 0.9 * alpha), 2.0, true)
-	canvas.draw_arc(c + Vector2(r * 0.08, r * 0.05), r * 0.38, 0.2, TAU - 0.35, 14, Color("#9966cc", 0.75 * alpha), 2.2)
+	canvas.draw_polyline(shard, Color("#7c9cff", 0.95 * alpha), 2.0, true)
+	canvas.draw_arc(c + Vector2(r * 0.08, r * 0.05), r * 0.38, 0.2, TAU - 0.35, 14, Color("#a8c4ff", 0.8 * alpha), 2.2)
 	canvas.draw_circle(c + Vector2(r * 0.12, r * 0.08), r * 0.14, Color(0, 0, 0, 0.92 * alpha))
 	for i in range(3):
 		var ang: float = float(i) * TAU / 3.0 + 0.5
 		canvas.draw_line(
 			c + Vector2(cos(ang), sin(ang)) * r * 0.22,
 			c + Vector2(cos(ang), sin(ang)) * r * 0.55,
-			Color("#6b5b9a", 0.4 * alpha),
+			Color("#7c9cff", 0.45 * alpha),
 			1.2,
 		)
 

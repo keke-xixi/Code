@@ -3,6 +3,9 @@ extends RefCounted
 
 ## 优先 D:\zg\design\favour\public\img（FavourArt），其次 res://assets 备份
 
+static var _tex_cache: Dictionary = {}
+static var _path_cache: Dictionary = {}
+
 const PATHS := {
 	"coin": [
 		"res://assets/favour_mirror/game/gold3.png",
@@ -67,20 +70,27 @@ const PATHS := {
 
 
 static func texture(key: String) -> Texture2D:
+	if _tex_cache.has(key):
+		return _tex_cache[key] as Texture2D
+	var result: Texture2D = null
 	var fav: Node = _favour_art()
 	if fav != null and fav.has_method("texture_for_key"):
-		var from_favour: Texture2D = fav.call("texture_for_key", key) as Texture2D
-		if from_favour != null:
-			return from_favour
-	if not PATHS.has(key):
-		return null
-	for path in PATHS[key]:
-		if ResourceLoader.exists(path):
-			return _load_texture_path(path)
-	return null
+		result = fav.call("texture_for_key", key) as Texture2D
+	if result == null and PATHS.has(key):
+		for path in PATHS[key]:
+			if ResourceLoader.exists(path):
+				result = _load_texture_path(path)
+				if result != null:
+					break
+	if result != null:
+		_tex_cache[key] = result
+	return result
 
 
 static func _load_texture_path(path: String) -> Texture2D:
+	if _path_cache.has(path):
+		return _path_cache[path] as Texture2D
+	var result: Texture2D = null
 	if ImageMatte.should_strip(path) or ImageMatte.should_prepare_hud_icon(path):
 		var abs: String = ProjectSettings.globalize_path(path)
 		var img := Image.load_from_file(abs)
@@ -89,8 +99,12 @@ static func _load_texture_path(path: String) -> Texture2D:
 				img = ImageMatte.strip_green_edges(img)
 			else:
 				img = ImageMatte.prepare_hud_icon(img)
-			return ImageTexture.create_from_image(img)
-	return load(path) as Texture2D
+			result = ImageTexture.create_from_image(img)
+	else:
+		result = load(path) as Texture2D
+	if result != null:
+		_path_cache[path] = result
+	return result
 
 
 static func _favour_art() -> Node:

@@ -58,13 +58,6 @@ text = "环境音"
 layout_mode = 2
 text = "屏幕震动"
 
-[node name="Hint" type="Label" parent="Center/Panel/Margin/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.58, 0.65, 1)
-theme_override_font_sizes/font_size = 13
-text = "O 开关 · Esc 关闭"
-horizontal_alignment = 1
-
 [connection signal="toggled" from="Center/Panel/Margin/VBox/ShowOre" to="." method="_on_show_ore_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/InstantMine" to="." method="_on_instant_mine_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/Sfx" to="." method="_on_sfx_toggled"]

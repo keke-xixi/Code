@@ -29,12 +29,12 @@ const GAMEPLAY: Dictionary = {
 const ORE_TYPES: Dictionary = {
 	1: {"name": "泥土", "color": Color("#6b4423"), "glow": Color("#8b5a2b"), "price": 1, "rarity": "common", "mine_sec": 1.0, "shape": "chunk"},
 	2: {"name": "石块", "color": Color("#5c5c5c"), "glow": Color("#8a8a8a"), "price": 5, "rarity": "common", "mine_sec": 1.3, "shape": "chunk"},
-	3: {"name": "铁矿", "color": Color("#7a8b99"), "glow": Color("#b8c5d0"), "price": 10, "rarity": "uncommon", "mine_sec": 1.7, "shape": "metal"},
+	3: {"name": "铁矿", "color": Color("#c8d2dc"), "glow": Color("#eef2f6"), "price": 10, "rarity": "uncommon", "mine_sec": 1.7, "shape": "metal"},
 	4: {"name": "黄金", "color": Color("#e8b923"), "glow": Color("#ffe566"), "price": 30, "rarity": "rare", "mine_sec": 2.2, "shape": "metal"},
 	5: {"name": "钻石", "color": Color("#7ee8ff"), "glow": Color("#c8f7ff"), "price": 100, "rarity": "epic", "mine_sec": 3.0, "shape": "crystal"},
 	6: {"name": "红物质", "color": Color("#e0115f"), "glow": Color("#ff6b9d"), "price": 500, "rarity": "legendary", "mine_sec": 3.8, "shape": "crystal"},
 	7: {"name": "虚空水晶", "color": Color("#9966cc"), "glow": Color("#d4a5ff"), "price": 1000, "rarity": "legendary", "mine_sec": 4.6, "shape": "crystal"},
-	8: {"name": "黑洞碎片", "color": Color("#1a1a2e"), "glow": Color("#4a4a8a"), "price": 10000, "rarity": "legendary", "mine_sec": 5.5, "shape": "void"},
+	8: {"name": "黑洞碎片", "color": Color("#1a1a2e"), "glow": Color("#7c9cff"), "price": 10000, "rarity": "legendary", "mine_sec": 5.5, "shape": "void"},
 }
 
 

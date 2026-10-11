@@ -1,6 +1,8 @@
-[gd_scene load_steps=2 format=3 uid="uid://mcsteammenu"]
+[gd_scene load_steps=4 format=3 uid="uid://mcsteammenu"]
 
 [ext_resource type="Script" path="res://scripts/ui/main_menu.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/menu_mine_bg.gd" id="2"]
+[ext_resource type="Script" path="res://scripts/ui/menu_title_plate.gd" id="3"]
 
 [node name="MainMenu" type="CanvasLayer"]
 layer = 30
@@ -13,7 +15,25 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.04, 0.06, 0.09, 0.92)
+color = Color(0.03, 0.045, 0.07, 1)
+
+[node name="MineBg" type="Control" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="Vignette" type="ColorRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.02, 0.03, 0.06, 0.18)
 
 [node name="Root" type="Control" parent="."]
 layout_mode = 3
@@ -33,42 +53,65 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Panel" type="PanelContainer" parent="Root/Center"]
-custom_minimum_size = Vector2(520, 430)
+custom_minimum_size = Vector2(320, 0)
 layout_mode = 2
+script = ExtResource("3")
 
 [node name="Margin" type="MarginContainer" parent="Root/Center/Panel"]
 layout_mode = 2
 theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 24
+theme_override_constants/margin_top = 36
 theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 24
+theme_override_constants/margin_bottom = 40
 
 [node name="VBox" type="VBoxContainer" parent="Root/Center/Panel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 14
+alignment = 1
 
-[node name="Title" type="Label" parent="Root/Center/Panel/Margin/VBox"]
+[node name="Brand" type="VBoxContainer" parent="Root/Center/Panel/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 36
-text = "Deep Core Miner"
+theme_override_constants/separation = 8
+
+[node name="BrandIconHost" type="CenterContainer" parent="Root/Center/Panel/Margin/VBox/Brand"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+
+[node name="TitleCn" type="Label" parent="Root/Center/Panel/Margin/VBox/Brand"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "深核矿工"
 horizontal_alignment = 1
+
+[node name="OreRow" type="HBoxContainer" parent="Root/Center/Panel/Margin/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 16
+
+[node name="BtnGap" type="Control" parent="Root/Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 8)
+layout_mode = 2
 
 [node name="Continue" type="Button" parent="Root/Center/Panel/Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(232, 46)
 text = "继续游戏"
 
 [node name="NewGame" type="Button" parent="Root/Center/Panel/Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(268, 54)
 text = "新游戏"
 
 [node name="TestAccount" type="Button" parent="Root/Center/Panel/Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(210, 44)
 text = "测试账户"
 
 [node name="Quit" type="Button" parent="Root/Center/Panel/Margin/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 56)
+size_flags_horizontal = 4
+custom_minimum_size = Vector2(168, 42)
 text = "退出"

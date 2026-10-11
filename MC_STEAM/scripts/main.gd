@@ -126,22 +126,11 @@ func _bind_menu() -> void:
 
 
 func _start_new() -> void:
-	_with_loading(func() -> void:
-		SaveManager.delete_save()
-		session.new_run()
-		_fresh_run = true
-		_begin_play()
-	)
+	_with_loading(_boot_new_game)
 
 
 func _start_test_account() -> void:
-	_with_loading(func() -> void:
-		SaveManager.delete_save()
-		session.new_run()
-		session.seed_test_ore_stock(GameSession.TEST_ORE_EACH)
-		_fresh_run = true
-		_begin_play()
-	)
+	_with_loading(_boot_test_account)
 
 
 func _is_fresh_run() -> bool:
@@ -149,11 +138,28 @@ func _is_fresh_run() -> bool:
 
 
 func _start_continue() -> void:
-	_with_loading(func() -> void:
-		_fresh_run = false
-		session.load_from(SaveManager.load_session())
-		_begin_play()
-	)
+	_with_loading(_boot_continue)
+
+
+func _boot_new_game() -> void:
+	SaveManager.delete_save()
+	session.new_run()
+	_fresh_run = true
+	await _begin_play_staged()
+
+
+func _boot_test_account() -> void:
+	SaveManager.delete_save()
+	session.new_run()
+	session.seed_test_ore_stock(GameSession.TEST_ORE_EACH)
+	_fresh_run = true
+	await _begin_play_staged()
+
+
+func _boot_continue() -> void:
+	_fresh_run = false
+	session.load_from(SaveManager.load_session())
+	await _begin_play_staged()
 
 
 func _with_loading(job: Callable) -> void:
@@ -169,12 +175,12 @@ func _with_loading(job: Callable) -> void:
 		var hard_timeout := func() -> void:
 			if _loading_busy or (overlay != null and overlay.visible):
 				_force_clear_loading(overlay)
-		tree.create_timer(2.5, true, false, true).timeout.connect(hard_timeout, CONNECT_ONE_SHOT)
-	# 先让遮罩画出来，再跑进局逻辑
+		tree.create_timer(4.0, true, false, true).timeout.connect(hard_timeout, CONNECT_ONE_SHOT)
+	# 先让遮罩画出来，再分帧进局
 	await get_tree().process_frame
 	await get_tree().process_frame
 	if job.is_valid():
-		job.call()
+		await job.call()
 	_finish_loading(overlay)
 
 
@@ -222,6 +228,11 @@ func _sync_map_pan_capture() -> void:
 
 
 func _begin_play() -> void:
+	# 兼容旧入口：同步走分帧版本（不等待）
+	_begin_play_staged()
+
+
+func _begin_play_staged() -> void:
 	menu.visible = false
 	_sync_menu_hud_visibility()
 	_queued_dir = Vector2i.ZERO
@@ -237,15 +248,20 @@ func _begin_play() -> void:
 	if camera != null and not camera.enabled:
 		camera.enabled = true
 	_update_camera(true)
-	# 先绑定 HUD，再刷地图/广播 UI，减少进局同帧压力
+	_sync_map_pan_capture()
+	# 分帧：避免同帧绑 HUD + 刷背包 + 刷地图 + 存档卡死加载页
 	if hud.has_method("bind_session"):
 		hud.call("bind_session", session)
+	await get_tree().process_frame
+	# 背包已由 bind 刷新，这里不再二次 ore_stock，避免进局双倍建表
+	_emit_all_ui(false)
+	await get_tree().process_frame
+	mine_world.mark_view_dirty()
+	await get_tree().process_frame
 	if hud.has_method("maybe_show_tutorial"):
 		hud.call("maybe_show_tutorial", _is_fresh_run())
-	_sync_map_pan_capture()
-	mine_world.mark_view_dirty()
-	_emit_all_ui()
-	_mark_dirty_save(true)
+	# 进局不立刻写盘，交给自动存档，少一次 JSON 卡顿
+	_mark_dirty_save(false)
 
 
 func _process(delta: float) -> void:
@@ -602,9 +618,10 @@ func _apply_camera_shake(delta: float) -> void:
 		_shake_amp = 0.0
 
 
-func _emit_all_ui() -> void:
+func _emit_all_ui(emit_ore_stock: bool = true) -> void:
 	GameEvents.money_changed.emit(session.money)
-	GameEvents.ore_stock_changed.emit()
+	if emit_ore_stock:
+		GameEvents.ore_stock_changed.emit()
 	session.emit_gear()
 	GameEvents.depth_changed.emit(session.player.y, session.max_depth)
 	GameEvents.layer_changed.emit(

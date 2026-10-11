@@ -166,13 +166,10 @@ func _with_loading(job: Callable) -> void:
 	# 硬超时：进局异常也不会永远停在「加载中」
 	var tree := get_tree()
 	if tree != null:
-		tree.create_timer(2.5, true, false, true).timeout.connect(
-			func() -> void:
-				if _loading_busy or (overlay != null and overlay.visible):
-					_force_clear_loading(overlay)
-			,
-			CONNECT_ONE_SHOT
-		)
+		var hard_timeout := func() -> void:
+			if _loading_busy or (overlay != null and overlay.visible):
+				_force_clear_loading(overlay)
+		tree.create_timer(2.5, true, false, true).timeout.connect(hard_timeout, CONNECT_ONE_SHOT)
 	# 先让遮罩画出来，再跑进局逻辑
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -191,13 +188,10 @@ func _finish_loading(overlay: Node) -> void:
 	_loading_busy = false
 	var tree := get_tree()
 	if tree != null:
-		tree.create_timer(0.5, true, false, true).timeout.connect(
-			func() -> void:
-				if overlay != null and overlay.visible:
-					_force_clear_loading(overlay)
-			,
-			CONNECT_ONE_SHOT
-		)
+		var fade_guard := func() -> void:
+			if overlay != null and overlay.visible:
+				_force_clear_loading(overlay)
+		tree.create_timer(0.5, true, false, true).timeout.connect(fade_guard, CONNECT_ONE_SHOT)
 
 
 func _force_clear_loading(overlay: Node) -> void:

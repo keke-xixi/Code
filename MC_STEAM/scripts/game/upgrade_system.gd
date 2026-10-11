@@ -110,10 +110,11 @@ static func success_popup(cat_id: String, new_level: int, cost: int) -> Dictiona
 	return {
 		"kind": "ok",
 		"icon": icon_for(cat_id),
-		"title": "LEVEL UP",
+		"title": "升级成功",
 		"badge": "%s  Lv.%d" % [name, new_level],
 		"tagline": short_effect(cat_id, new_level),
 		"cost_line": "-%s" % fmt_coins(cost),
+		"cost": cost,
 	}
 
 
@@ -131,10 +132,12 @@ static func fail_popup(reason: String, cat_id: String, owned: Dictionary, money:
 	return {
 		"kind": "warn",
 		"icon": "!",
-		"title": "买不了",
+		"title": "还不能买",
 		"badge": name,
 		"tagline": tagline,
 		"cost_line": "" if price < 0 else "要 %s" % fmt_coins(price),
+		"cost": price if price > 0 and ore_type <= 0 else 0,
+		"paid_ore": ore_type if ore_type > 0 else 0,
 	}
 
 

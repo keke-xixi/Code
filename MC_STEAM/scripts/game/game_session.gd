@@ -264,6 +264,26 @@ func absorb_residuals(now: float) -> Dictionary:
 	return {"ok": true, "msg": "吸收 %d 处 +%d 矿石" % [count, total], "gain": total}
 
 
+func can_afford_upgrade_coins(cat_id: String) -> bool:
+	var price: int = _upgrades.next_price(cat_id, owned_upgrades)
+	return price >= 0 and money >= price
+
+
+func can_afford_pickaxe_ore() -> bool:
+	var price: int = _upgrades.next_price("pickaxe", owned_upgrades)
+	if price < 0:
+		return false
+	var ore_type: int = UpgradeSystem.pickaxe_ore_for_next_level(owned_upgrades)
+	return ore_count(ore_type) >= 1
+
+
+func any_shop_upgrade_affordable() -> bool:
+	for cat_id in ["pickaxe", "pickup", "auto_bag", "detector"]:
+		if can_afford_upgrade_coins(cat_id):
+			return true
+	return can_afford_pickaxe_ore()
+
+
 func buy_upgrade(cat_id: String, use_ore: bool = false) -> Dictionary:
 	if use_ore:
 		if cat_id != "pickaxe":

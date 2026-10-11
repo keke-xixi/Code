@@ -2,6 +2,19 @@ class_name UiJuice
 extends RefCounted
 
 const GAME_POPUP_PIVOT_FALLBACK := 170.0
+## 跨 CanvasLayer 弹窗：后打开的抬到更高 layer（商店/设置默认 25，HUD 默认 10）
+const MODAL_LAYER_BASE := 40
+const MODAL_LAYER_MAX := 80
+static var _modal_layer_seq: int = MODAL_LAYER_BASE
+
+
+static func bring_canvas_front(host: CanvasLayer) -> void:
+	if host == null:
+		return
+	_modal_layer_seq += 1
+	if _modal_layer_seq > MODAL_LAYER_MAX:
+		_modal_layer_seq = MODAL_LAYER_BASE + 1
+	host.layer = _modal_layer_seq
 
 
 static func punch(node: Control, peak: float = 1.14) -> void:
@@ -16,8 +29,29 @@ static func pop_show(panel: Control) -> void:
 	modal_open(panel, null)
 
 
-static func modal_open(panel: Control, backdrop: ColorRect = null) -> void:
+## 无动画直接显示（兑换等高频弹窗用，避免「点了才动」的迟滞感）
+static func modal_show_instant(panel: Control, backdrop: ColorRect = null) -> void:
 	if panel == null:
+		return
+	panel.visible = true
+	panel.scale = Vector2.ONE
+	panel.modulate.a = 1.0
+	panel.rotation = 0.0
+	if backdrop != null:
+		backdrop.visible = true
+		backdrop.modulate.a = 1.0
+
+
+static func modal_open(
+	panel: Control,
+	backdrop: ColorRect = null,
+	stagger_body: bool = true,
+	fast: bool = false
+) -> void:
+	if panel == null:
+		return
+	if fast:
+		modal_show_instant(panel, backdrop)
 		return
 	panel.visible = true
 	panel.scale = Vector2(0.78, 0.78)
@@ -33,9 +67,10 @@ static func modal_open(panel: Control, backdrop: ColorRect = null) -> void:
 		backdrop.modulate.a = 0.0
 		var bd: Tween = backdrop.create_tween()
 		bd.tween_property(backdrop, "modulate:a", 1.0, 0.26).set_trans(Tween.TRANS_SINE)
-	var body: Control = _popup_body(panel)
-	if body != null:
-		stagger_children(body, 0.045, 1)
+	if stagger_body:
+		var body: Control = _popup_body(panel)
+		if body != null:
+			stagger_children(body, 0.045, 1)
 
 
 static func modal_close(panel: Control, backdrop: ColorRect, on_finished: Callable = Callable()) -> void:

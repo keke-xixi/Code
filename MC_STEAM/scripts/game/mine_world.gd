@@ -114,16 +114,20 @@ func render_cell(canvas: CanvasItem, x: int, y: int, cs: int, chunk: Vector2i) -
 
 func _view_grid_rect(cs: int) -> Rect2i:
 	var cam: Camera2D = get_viewport().get_camera_2d()
+	# 无相机时绝不能回退超大矩形，否则会创建海量 chunk 卡死
 	if cam == null:
-		return Rect2i(-9999, -9999, 19998, 19998)
-	var zoom: float = maxf(cam.zoom.x, 0.01)
+		return Rect2i(-24, -16, 48, 32)
+	var zoom: float = maxf(cam.zoom.x, 0.35)
 	var half: Vector2 = get_viewport().get_visible_rect().size / zoom * 0.55
+	# 限制视野跨度，防止异常 zoom/位置拖垮主线程
+	half.x = minf(half.x, float(cs * 28))
+	half.y = minf(half.y, float(cs * 20))
 	var center: Vector2 = cam.global_position
 	var x0: int = int(floor((center.x - half.x) / cs)) - 2
 	var y0: int = int(floor((center.y - half.y) / cs)) - 2
 	var x1: int = int(ceil((center.x + half.x) / cs)) + 2
 	var y1: int = int(ceil((center.y + half.y) / cs)) + 2
-	return Rect2i(x0, y0, x1 - x0, y1 - y0)
+	return Rect2i(x0, y0, maxi(1, x1 - x0), maxi(1, y1 - y0))
 
 
 func _chunk_index(cell: Vector2i) -> Vector2i:
@@ -164,8 +168,18 @@ func _redraw_visible_chunks() -> void:
 	var n: int = CHUNK_SCENE.CHUNK_CELLS
 	var cx0: int = int(floor(float(view.position.x) / float(n)))
 	var cy0: int = int(floor(float(view.position.y) / float(n)))
-	var cx1: int = int(floor(float(view.position.x + view.size.x) / float(n)))
-	var cy1: int = int(floor(float(view.position.y + view.size.y) / float(n)))
+	var cx1: int = int(floor(float(view.position.x + view.size.x - 1) / float(n)))
+	var cy1: int = int(floor(float(view.position.y + view.size.y - 1) / float(n)))
+	# 硬上限：避免异常情况下一次生成过多 chunk
+	const MAX_SPAN: int = 14
+	if cx1 - cx0 > MAX_SPAN:
+		var mid: int = int((cx0 + cx1) / 2)
+		cx0 = mid - MAX_SPAN / 2
+		cx1 = cx0 + MAX_SPAN
+	if cy1 - cy0 > MAX_SPAN:
+		var midy: int = int((cy0 + cy1) / 2)
+		cy0 = midy - MAX_SPAN / 2
+		cy1 = cy0 + MAX_SPAN
 	for cy in range(cy0, cy1 + 1):
 		for cx in range(cx0, cx1 + 1):
 			_get_chunk(Vector2i(cx, cy)).queue_redraw()

@@ -91,6 +91,76 @@ static func soft_card(_accent: Color = CYAN) -> StyleBoxFlat:
 	return sb
 
 
+## 工坊模块卡：色描边 + 略亮底，四格更分明
+static func shop_module_card(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#161c28", 0.96)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = Color(accent, 0.55)
+	sb.corner_radius_top_left = 12
+	sb.corner_radius_top_right = 12
+	sb.corner_radius_bottom_left = 12
+	sb.corner_radius_bottom_right = 12
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
+	return sb
+
+
+## 兑换列表矿石行：保留色边，略染底色，边距更贴列表
+static func trade_ore_card(accent: Color = GOLD) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#121820").lerp(Color(accent, 1.0), 0.1)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.border_color = Color(accent, 0.62)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	return sb
+
+
+static func trade_check_btn() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(OK, 0.16)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 2
+	sb.border_color = Color(OK, 0.7)
+	sb.corner_radius_top_left = 9
+	sb.corner_radius_top_right = 9
+	sb.corner_radius_bottom_left = 9
+	sb.corner_radius_bottom_right = 9
+	return sb
+
+
+static func trade_check_btn_hover() -> StyleBoxFlat:
+	var sb := trade_check_btn()
+	sb.bg_color = Color(OK, 0.28)
+	sb.border_color = Color(OK, 0.95)
+	return sb
+
+
+static func apply_trade_check_button(btn: Button) -> void:
+	btn.add_theme_stylebox_override("normal", trade_check_btn())
+	btn.add_theme_stylebox_override("hover", trade_check_btn_hover())
+	btn.add_theme_stylebox_override("pressed", trade_check_btn_hover())
+	btn.add_theme_stylebox_override("disabled", action_button_disabled())
+	btn.text = ""
+
+
 static func pixel_frame(accent: Color = GOLD) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = PANEL
@@ -311,16 +381,18 @@ static func shop_card_slot() -> StyleBoxFlat:
 
 static func shop_card_upgrade_btn(accent: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(accent, 0.12)
+	sb.bg_color = Color(accent, 0.14)
 	sb.border_width_left = 1
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.55)
-	sb.corner_radius_top_left = 3
-	sb.corner_radius_top_right = 3
-	sb.corner_radius_bottom_left = 3
-	sb.corner_radius_bottom_right = 3
+	sb.border_color = Color(accent, 0.5)
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
+	sb.content_margin_left = 10
+	sb.content_margin_right = 10
 	return sb
 
 

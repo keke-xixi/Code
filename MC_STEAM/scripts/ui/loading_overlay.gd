@@ -42,6 +42,7 @@ var _dot_step: int = 0
 
 func _ready() -> void:
 	layer = 50
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	_install_spinner()
 	if _label != null:
@@ -73,19 +74,26 @@ func show_loading(msg: String = "加载中") -> void:
 		_spinner.phase = 0.0
 		_spinner.queue_redraw()
 	visible = true
-	_root.modulate.a = 0.0
-	var tw: Tween = create_tween()
-	tw.tween_property(_root, "modulate:a", 1.0, 0.12)
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_root.modulate.a = 1.0
 	_start_motion()
 
 
-func hide_loading(_on_done: Callable = Callable()) -> void:
-	if _hiding:
+func hide_loading(_on_done: Callable = Callable(), force: bool = false) -> void:
+	if _hiding and not force:
 		return
 	_hiding = true
 	_kill_motion()
+	if force or not is_inside_tree():
+		visible = false
+		_hiding = false
+		_root.modulate.a = 1.0
+		if _on_done.is_valid():
+			_on_done.call()
+		return
 	var tw: Tween = create_tween()
-	tw.tween_property(_root, "modulate:a", 0.0, 0.14)
+	tw.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(_root, "modulate:a", 0.0, 0.1)
 	tw.tween_callback(func() -> void:
 		visible = false
 		_hiding = false

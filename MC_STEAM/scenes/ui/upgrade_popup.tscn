@@ -20,75 +20,90 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 0
-color = Color(0, 0, 0, 0.7)
+color = Color(0.02, 0.04, 0.08, 0.72)
 
-[node name="Panel" type="PanelContainer" parent="."]
+[node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -220.0
-offset_top = -160.0
-offset_right = 220.0
-offset_bottom = 160.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 
-[node name="Margin" type="MarginContainer" parent="Panel"]
+[node name="Panel" type="PanelContainer" parent="Center"]
+custom_minimum_size = Vector2(340, 0)
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
-[node name="VBox" type="VBoxContainer" parent="Panel/Margin"]
+[node name="Margin" type="MarginContainer" parent="Center/Panel"]
 layout_mode = 2
-theme_override_constants/separation = 8
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 16
+
+[node name="VBox" type="VBoxContainer" parent="Center/Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 10
 alignment = 1
 
-[node name="RibbonWrap" type="PanelContainer" parent="Panel/Margin/VBox"]
+[node name="RibbonWrap" type="PanelContainer" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 
-[node name="Ribbon" type="Label" parent="Panel/Margin/VBox/RibbonWrap"]
+[node name="Ribbon" type="Label" parent="Center/Panel/Margin/VBox/RibbonWrap"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.1, 0.07, 0.03, 1)
-theme_override_font_sizes/font_size = 28
-text = "LEVEL UP"
+theme_override_colors/font_color = Color(0.996, 0.898, 0.4, 1)
+theme_override_font_sizes/font_size = 22
+text = "升级成功"
 horizontal_alignment = 1
 
-[node name="IconWrap" type="PanelContainer" parent="Panel/Margin/VBox"]
+[node name="IconWrap" type="PanelContainer" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
 
-[node name="IconBadge" type="Label" parent="Panel/Margin/VBox/IconWrap"]
+[node name="IconBadge" type="Label" parent="Center/Panel/Margin/VBox/IconWrap"]
+custom_minimum_size = Vector2(88, 88)
 layout_mode = 2
-custom_minimum_size = Vector2(96, 96)
-theme_override_font_sizes/font_size = 56
+theme_override_font_sizes/font_size = 52
 text = "⛏"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Badge" type="Label" parent="Panel/Margin/VBox"]
+[node name="Badge" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "石稿  Lv.2"
+theme_override_font_sizes/font_size = 22
+text = "泥镐  Lv.1"
 horizontal_alignment = 1
 
-[node name="Tagline" type="Label" parent="Panel/Margin/VBox"]
+[node name="Tagline" type="Label" parent="Center/Panel/Margin/VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.68, 0.75, 1)
-theme_override_font_sizes/font_size = 17
-text = "挖土约 0.5s"
+theme_override_font_sizes/font_size = 15
+text = "挖土约 1.0s · 更快一镐"
 horizontal_alignment = 1
+autowrap_mode = 2
 
-[node name="Cost" type="Label" parent="Panel/Margin/VBox"]
+[node name="CostRow" type="HBoxContainer" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="CostIconHost" type="CenterContainer" parent="Center/Panel/Margin/VBox/CostRow"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+
+[node name="Cost" type="Label" parent="Center/Panel/Margin/VBox/CostRow"]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 0.9, 0.4, 1)
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 16
 text = "-400"
 horizontal_alignment = 1
 
-[node name="OkBtn" type="Button" parent="Panel/Margin/VBox"]
-custom_minimum_size = Vector2(160, 42)
+[node name="OkBtn" type="Button" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
 size_flags_horizontal = 4
-theme_override_font_sizes/font_size = 18
-text = "好"
+theme_override_font_sizes/font_size = 17
+text = "好的"

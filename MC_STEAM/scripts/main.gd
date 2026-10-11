@@ -39,6 +39,7 @@ var _lmb_down: bool = false
 var _lmb_start: Vector2 = Vector2.ZERO
 var _lmb_dragged: bool = false
 var _pan_deferred_view_dirty: bool = false
+var _loading_busy: bool = false
 const STEP_INPUT_GAP: float = 0.05
 const POINTER_COALESCE: float = 0.045
 const CANCEL_GAP: float = 0.1
@@ -107,6 +108,8 @@ func _poll_pad_move(delta: float) -> void:
 
 func _on_shop_toggled(open: bool) -> void:
 	_shop_open = open
+	if open and hud.has_method("dismiss_modals"):
+		hud.call("dismiss_modals")
 	_sync_map_pan_capture()
 
 
@@ -154,16 +157,55 @@ func _start_continue() -> void:
 
 
 func _with_loading(job: Callable) -> void:
+	if _loading_busy:
+		return
+	_loading_busy = true
 	var overlay: Node = get_node_or_null("LoadingOverlay")
 	if overlay != null and overlay.has_method("show_loading"):
 		overlay.call("show_loading", "加载中")
-	var finish := func() -> void:
+	# 硬超时：进局异常也不会永远停在「加载中」
+	var tree := get_tree()
+	if tree != null:
+		tree.create_timer(2.5, true, false, true).timeout.connect(
+			func() -> void:
+				if _loading_busy or (overlay != null and overlay.visible):
+					_force_clear_loading(overlay)
+			,
+			CONNECT_ONE_SHOT
+		)
+	# 先让遮罩画出来，再跑进局逻辑
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if job.is_valid():
 		job.call()
-		if overlay != null and overlay.has_method("hide_loading"):
-			overlay.call("hide_loading")
-		elif overlay != null:
-			overlay.visible = false
-	get_tree().create_timer(0.48).timeout.connect(finish, CONNECT_ONE_SHOT)
+	_finish_loading(overlay)
+
+
+func _finish_loading(overlay: Node) -> void:
+	if not _loading_busy and (overlay == null or not overlay.visible):
+		return
+	if overlay != null and overlay.has_method("hide_loading"):
+		overlay.call("hide_loading", Callable(), false)
+	elif overlay != null:
+		overlay.visible = false
+	_loading_busy = false
+	var tree := get_tree()
+	if tree != null:
+		tree.create_timer(0.5, true, false, true).timeout.connect(
+			func() -> void:
+				if overlay != null and overlay.visible:
+					_force_clear_loading(overlay)
+			,
+			CONNECT_ONE_SHOT
+		)
+
+
+func _force_clear_loading(overlay: Node) -> void:
+	if overlay != null and overlay.has_method("hide_loading"):
+		overlay.call("hide_loading", Callable(), true)
+	elif overlay != null:
+		overlay.visible = false
+	_loading_busy = false
 
 
 func _sync_menu_hud_visibility() -> void:
@@ -198,15 +240,18 @@ func _begin_play() -> void:
 	miner.set_grid_position(session.player, true)
 	_zoom = float(GameData.ZOOM.get("default", 1.0))
 	camera.zoom = Vector2.ONE * _zoom
+	if camera != null and not camera.enabled:
+		camera.enabled = true
 	_update_camera(true)
-	mine_world.mark_view_dirty()
-	_emit_all_ui()
-	_mark_dirty_save(true)
+	# 先绑定 HUD，再刷地图/广播 UI，减少进局同帧压力
 	if hud.has_method("bind_session"):
 		hud.call("bind_session", session)
 	if hud.has_method("maybe_show_tutorial"):
 		hud.call("maybe_show_tutorial", _is_fresh_run())
 	_sync_map_pan_capture()
+	mine_world.mark_view_dirty()
+	_emit_all_ui()
+	_mark_dirty_save(true)
 
 
 func _process(delta: float) -> void:
@@ -229,6 +274,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("toggle_settings"):
 		if _shop_open:
 			return
+		if not settings.visible and hud.has_method("dismiss_modals"):
+			hud.call("dismiss_modals")
 		settings.toggle()
 		_sync_map_pan_capture()
 		return
@@ -238,6 +285,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		if _shop_open:
 			shop.close_panel()
 		else:
+			if hud.has_method("dismiss_modals"):
+				hud.call("dismiss_modals")
 			shop.open(session)
 		_sync_map_pan_capture()
 		return

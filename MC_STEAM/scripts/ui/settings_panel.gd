@@ -26,6 +26,7 @@ func toggle() -> void:
 
 func open_panel() -> void:
 	_sync_from_settings()
+	UiJuice.bring_canvas_front(self)
 	visible = true
 
 

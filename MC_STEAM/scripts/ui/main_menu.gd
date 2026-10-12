@@ -1,20 +1,30 @@
 extends CanvasLayer
+## 矿井标题屏：玻璃五彩按钮 + 矿石绕整块菜单公转
 
 @onready var _panel: PanelContainer = $Root/Center/Panel
-@onready var _title_cn: Label = $Root/Center/Panel/Margin/VBox/Brand/TitleCn
-@onready var _icon_host: CenterContainer = $Root/Center/Panel/Margin/VBox/Brand/BrandIconHost
-@onready var _ore_row: HBoxContainer = $Root/Center/Panel/Margin/VBox/OreRow
+@onready var _mascot_host: CenterContainer = $Root/Center/Panel/Margin/VBox/MascotHost
+@onready var _title_block: VBoxContainer = $Root/Center/Panel/Margin/VBox/TitleBlock
+@onready var _title_cn: Label = $Root/Center/Panel/Margin/VBox/TitleBlock/TitleCn
+@onready var _title_sub: Label = $Root/Center/Panel/Margin/VBox/TitleBlock/TitleSub
+@onready var _ore_orbit: Control = $Root/Center/Panel/OreOrbit
+
+var _sub_tween: Tween
+var _sub_shown: bool = false
+## 上线前改 false 即可隐藏右下角测试入口
+const SHOW_DEV_TEST := true
+
 @onready var _btn_continue: Button = $Root/Center/Panel/Margin/VBox/Continue
-@onready var _btn_new: Button = $Root/Center/Panel/Margin/VBox/NewGame
+@onready var _btn_new: Button = $Root/Center/Panel/Margin/VBox/HeroStage/NewGame
 @onready var _btn_test: Button = $Root/Center/Panel/Margin/VBox/TestAccount
+@onready var _dev_gap: Control = $Root/Center/Panel/Margin/VBox/DevGap
 @onready var _btn_quit: Button = $Root/Center/Panel/Margin/VBox/Quit
 
 
-class CoreEmblem extends Control:
+class MinerMascot extends Control:
 	var _t: float = 0.0
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(64, 64)
+		custom_minimum_size = Vector2(110, 120)
 		set_process(true)
 
 	func _process(delta: float) -> void:
@@ -22,49 +32,49 @@ class CoreEmblem extends Control:
 		queue_redraw()
 
 	func _draw() -> void:
-		var c := size * 0.5
-		var pulse: float = 0.55 + 0.45 * sin(_t * 1.4)
-		var amber := UiStyle.MENU_AMBER
-		var cyan := UiStyle.MENU_CYAN
-		var violet := UiStyle.MENU_VIOLET
-		draw_circle(c, 30.0, Color(violet, 0.1 * pulse))
-		draw_circle(c, 24.0, Color("#0a0d14", 0.85))
-		draw_arc(c, 22.0, 0.0, TAU, 40, Color(cyan, 0.55), 2.0, true)
-		draw_arc(c, 22.0, _t * 0.8, _t * 0.8 + PI * 0.7, 20, Color(amber, 0.9), 2.4, true)
-		var gem := PackedVector2Array([
-			c + Vector2(0, -12),
-			c + Vector2(10, 0),
-			c + Vector2(0, 14),
-			c + Vector2(-10, 0),
-		])
-		draw_colored_polygon(gem, Color(amber, 0.95))
-		draw_colored_polygon(
-			PackedVector2Array([c + Vector2(0, -12), c + Vector2(10, 0), c + Vector2(0, 2)]),
-			Color(UiStyle.MENU_AMBER_HI, 0.85)
-		)
-		draw_polyline(gem, Color(cyan, 0.75), 1.5, true)
-		draw_circle(c + Vector2(-2, -2), 2.2, Color(1, 1, 1, 0.55))
+		var bob: float = sin(_t * 2.4) * 3.0
+		var c := Vector2(size.x * 0.5, size.y * 0.58 + bob)
+		var suit := Color("#3d5a80")
+		var suit_l := Color("#5c7a9e")
+		var helm := Color("#f5b942")
+		var visor := Color("#7eb8ff")
+		var ink := Color("#1a2332")
+		draw_circle(c + Vector2(0, 28), 36.0, Color("#7ec8ff", 0.08 + 0.03 * sin(_t * 1.5)))
+		draw_rect(Rect2(c.x - 18, c.y - 8, 36, 40), suit)
+		draw_rect(Rect2(c.x - 15, c.y - 2, 30, 12), suit_l)
+		draw_circle(c + Vector2(0, -24), 17.0, helm)
+		draw_rect(Rect2(c.x - 15, c.y - 30, 30, 11), helm)
+		draw_rect(Rect2(c.x - 11, c.y - 24, 22, 9), visor)
+		draw_circle(c + Vector2(0, -32), 4.2, Color("#ffe566"))
+		var swing: float = sin(_t * 3.0) * 0.28
+		var pivot := c + Vector2(20, 4)
+		var tip := pivot + Vector2(cos(-0.75 + swing), sin(-0.75 + swing)) * 38.0
+		var butt := pivot + Vector2(cos(2.25 + swing), sin(2.25 + swing)) * 18.0
+		draw_line(butt, tip, Color("#6b4f3a"), 4.5, true)
+		draw_line(tip + Vector2(-11, -7), tip + Vector2(13, 5), Color("#c8cdd4"), 5.5, true)
+		draw_circle(pivot, 3.2, ink)
 
 
-class OreGlowChip extends Control:
+## 带彩色光晕的矿石
+class BrightOre extends Control:
 	var type_id: int = 4
-	var _t: float = 0.0
-	var _phase: float = 0.0
+	var _pulse: float = 0.0
 
-	func _init(tid: int = 4, phase: float = 0.0) -> void:
+	func _init(tid: int = 4) -> void:
 		type_id = tid
-		_phase = phase
-		custom_minimum_size = Vector2(38, 38)
+		custom_minimum_size = Vector2(44, 44)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	func _ready() -> void:
-		set_process(true)
-		var icon := OreBagIcon.new(type_id, 28.0)
-		icon.position = Vector2(5, 5)
+		var icon := OreBagIcon.new(type_id, 36.0)
+		icon.position = Vector2(4, 4)
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.modulate = Color(1.35, 1.35, 1.3, 1.0)
 		add_child(icon)
+		set_process(true)
 
 	func _process(delta: float) -> void:
-		_t += delta
+		_pulse += delta
 		queue_redraw()
 
 	func _draw() -> void:
@@ -73,82 +83,394 @@ class OreGlowChip extends Control:
 			meta.get("color", UiStyle.GOLD),
 			meta.get("glow", Color(0, 0, 0, 0))
 		)
-		var pulse: float = 0.5 + 0.5 * sin(_t * 2.0 + _phase)
 		var c := size * 0.5
-		draw_circle(c, 16.0, Color(col, 0.1 + 0.07 * pulse))
+		var a: float = 0.45 + 0.25 * sin(_pulse * 2.8)
+		# 外层柔光 + 内层亮核，偏虚幻透明
+		draw_circle(c, 24.0, Color(col.lightened(0.35), a * 0.22))
+		draw_circle(c, 17.0, Color(col, a * 0.45))
+		draw_circle(c, 10.0, Color(col.lightened(0.4), a * 0.7))
+		var rim_h: float = fmod(_pulse * 0.35 + float(type_id) * 0.12, 1.0)
+		var rim := Color.from_hsv(rim_h, 0.45, 1.0, a * 0.55)
+		draw_arc(c, 18.0, 0.0, TAU, 28, rim, 1.6, true)
+
+
+## 矿石沿正圆绕整块菜单公转
+class OreOrbitRing extends Control:
+	var _t: float = 0.0
+	var _icons: Array[Control] = []
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		set_process(true)
+		for tid in [4, 5, 6, 7, 8]:
+			var icon := BrightOre.new(tid)
+			add_child(icon)
+			_icons.append(icon)
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _icons.is_empty() or size.x < 8.0:
+			return
+		var c := size * 0.5
+		# 横纵同半径 → 正圆；取较长边，保证包住整块菜单
+		var r: float = maxf(size.x, size.y) * 0.5
+		var n: int = _icons.size()
+		for i in n:
+			var ang: float = _t * 0.48 + float(i) * TAU / float(n)
+			var p: Vector2 = c + Vector2(cos(ang), sin(ang)) * r
+			var ic: Control = _icons[i]
+			ic.pivot_offset = ic.size * 0.5
+			ic.position = p - ic.size * 0.5
+			var depth: float = 0.9 + 0.18 * (0.5 + 0.5 * sin(ang))
+			ic.scale = Vector2(depth, depth)
+			# 靠后略淡，靠前更亮
+			ic.modulate.a = 0.72 + 0.28 * (0.5 + 0.5 * sin(ang))
+
+
+## 主按钮：胶囊极光 —— 透亮、轻边、彩色流光
+class DigPlaqueButton extends Button:
+	var _t: float = 0.0
+
+	func _ready() -> void:
+		flat = true
+		focus_mode = Control.FOCUS_NONE
+		var empty := StyleBoxEmpty.new()
+		empty.content_margin_left = 22
+		empty.content_margin_right = 22
+		empty.content_margin_top = 12
+		empty.content_margin_bottom = 12
+		add_theme_stylebox_override("normal", empty)
+		add_theme_stylebox_override("hover", empty)
+		add_theme_stylebox_override("pressed", empty)
+		add_theme_stylebox_override("focus", empty)
+		add_theme_color_override("font_color", Color(0, 0, 0, 0))
+		add_theme_color_override("font_hover_color", Color(0, 0, 0, 0))
+		add_theme_color_override("font_pressed_color", Color(0, 0, 0, 0))
+		add_theme_font_size_override("font_size", 22)
+		resized.connect(queue_redraw)
+		mouse_entered.connect(queue_redraw)
+		mouse_exited.connect(queue_redraw)
+		button_down.connect(queue_redraw)
+		button_up.connect(queue_redraw)
+		set_process(true)
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _capsule(rect: Rect2, col: Color) -> void:
+		var rad: float = minf(rect.size.y * 0.5, rect.size.x * 0.5)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col
+		sb.corner_radius_top_left = int(rad)
+		sb.corner_radius_top_right = int(rad)
+		sb.corner_radius_bottom_left = int(rad)
+		sb.corner_radius_bottom_right = int(rad)
+		sb.draw(get_canvas_item(), rect)
+
+	func _draw() -> void:
+		var r := Rect2(Vector2.ZERO, size)
+		var hover: bool = is_hovered()
+		var down: bool = is_pressed()
+		var pulse: float = 0.5 + 0.5 * sin(_t * 2.4)
+		var rad: float = minf(r.size.y * 0.5, r.size.x * 0.5)
+
+		# 背后极光晕（青→品红→淡紫）
+		var glow_a: float = (0.22 if hover else 0.14) + 0.06 * pulse
+		for i in 4:
+			var h: float = fmod(_t * 0.18 + float(i) * 0.22, 1.0)
+			_capsule(r.grow(10.0 - float(i) * 2.2), Color.from_hsv(h, 0.5, 1.0, glow_a * (1.0 - float(i) * 0.18)))
+
+		# 透亮芯：很轻的冷色玻璃，按下略深
+		var fill_a: float = 0.38 if down else (0.26 if not hover else 0.34)
+		_capsule(r, Color(0.1, 0.16, 0.28, fill_a))
+
+		# 上半高光条（玻璃反光）
+		var hl := StyleBoxFlat.new()
+		hl.bg_color = Color(1, 1, 1, 0.16 if hover else 0.1)
+		hl.corner_radius_top_left = int(rad)
+		hl.corner_radius_top_right = int(rad)
+		hl.corner_radius_bottom_left = 4
+		hl.corner_radius_bottom_right = 4
+		hl.draw(get_canvas_item(), Rect2(r.position.x + 8, r.position.y + 3, r.size.x - 16, r.size.y * 0.42))
+
+		# 细流光描边
+		var edge_h: float = fmod(_t * 0.2, 1.0)
+		var edge := StyleBoxFlat.new()
+		edge.bg_color = Color(0, 0, 0, 0)
+		edge.border_width_left = 2
+		edge.border_width_top = 2
+		edge.border_width_right = 2
+		edge.border_width_bottom = 2
+		edge.border_color = Color.from_hsv(edge_h, 0.35, 1.0, 0.9 if hover else 0.7)
+		edge.corner_radius_top_left = int(rad)
+		edge.corner_radius_top_right = int(rad)
+		edge.corner_radius_bottom_left = int(rad)
+		edge.corner_radius_bottom_right = int(rad)
+		edge.draw(get_canvas_item(), r)
+
+		# 内侧淡彩弧线
+		var cx := r.get_center()
+		draw_arc(cx, minf(r.size.x, r.size.y) * 0.38, -2.2, -0.6, 16, Color.from_hsv(fmod(edge_h + 0.33, 1.0), 0.4, 1.0, 0.35), 1.4, true)
+
+		# 左侧小星芒代替镐
+		var star := Vector2(r.position.x + 34, cx.y)
+		var sc := Color.from_hsv(fmod(edge_h + 0.1, 1.0), 0.3, 1.0, 0.95)
+		draw_line(star + Vector2(-7, 0), star + Vector2(7, 0), sc, 2.0, true)
+		draw_line(star + Vector2(0, -7), star + Vector2(0, 7), sc, 2.0, true)
+		draw_line(star + Vector2(-5, -5), star + Vector2(5, 5), Color(sc, 0.55), 1.4, true)
+		draw_line(star + Vector2(-5, 5), star + Vector2(5, -5), Color(sc, 0.55), 1.4, true)
+
+		var font: Font = get_theme_default_font()
+		var label := text if not text.is_empty() else "开始挖掘"
+		var fs: int = 19
+		var sz: Vector2 = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs)
+		var tp := Vector2(cx.x - sz.x * 0.5 + 8.0, cx.y + fs * 0.35)
+		draw_string_outline(font, tp, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, 4, Color("#061018", 0.9))
+		draw_string(font, tp, label, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color("#f5faff"))
 
 
 func _ready() -> void:
 	var hud: CanvasLayer = get_parent().get_node_or_null("HUD") as CanvasLayer
 	if hud != null:
 		hud.visible = false
-	_setup_panel()
 	_setup_brand()
-	_setup_ore_chips()
+	_setup_mascot()
+	_setup_ore_orbit()
 	_setup_buttons()
 	_play_enter_motion()
 
 
-func _setup_panel() -> void:
-	_panel.custom_minimum_size = Vector2(320, 0)
+func _setup_mascot() -> void:
+	if _mascot_host == null:
+		return
+	for c in _mascot_host.get_children():
+		c.queue_free()
+	_mascot_host.add_child(MinerMascot.new())
 
 
 func _setup_brand() -> void:
 	if _title_cn != null:
-		_title_cn.add_theme_color_override("font_color", UiStyle.MENU_AMBER_HI)
-		_title_cn.add_theme_font_size_override("font_size", 30)
-		_title_cn.add_theme_color_override("font_shadow_color", Color("#1a1004", 0.8))
+		_title_cn.text = "拾光"
+		_title_cn.add_theme_color_override("font_color", Color("#e8f4ff"))
+		_title_cn.add_theme_font_size_override("font_size", 54)
+		_title_cn.add_theme_color_override("font_shadow_color", Color("#5ec8ff", 0.35))
 		_title_cn.add_theme_constant_override("shadow_offset_x", 0)
-		_title_cn.add_theme_constant_override("shadow_offset_y", 2)
-		_title_cn.add_theme_constant_override("outline_size", 0)
-	if _icon_host != null:
-		_icon_host.custom_minimum_size = Vector2(0, 64)
-		for c in _icon_host.get_children():
-			c.queue_free()
-		_icon_host.add_child(CoreEmblem.new())
+		_title_cn.add_theme_constant_override("shadow_offset_y", 3)
+		_title_cn.add_theme_color_override("font_outline_color", Color("#0a1220", 0.92))
+		_title_cn.add_theme_constant_override("outline_size", 7)
+	if _title_sub != null:
+		_title_sub.text = "深岩之下 · 拾取星芒"
+		_title_sub.add_theme_color_override("font_color", Color("#a8c4e0", 0.9))
+		_title_sub.add_theme_font_size_override("font_size", 15)
+		_title_sub.add_theme_color_override("font_outline_color", Color("#061018", 0.7))
+		_title_sub.add_theme_constant_override("outline_size", 2)
+		# 默认隐藏，悬停标题区再惊喜亮出
+		_title_sub.modulate.a = 0.0
+		_title_sub.scale = Vector2(0.72, 0.72)
+		call_deferred("_reset_sub_pivot")
+	if _title_block != null:
+		_title_block.mouse_filter = Control.MOUSE_FILTER_STOP
+		_title_block.mouse_entered.connect(_on_title_hover_enter)
+		_title_block.mouse_exited.connect(_on_title_hover_exit)
 
 
-func _setup_ore_chips() -> void:
-	if _ore_row == null:
+func _reset_sub_pivot() -> void:
+	if _title_sub == null:
 		return
-	for c in _ore_row.get_children():
+	_title_sub.pivot_offset = _title_sub.size * 0.5
+
+
+func _on_title_hover_enter() -> void:
+	_reveal_subtitle(true)
+
+
+func _on_title_hover_exit() -> void:
+	_reveal_subtitle(false)
+
+
+func _reveal_subtitle(show: bool) -> void:
+	if _title_sub == null or _sub_shown == show:
+		return
+	_sub_shown = show
+	if _sub_tween != null:
+		_sub_tween.kill()
+	_sub_tween = create_tween()
+	_reset_sub_pivot()
+	if show:
+		# 淡入 + 回弹放大 + 一瞬彩色闪
+		_title_sub.add_theme_color_override("font_color", Color("#9ef0ff"))
+		_sub_tween.set_parallel(true)
+		_sub_tween.tween_property(_title_sub, "modulate:a", 1.0, 0.22)
+		_sub_tween.tween_property(_title_sub, "scale", Vector2.ONE, 0.32).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_sub_tween.set_parallel(false)
+		_sub_tween.tween_callback(func() -> void:
+			if _title_sub != null:
+				_title_sub.add_theme_color_override("font_color", Color("#c8ddf0"))
+		)
+		_sub_tween.tween_interval(0.12)
+		_sub_tween.tween_callback(func() -> void:
+			if _title_sub != null:
+				_title_sub.add_theme_color_override("font_color", Color("#a8c4e0", 0.95))
+		)
+	else:
+		_sub_tween.set_parallel(true)
+		_sub_tween.tween_property(_title_sub, "modulate:a", 0.0, 0.18)
+		_sub_tween.tween_property(_title_sub, "scale", Vector2(0.72, 0.72), 0.18)
+
+
+func _setup_ore_orbit() -> void:
+	if _ore_orbit == null:
+		return
+	for c in _ore_orbit.get_children():
 		c.queue_free()
-	var tids: Array[int] = [4, 5, 6, 7, 8]
-	for i in tids.size():
-		_ore_row.add_child(OreGlowChip.new(tids[i], float(i) * 0.9))
+	var ring := OreOrbitRing.new()
+	ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_ore_orbit.add_child(ring)
 
 
 func _setup_buttons() -> void:
-	# 宽窄错落的胶囊按钮，更自由
-	UiStyle.apply_menu_button(_btn_new, UiStyle.MENU_AMBER, true)
-	_fit_pill(_btn_new, 268, 54)
+	_replace_with_plaque(_btn_new)
+	if _btn_new != null:
+		_btn_new.custom_minimum_size = Vector2(256, 52)
 
-	UiStyle.apply_menu_button(_btn_continue, UiStyle.MENU_AMBER, false)
-	_fit_pill(_btn_continue, 232, 46)
+	# 主列：开始 → 继续 → 测试(可关) → 退出；关测试时整行折叠，不影响布局
+	_style_chip(_btn_continue, Color("#6ec8ff"))
+	if _btn_continue != null:
+		_btn_continue.text = "继续游戏"
+		_btn_continue.custom_minimum_size = Vector2(220, 40)
 
-	UiStyle.apply_menu_button(_btn_test, UiStyle.MENU_CYAN, false)
-	_fit_pill(_btn_test, 210, 44)
+	if _btn_test != null:
+		_btn_test.visible = SHOW_DEV_TEST
+		_btn_test.text = "测试账户"
+		_btn_test.custom_minimum_size = Vector2(96, 32)
+		_style_chip(_btn_test, Color("#c59bff"))
+	if _dev_gap != null:
+		_dev_gap.visible = SHOW_DEV_TEST
 
-	UiStyle.apply_menu_button(_btn_quit, UiStyle.MENU_VIOLET, false)
-	_fit_pill(_btn_quit, 168, 42)
+	_style_quit_link(_btn_quit)
 
-	for btn in [_btn_continue, _btn_new, _btn_test, _btn_quit]:
+	for btn in [_btn_continue, _btn_new, _btn_quit]:
 		if btn != null:
 			btn.focus_mode = Control.FOCUS_NONE
-			_wire_btn_hover(btn)
+			_wire_btn_hover(btn, btn == _btn_new)
+	if _btn_test != null and SHOW_DEV_TEST:
+		_btn_test.focus_mode = Control.FOCUS_NONE
+		_wire_btn_hover(_btn_test, false)
 
 
-func _fit_pill(btn: Button, w: float, h: float) -> void:
+func _replace_with_plaque(old: Button) -> void:
+	if old == null:
+		return
+	var parent: Node = old.get_parent()
+	var plaque := DigPlaqueButton.new()
+	plaque.name = "NewGame"
+	plaque.text = "开始挖掘"
+	plaque.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	plaque.offset_left = -128.0
+	plaque.offset_top = -26.0
+	plaque.offset_right = 128.0
+	plaque.offset_bottom = 26.0
+	var idx: int = old.get_index()
+	old.name = "NewGame_old"
+	parent.add_child(plaque)
+	parent.move_child(plaque, idx)
+	old.queue_free()
+	_btn_new = plaque
+
+
+func _style_chip(btn: Button, accent: Color) -> void:
 	if btn == null:
 		return
-	btn.custom_minimum_size = Vector2(w, h)
-	btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var n := StyleBoxFlat.new()
+	# 次级胶囊：比主按钮略窄、略淡
+	n.bg_color = Color(0.08, 0.12, 0.22, 0.36)
+	n.border_width_left = 1
+	n.border_width_top = 1
+	n.border_width_right = 1
+	n.border_width_bottom = 1
+	n.border_color = Color(accent, 0.7)
+	n.corner_radius_top_left = 20
+	n.corner_radius_top_right = 20
+	n.corner_radius_bottom_left = 20
+	n.corner_radius_bottom_right = 20
+	n.content_margin_left = 14
+	n.content_margin_right = 14
+	n.content_margin_top = 8
+	n.content_margin_bottom = 8
+	n.shadow_color = Color(accent, 0.22)
+	n.shadow_size = 6
+	var h := n.duplicate() as StyleBoxFlat
+	h.bg_color = Color(accent.r, accent.g, accent.b, 0.2)
+	h.border_color = Color(accent.lightened(0.3), 1.0)
+	h.shadow_color = Color(accent, 0.4)
+	h.shadow_size = 10
+	btn.add_theme_stylebox_override("normal", n)
+	btn.add_theme_stylebox_override("hover", h)
+	btn.add_theme_stylebox_override("pressed", h)
+	btn.add_theme_color_override("font_color", Color("#f4f8ff"))
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_font_size_override("font_size", 15)
+	btn.add_theme_color_override("font_outline_color", Color("#061018", 0.85))
+	btn.add_theme_constant_override("outline_size", 3)
 
 
-func _wire_btn_hover(btn: Button) -> void:
+func _style_quit_link(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.flat = true
+	var empty := StyleBoxEmpty.new()
+	empty.content_margin_left = 10
+	empty.content_margin_right = 10
+	empty.content_margin_top = 4
+	empty.content_margin_bottom = 4
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_color_override("font_color", Color("#9eb0c4", 0.75))
+	btn.add_theme_color_override("font_hover_color", Color("#dce8f5"))
+	btn.add_theme_color_override("font_pressed_color", Color("#7a8ea8"))
+	btn.add_theme_font_size_override("font_size", 14)
+	btn.add_theme_color_override("font_outline_color", Color("#061018", 0.55))
+	btn.add_theme_constant_override("outline_size", 2)
+	btn.text = "退出"
+
+
+func _style_dev_chip(btn: Button) -> void:
+	if btn == null:
+		return
+	var n := StyleBoxFlat.new()
+	n.bg_color = Color(0.06, 0.08, 0.12, 0.45)
+	n.border_width_left = 1
+	n.border_width_top = 1
+	n.border_width_right = 1
+	n.border_width_bottom = 1
+	n.border_color = Color("#8a7ab0", 0.45)
+	n.corner_radius_top_left = 8
+	n.corner_radius_top_right = 8
+	n.corner_radius_bottom_left = 8
+	n.corner_radius_bottom_right = 8
+	n.content_margin_left = 10
+	n.content_margin_right = 10
+	n.content_margin_top = 4
+	n.content_margin_bottom = 4
+	btn.add_theme_stylebox_override("normal", n)
+	btn.add_theme_stylebox_override("hover", n)
+	btn.add_theme_stylebox_override("pressed", n)
+	btn.add_theme_color_override("font_color", Color("#b0a8c8", 0.7))
+	btn.add_theme_color_override("font_hover_color", Color("#ddd5f0"))
+	btn.add_theme_font_size_override("font_size", 12)
+	btn.add_theme_color_override("font_outline_color", Color("#061018", 0.6))
+	btn.add_theme_constant_override("outline_size", 2)
+
+
+func _wire_btn_hover(btn: Button, punchy: bool) -> void:
+	var s: float = 1.04 if punchy else 1.05
 	btn.mouse_entered.connect(func() -> void:
 		var tw: Tween = btn.create_tween()
-		tw.tween_property(btn, "scale", Vector2(1.045, 1.045), 0.09)
+		tw.tween_property(btn, "scale", Vector2(s, s), 0.08)
 	)
 	btn.mouse_exited.connect(func() -> void:
 		var tw: Tween = btn.create_tween()
@@ -164,25 +486,19 @@ func _play_enter_motion() -> void:
 	if _panel == null:
 		return
 	_panel.modulate.a = 0.0
-	_panel.scale = Vector2(0.96, 0.96)
-	call_deferred("_reset_panel_pivot")
-	var tw: Tween = create_tween().set_parallel(true)
-	tw.tween_property(_panel, "modulate:a", 1.0, 0.3)
-	tw.tween_property(_panel, "scale", Vector2.ONE, 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var delay: float = 0.12
-	for btn in [_btn_continue, _btn_new, _btn_test, _btn_quit]:
-		if btn == null or not btn.visible:
-			continue
-		btn.modulate.a = 0.0
-		var btw: Tween = create_tween()
-		btw.tween_interval(delay)
-		btw.tween_property(btn, "modulate:a", 1.0, 0.18)
-		delay += 0.06
+	var tw := create_tween()
+	tw.tween_property(_panel, "modulate:a", 1.0, 0.35)
+	if _btn_new != null:
+		_btn_new.scale = Vector2(0.9, 0.9)
+		call_deferred("_reset_new_pivot")
+		var ntw := create_tween()
+		ntw.tween_interval(0.1)
+		ntw.tween_property(_btn_new, "scale", Vector2.ONE, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
-func _reset_panel_pivot() -> void:
-	if _panel != null:
-		_panel.pivot_offset = _panel.size * 0.5
+func _reset_new_pivot() -> void:
+	if _btn_new != null:
+		_btn_new.pivot_offset = _btn_new.size * 0.5
 
 
 func show_continue(enabled: bool) -> void:

@@ -58,8 +58,18 @@ text = "环境音"
 layout_mode = 2
 text = "屏幕震动"
 
+[node name="Sep" type="Control" parent="Center/Panel/Margin/VBox"]
+custom_minimum_size = Vector2(0, 10)
+layout_mode = 2
+
+[node name="BackMenu" type="Button" parent="Center/Panel/Margin/VBox"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 44)
+text = "返回主菜单"
+
 [connection signal="toggled" from="Center/Panel/Margin/VBox/ShowOre" to="." method="_on_show_ore_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/InstantMine" to="." method="_on_instant_mine_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/Sfx" to="." method="_on_sfx_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/Music" to="." method="_on_music_toggled"]
 [connection signal="toggled" from="Center/Panel/Margin/VBox/Shake" to="." method="_on_shake_toggled"]
+[connection signal="pressed" from="Center/Panel/Margin/VBox/BackMenu" to="." method="_on_back_menu_pressed"]

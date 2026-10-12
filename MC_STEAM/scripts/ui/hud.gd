@@ -176,7 +176,9 @@ func _style_ore_bag() -> void:
 	var title_row: HBoxContainer = $OreBag/VBox/TitleRow as HBoxContainer
 	var title: Label = $OreBag/VBox/TitleRow/Title as Label
 	if title != null:
-		title.add_theme_color_override("font_color", UiStyle.COIN)
+		title.add_theme_color_override("font_color", Color("#e8f4ff"))
+		title.add_theme_color_override("font_outline_color", Color("#061018", 0.7))
+		title.add_theme_constant_override("outline_size", 2)
 	if title_row != null and title_row.get_node_or_null("BagIcon") == null:
 		var bag_icon: Control = UiIcons.bag(36.0)
 		bag_icon.name = "BagIcon"
@@ -186,7 +188,7 @@ func _style_ore_bag() -> void:
 	if bag_vbox != null:
 		bag_vbox.add_theme_constant_override("separation", 12)
 	if ore_list != null:
-		ore_list.add_theme_constant_override("separation", 10)
+		ore_list.add_theme_constant_override("separation", 6)
 
 
 func _style_status_ui() -> void:
@@ -346,18 +348,23 @@ func _apply_game_popup_size() -> void:
 
 
 func _setup_money_badge() -> void:
-	money_wrap.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	money_wrap.add_theme_stylebox_override("panel", UiStyle.glass_chip(UiStyle.COIN))
 	var slot: Control = money_badge.get_node_or_null("CoinSlot") as Control
 	if slot == null:
 		slot = CenterContainer.new()
 		slot.name = "CoinSlot"
-		slot.custom_minimum_size = Vector2(52, 52)
+		slot.custom_minimum_size = Vector2(44, 44)
 		money_badge.add_child(slot)
 		money_badge.move_child(slot, 0)
 	for c in slot.get_children():
 		c.queue_free()
-	slot.add_child(UiIcons.money_hud(48.0, false))
-	toast_panel.add_theme_stylebox_override("panel", UiStyle.game_inset_block(UiStyle.GOLD))
+	slot.add_child(UiIcons.money_hud(40.0, false))
+	var amount: Label = money_badge.get_node_or_null("Amount") as Label
+	if amount != null:
+		amount.add_theme_color_override("font_color", Color("#ffe9a0"))
+		amount.add_theme_color_override("font_outline_color", Color("#061018", 0.75))
+		amount.add_theme_constant_override("outline_size", 3)
+	toast_panel.add_theme_stylebox_override("panel", UiStyle.glass_panel(UiStyle.CYAN))
 
 
 func _set_button_glyph(btn: Button, icon: Control) -> void:
@@ -477,14 +484,52 @@ func _style_trade_ui() -> void:
 	_invalidate_trade_rows()
 	UiStyle.apply_action_button(ore_trade_confirm_cancel, UiStyle.CYAN)
 	UiStyle.apply_action_button(ore_trade_confirm_ok, UiStyle.GOLD)
-	UiStyle.apply_action_button(ore_trade_confirm_qty_minus, UiStyle.CYAN)
-	UiStyle.apply_action_button(ore_trade_confirm_qty_plus, UiStyle.CYAN)
+	UiStyle.apply_qty_step_button(ore_trade_confirm_qty_minus, UiStyle.CYAN)
+	UiStyle.apply_qty_step_button(ore_trade_confirm_qty_plus, UiStyle.CYAN)
 	UiStyle.apply_action_button(ore_trade_confirm_qty_max, UiStyle.GOLD)
-	ore_trade_confirm_spin.add_theme_font_size_override("font_size", 15)
+	_style_trade_confirm_spin()
 	var close_btn: Button = ore_trade_panel.get_node("Margin/VBox/CloseRow/Close") as Button
 	UiStyle.apply_action_button(close_btn, UiStyle.GOLD)
 	close_btn.custom_minimum_size = Vector2(140, 46)
 	close_btn.add_theme_font_size_override("font_size", 17)
+
+
+func _style_trade_confirm_spin() -> void:
+	if ore_trade_confirm_spin == null:
+		return
+	ore_trade_confirm_spin.add_theme_font_size_override("font_size", 15)
+	ore_trade_confirm_spin.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# 藏掉自带上下箭头，避免中间竖分隔线透到两侧 −/+
+	ore_trade_confirm_spin.add_theme_constant_override("buttons_width", 0)
+	var empty := StyleBoxEmpty.new()
+	ore_trade_confirm_spin.add_theme_stylebox_override("up_background", empty)
+	ore_trade_confirm_spin.add_theme_stylebox_override("up_background_hovered", empty)
+	ore_trade_confirm_spin.add_theme_stylebox_override("up_background_pressed", empty)
+	ore_trade_confirm_spin.add_theme_stylebox_override("down_background", empty)
+	ore_trade_confirm_spin.add_theme_stylebox_override("down_background_hovered", empty)
+	ore_trade_confirm_spin.add_theme_stylebox_override("down_background_pressed", empty)
+	ore_trade_confirm_spin.add_theme_icon_override("updown", ImageTexture.new())
+	var le: LineEdit = ore_trade_confirm_spin.get_line_edit()
+	if le != null:
+		var field := StyleBoxFlat.new()
+		field.bg_color = Color(0.08, 0.12, 0.2, 0.95)
+		field.border_width_left = 1
+		field.border_width_top = 1
+		field.border_width_right = 1
+		field.border_width_bottom = 1
+		field.border_color = Color(UiStyle.CYAN, 0.45)
+		field.corner_radius_top_left = 10
+		field.corner_radius_top_right = 10
+		field.corner_radius_bottom_left = 10
+		field.corner_radius_bottom_right = 10
+		field.content_margin_left = 8
+		field.content_margin_right = 8
+		le.add_theme_stylebox_override("normal", field)
+		le.add_theme_stylebox_override("focus", field)
+		le.add_theme_stylebox_override("read_only", field)
+		le.add_theme_color_override("font_color", Color("#f2f7ff"))
+		le.add_theme_font_size_override("font_size", 16)
+		le.alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
 func _invalidate_trade_rows() -> void:
@@ -993,25 +1038,36 @@ func _style_bar() -> void:
 
 
 func _style_mine_row() -> void:
-	tutorial_panel.add_theme_stylebox_override("panel", UiStyle.pixel_frame(UiStyle.CYAN))
+	tutorial_panel.add_theme_stylebox_override("panel", UiStyle.glass_panel(UiStyle.CYAN))
+	var tut_title: Label = tutorial_panel.get_node_or_null("Margin/VBox/Title") as Label
+	if tut_title != null:
+		tut_title.add_theme_color_override("font_color", Color("#9ee8ff"))
+		tut_title.add_theme_color_override("font_outline_color", Color("#061018", 0.8))
+		tut_title.add_theme_constant_override("outline_size", 3)
+	for path in ["Margin/VBox/L1", "Margin/VBox/L2", "Margin/VBox/L3"]:
+		var lab: Label = tutorial_panel.get_node_or_null(path) as Label
+		if lab != null:
+			lab.add_theme_color_override("font_color", Color("#e4ecf6"))
+			lab.add_theme_color_override("font_outline_color", Color("#061018", 0.55))
+			lab.add_theme_constant_override("outline_size", 2)
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color("#0a0e14", 0.9)
+	bg.bg_color = Color(0.06, 0.1, 0.16, 0.72)
 	bg.border_width_left = 1
 	bg.border_width_top = 1
 	bg.border_width_right = 1
 	bg.border_width_bottom = 1
-	bg.border_color = Color(UiStyle.GOLD, 0.45)
-	bg.corner_radius_top_left = 14
-	bg.corner_radius_top_right = 14
-	bg.corner_radius_bottom_left = 14
-	bg.corner_radius_bottom_right = 14
-	bg.shadow_color = Color(0, 0, 0, 0.35)
-	bg.shadow_size = 8
+	bg.border_color = Color(UiStyle.CYAN, 0.45)
+	bg.corner_radius_top_left = 16
+	bg.corner_radius_top_right = 16
+	bg.corner_radius_bottom_left = 16
+	bg.corner_radius_bottom_right = 16
+	bg.shadow_color = Color(UiStyle.CYAN, 0.22)
+	bg.shadow_size = 10
 	bg.shadow_offset = Vector2(0, 3)
 	mine_row.add_theme_stylebox_override("panel", bg)
 	_apply_mine_bar_colors(UiStyle.COIN)
 	if mine_label != null:
-		mine_label.add_theme_color_override("font_color", UiStyle.COIN)
+		mine_label.add_theme_color_override("font_color", Color("#ffe9a0"))
 		mine_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
 
@@ -1198,27 +1254,28 @@ func _refresh_ore_bag() -> void:
 		var ore_glow: Color = meta.get("glow", ore_color)
 		var ink: Color = UiStyle.ore_ink_color(ore_color, ore_glow)
 		var count_col: Color = UiStyle.ore_count_color(ore_color, ore_glow)
-		var card := PanelContainer.new()
-		card.add_theme_stylebox_override("panel", UiStyle.bag_ore_slot(ore_color, ore_glow))
+		# 无框：图标 + 名称撑开 + 数量右对齐，靠色字区分矿种
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
+		row.add_theme_constant_override("separation", 10)
+		row.custom_minimum_size = Vector2(0, 38)
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		card.add_child(row)
 		row.add_child(OreBagIcon.new(type_id, float(ORE_BAG_SWATCH)))
 		var name_lbl := Label.new()
 		name_lbl.text = str(meta.get("name", ""))
 		name_lbl.add_theme_font_size_override("font_size", ORE_BAG_FONT)
 		name_lbl.add_theme_color_override("font_color", ink)
-		name_lbl.custom_minimum_size = Vector2(80, 0)
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(name_lbl)
 		var cnt_lbl := Label.new()
 		cnt_lbl.text = "×%d" % count
 		cnt_lbl.add_theme_font_size_override("font_size", ORE_BAG_FONT)
 		cnt_lbl.add_theme_color_override("font_color", count_col)
+		cnt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		cnt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cnt_lbl.custom_minimum_size = Vector2(48, 0)
 		row.add_child(cnt_lbl)
-		ore_list.add_child(card)
+		ore_list.add_child(row)
 	if not any:
 		var empty := Label.new()
 		empty.text = "（暂无）"

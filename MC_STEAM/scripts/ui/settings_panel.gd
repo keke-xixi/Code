@@ -1,18 +1,24 @@
 extends CanvasLayer
 
+signal request_main_menu
+
 @onready var panel: PanelContainer = $Center/Panel
 @onready var ore_check: CheckButton = $Center/Panel/Margin/VBox/ShowOre
 @onready var instant_check: CheckButton = $Center/Panel/Margin/VBox/InstantMine
 @onready var sfx_check: CheckButton = $Center/Panel/Margin/VBox/Sfx
 @onready var music_check: CheckButton = $Center/Panel/Margin/VBox/Music
 @onready var shake_check: CheckButton = $Center/Panel/Margin/VBox/Shake
+@onready var back_menu: Button = $Center/Panel/Margin/VBox/BackMenu
 
 
 func _ready() -> void:
 	visible = false
-	panel.add_theme_stylebox_override("panel", UiStyle.pixel_frame(UiStyle.CYAN))
+	panel.add_theme_stylebox_override("panel", UiStyle.glass_panel(UiStyle.CYAN))
 	# 高度随内容，避免底部大块空白
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if back_menu != null:
+		UiStyle.apply_action_button(back_menu, UiStyle.CYAN)
+		back_menu.add_theme_font_size_override("font_size", 17)
 	_sync_from_settings()
 	GameEvents.settings_changed.connect(_sync_from_settings)
 
@@ -69,6 +75,11 @@ func _on_music_toggled(toggled: bool) -> void:
 func _on_shake_toggled(toggled: bool) -> void:
 	UserSettings.set_screen_shake(toggled)
 	GameEvents.toast.emit("震屏 %s" % ("开" if toggled else "关"), "ok")
+
+
+func _on_back_menu_pressed() -> void:
+	close_panel()
+	request_main_menu.emit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

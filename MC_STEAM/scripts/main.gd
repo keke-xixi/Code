@@ -119,10 +119,14 @@ func _overlay_blocks_play() -> bool:
 
 func _bind_menu() -> void:
 	var vbox: Node = menu.get_node("Root/Center/Panel/Margin/VBox")
-	vbox.get_node("NewGame").pressed.connect(_start_new)
+	vbox.get_node("HeroStage/NewGame").pressed.connect(_start_new)
 	vbox.get_node("Continue").pressed.connect(_start_continue)
-	vbox.get_node("TestAccount").pressed.connect(_start_test_account)
 	vbox.get_node("Quit").pressed.connect(func(): get_tree().quit())
+	var test_btn: Button = vbox.get_node_or_null("TestAccount") as Button
+	if test_btn != null:
+		test_btn.pressed.connect(_start_test_account)
+	if settings != null and settings.has_signal("request_main_menu"):
+		settings.request_main_menu.connect(return_to_main_menu)
 
 
 func _start_new() -> void:
@@ -230,6 +234,31 @@ func _sync_map_pan_capture() -> void:
 func _begin_play() -> void:
 	# 兼容旧入口：同步走分帧版本（不等待）
 	_begin_play_staged()
+
+
+func return_to_main_menu() -> void:
+	if menu.visible:
+		return
+	# 立刻落盘，避免只排队 deferred 就切走
+	SaveManager.save_session(session.to_save_dict())
+	_dirty_save = false
+	_autosave_timer = 0.0
+	_save_busy = false
+	if settings.visible and settings.has_method("close_panel"):
+		settings.close_panel()
+	if _shop_open and shop != null and shop.has_method("close_panel"):
+		shop.close_panel()
+	if hud != null and hud.has_method("dismiss_modals"):
+		hud.call("dismiss_modals")
+	_step_locked = false
+	_queued_dir = Vector2i.ZERO
+	_cam_pan_drag = false
+	_lmb_down = false
+	_lmb_dragged = false
+	menu.visible = true
+	if menu.has_method("show_continue"):
+		menu.show_continue(SaveManager.has_save())
+	_sync_menu_hud_visibility()
 
 
 func _begin_play_staged() -> void:

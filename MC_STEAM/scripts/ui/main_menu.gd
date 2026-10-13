@@ -20,11 +20,21 @@ const SHOW_DEV_TEST := true
 @onready var _btn_quit: Button = $Root/Center/Panel/Margin/VBox/Quit
 
 
+## 标题吉祥物：沿用局内矿工剪影，略放大 + 拾光柔光
 class MinerMascot extends Control:
+	const INK := Color("#1a2332")
+	const SUIT := Color("#3d5a80")
+	const SUIT_L := Color("#5c7a9e")
+	const HELMET := Color("#f0a020")
+	const VISOR := Color("#7ee8ff")
+	const HANDLE := Color("#6b4f3a")
+	const PICK_HEAD := Color("#8a9098")
+	const PICK_EDGE := Color("#c8cdd4")
+
 	var _t: float = 0.0
 
 	func _ready() -> void:
-		custom_minimum_size = Vector2(110, 120)
+		custom_minimum_size = Vector2(128, 140)
 		set_process(true)
 
 	func _process(delta: float) -> void:
@@ -32,27 +42,52 @@ class MinerMascot extends Control:
 		queue_redraw()
 
 	func _draw() -> void:
-		var bob: float = sin(_t * 2.4) * 3.0
-		var c := Vector2(size.x * 0.5, size.y * 0.58 + bob)
-		var suit := Color("#3d5a80")
-		var suit_l := Color("#5c7a9e")
-		var helm := Color("#f5b942")
-		var visor := Color("#7eb8ff")
-		var ink := Color("#1a2332")
-		draw_circle(c + Vector2(0, 28), 36.0, Color("#7ec8ff", 0.08 + 0.03 * sin(_t * 1.5)))
-		draw_rect(Rect2(c.x - 18, c.y - 8, 36, 40), suit)
-		draw_rect(Rect2(c.x - 15, c.y - 2, 30, 12), suit_l)
-		draw_circle(c + Vector2(0, -24), 17.0, helm)
-		draw_rect(Rect2(c.x - 15, c.y - 30, 30, 11), helm)
-		draw_rect(Rect2(c.x - 11, c.y - 24, 22, 9), visor)
-		draw_circle(c + Vector2(0, -32), 4.2, Color("#ffe566"))
-		var swing: float = sin(_t * 3.0) * 0.28
-		var pivot := c + Vector2(20, 4)
-		var tip := pivot + Vector2(cos(-0.75 + swing), sin(-0.75 + swing)) * 38.0
-		var butt := pivot + Vector2(cos(2.25 + swing), sin(2.25 + swing)) * 18.0
-		draw_line(butt, tip, Color("#6b4f3a"), 4.5, true)
-		draw_line(tip + Vector2(-11, -7), tip + Vector2(13, 5), Color("#c8cdd4"), 5.5, true)
-		draw_circle(pivot, 3.2, ink)
+		var bob: float = sin(_t * 2.2) * 3.5
+		var origin := Vector2(size.x * 0.5, size.y * 0.62 + bob)
+		var s: float = 1.85
+		# 拾光光晕
+		var pulse: float = 0.5 + 0.5 * sin(_t * 1.6)
+		draw_circle(origin + Vector2(0, 8.0 * s), 28.0 * s, Color("#7ec8ff", 0.07 + 0.04 * pulse))
+		draw_circle(origin + Vector2(0, 2.0 * s), 18.0 * s, Color("#c9a0ff", 0.05 + 0.03 * pulse))
+		# 阴影
+		draw_circle(origin + Vector2(0, 16.0 * s), 11.0 * s, Color(0, 0, 0, 0.22))
+		# 腿
+		draw_line(origin + Vector2(-5.5 * s, 11.0 * s), origin + Vector2(-6.5 * s, 20.0 * s), INK, 4.2 * s, true)
+		draw_line(origin + Vector2(5.5 * s, 11.0 * s), origin + Vector2(6.5 * s, 20.0 * s), INK, 4.2 * s, true)
+		# 身体（描边 + 填充）
+		draw_rect(Rect2(origin + Vector2(-10.0 * s, -2.0 * s), Vector2(20.0 * s, 18.0 * s)), INK)
+		draw_rect(Rect2(origin + Vector2(-8.5 * s, -1.0 * s), Vector2(17.0 * s, 15.5 * s)), SUIT)
+		draw_rect(Rect2(origin + Vector2(-6.5 * s, 3.0 * s), Vector2(13.0 * s, 8.5 * s)), SUIT_L)
+		# 头盔
+		var head := origin + Vector2(0, -11.0 * s)
+		draw_circle(head, 12.0 * s, INK)
+		draw_circle(head, 10.8 * s, HELMET)
+		draw_arc(head + Vector2(0, -1.0 * s), 8.5 * s, 0.0, PI, 14, VISOR, 2.6 * s, true)
+		draw_rect(Rect2(head + Vector2(-11.0 * s, -5.0 * s), Vector2(22.0 * s, 4.5 * s)), HELMET)
+		# 帽灯微光
+		var lamp := head + Vector2(0, -9.5 * s)
+		draw_circle(lamp, 3.2 * s, Color("#ffe566", 0.85 + 0.15 * pulse))
+		draw_circle(lamp, 6.0 * s, Color("#7ee8ff", 0.12 + 0.08 * pulse))
+		# 闲置挥镐（朝右下）
+		var swing: float = 0.5 + 0.5 * sin(_t * 2.8)
+		var face_ang: float = PI * 0.28
+		var arm_ang: float = face_ang + lerpf(-1.15, 0.55, swing)
+		var grip: Vector2 = origin + Vector2(-2.0 * s, 2.0 * s)
+		var tip: Vector2 = grip + Vector2(cos(arm_ang), sin(arm_ang)) * (22.0 * s)
+		draw_line(grip, tip, INK, 5.2 * s, true)
+		draw_line(grip, tip, HANDLE, 3.6 * s, true)
+		var head_ang: float = arm_ang + PI * 0.5
+		var head_w: float = 12.0 * s
+		var head_c: Vector2 = tip + Vector2(cos(arm_ang), sin(arm_ang)) * (4.5 * s)
+		var p1: Vector2 = head_c + Vector2(cos(head_ang), sin(head_ang)) * head_w * 0.5
+		var p2: Vector2 = head_c - Vector2(cos(head_ang), sin(head_ang)) * head_w * 0.5
+		var p3: Vector2 = head_c + Vector2(cos(arm_ang), sin(arm_ang)) * (7.5 * s)
+		var pts := PackedVector2Array([p1, p2, p3])
+		draw_colored_polygon(pts, PICK_HEAD)
+		draw_polyline(pts, PICK_EDGE, 1.8 * s, true)
+		if swing > 0.72:
+			var sa: float = (swing - 0.72) / 0.28
+			draw_circle(p3, (3.0 + sa * 5.0) * s, Color(1, 0.9, 0.55, 0.35 * sa))
 
 
 ## 带彩色光晕的矿石

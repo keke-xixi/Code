@@ -1,11 +1,10 @@
 extends Control
-## 主菜单背景：贴近局内泥土层 / 石层 / 挖开的竖井
+## 主菜单背景：完整泥土层 / 石层网格，无挖空缺格
 
 const CELL := 40.0
 
 var _t: float = 0.0
 var _glints: Array[Dictionary] = []
-var _shaft_cols: Dictionary = {} # gx -> half-width jitter
 
 
 func _ready() -> void:
@@ -22,15 +21,10 @@ func _process(delta: float) -> void:
 
 func _rebuild() -> void:
 	_glints.clear()
-	_shaft_cols.clear()
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 0xDEC0DE
 	var cols: int = maxi(8, int(size.x / CELL) + 2)
 	var rows: int = maxi(8, int(size.y / CELL) + 2)
-	var mid: int = cols / 2
-	for gy in rows:
-		var wiggle: int = rng.randi_range(0, 1)
-		_shaft_cols[gy] = mid + (1 if gy % 5 == 0 else 0) - wiggle
 	for i in 36:
 		var gx: int = rng.randi_range(0, cols - 1)
 		var gy: int = rng.randi_range(int(rows * 0.2), rows - 1)
@@ -40,7 +34,6 @@ func _rebuild() -> void:
 
 func _dirt_color(gx: int, gy: int, row_t: float) -> Color:
 	var base := Color("#5a3a22").lerp(Color("#3d2818"), clampf(row_t / 0.28, 0.0, 1.0))
-	# 水平层理
 	var band: float = 0.04 if (gy % 3) == 0 else 0.0
 	base = base.lightened(band)
 	var n: float = fposmod(sin(float(gx * 13 + gy * 29)) * 0.5 + 0.5, 1.0)
@@ -61,17 +54,6 @@ func _stone_color(gx: int, gy: int, row_t: float) -> Color:
 	return base
 
 
-func _in_shaft(gx: int, gy: int, rows: int) -> bool:
-	if gy < int(rows * 0.14):
-		return false
-	var mid: int = int(_shaft_cols.get(gy, int(size.x / CELL) / 2))
-	var half: int = 1 if gy < int(rows * 0.35) else 2
-	# 井壁略不规则
-	if gy % 7 == 3:
-		half = 2
-	return abs(gx - mid) <= half
-
-
 func _draw() -> void:
 	var w: float = size.x
 	var h: float = size.y
@@ -80,6 +62,7 @@ func _draw() -> void:
 
 	var cols: int = int(ceil(w / CELL)) + 1
 	var rows: int = int(ceil(h / CELL)) + 1
+	var mid: int = cols / 2
 
 	for gy in rows:
 		var row_t: float = float(gy) / float(maxi(rows - 1, 1))
@@ -87,23 +70,17 @@ func _draw() -> void:
 			var px: float = float(gx) * CELL
 			var py: float = float(gy) * CELL
 			var rect := Rect2(px, py, CELL - 1.0, CELL - 1.0)
-			if _in_shaft(gx, gy, rows):
-				# 挖开的空洞：比周围暗，带一点井壁反光
-				var void_c := Color("#0b0e14")
-				if gx == 0 or not _in_shaft(gx - 1, gy, rows) or not _in_shaft(gx + 1, gy, rows):
-					void_c = Color("#151a22")
-				draw_rect(rect, void_c)
-				continue
 			var c: Color
 			if row_t < 0.28:
 				c = _dirt_color(gx, gy, row_t)
 			else:
 				c = _stone_color(gx, gy, row_t)
+			# 中央略压暗，暗示矿脉方向，但仍是完整格子
+			if abs(gx - mid) <= 1 and gy >= int(rows * 0.14):
+				c = c.darkened(0.08)
 			draw_rect(rect, c)
-			# 泥土层小石子点
 			if row_t < 0.28 and ((gx * 3 + gy * 5) % 11) == 0:
 				draw_circle(Vector2(px + CELL * 0.35, py + CELL * 0.4), 1.6, Color("#2a1c10", 0.55))
-			# 石层裂纹感
 			elif row_t >= 0.28 and ((gx + gy * 2) % 17) == 0:
 				draw_line(
 					Vector2(px + 4, py + CELL * 0.4),
@@ -113,25 +90,22 @@ func _draw() -> void:
 					true
 				)
 
-	# 竖井柔光（窄，不盖满屏）
-	var mid_x: float = float(cols / 2) * CELL + CELL * 0.5
+	# 中央柔光，不挖格
+	var mid_x: float = float(mid) * CELL + CELL * 0.5
 	var shaft_top: float = h * 0.14
 	var beam_w: float = CELL * 3.2
 	draw_rect(
 		Rect2(mid_x - beam_w * 0.5, shaft_top, beam_w, h - shaft_top),
-		Color("#7ee8ff", 0.045 + 0.02 * sin(_t * 1.3))
+		Color("#7ee8ff", 0.04 + 0.015 * sin(_t * 1.3))
 	)
 	draw_rect(
 		Rect2(mid_x - beam_w * 0.18, shaft_top, beam_w * 0.36, h - shaft_top),
-		Color("#ffe566", 0.035 + 0.015 * sin(_t * 2.0))
+		Color("#ffe566", 0.03 + 0.012 * sin(_t * 2.0))
 	)
 
-	# 矿脉闪光（避开竖井）
 	for g in _glints:
 		var gx: int = int(g["x"])
 		var gy: int = int(g["y"])
-		if _in_shaft(gx, gy, rows):
-			continue
 		var px: float = float(gx) * CELL + CELL * 0.5
 		var py: float = float(gy) * CELL + CELL * 0.5
 		var tid: int = int(g["tid"])
@@ -142,6 +116,5 @@ func _draw() -> void:
 		draw_circle(Vector2(px, py), rr + 2.5, Color(col, 0.1 * pulse))
 		draw_circle(Vector2(px, py), rr, Color(col, 0.5 * pulse))
 
-	# 轻暗角（别太重）
 	draw_rect(Rect2(0, 0, w, h * 0.08), Color(0.02, 0.03, 0.05, 0.35))
 	draw_rect(Rect2(0, h * 0.85, w, h * 0.15), Color(0.02, 0.02, 0.05, 0.4))

@@ -2,25 +2,66 @@ extends CanvasLayer
 
 signal request_main_menu
 
-@onready var panel: PanelContainer = $Center/Panel
-@onready var ore_check: CheckButton = $Center/Panel/Margin/VBox/ShowOre
-@onready var instant_check: CheckButton = $Center/Panel/Margin/VBox/InstantMine
-@onready var sfx_check: CheckButton = $Center/Panel/Margin/VBox/Sfx
-@onready var music_check: CheckButton = $Center/Panel/Margin/VBox/Music
-@onready var shake_check: CheckButton = $Center/Panel/Margin/VBox/Shake
-@onready var back_menu: Button = $Center/Panel/Margin/VBox/BackMenu
+@onready var shell: Control = $Center/Shell
+@onready var panel: PanelContainer = $Center/Shell/Panel
+@onready var ore_check: CheckButton = $Center/Shell/Panel/Margin/VBox/ShowOre
+@onready var instant_check: CheckButton = $Center/Shell/Panel/Margin/VBox/InstantMine
+@onready var sfx_check: CheckButton = $Center/Shell/Panel/Margin/VBox/Sfx
+@onready var music_check: CheckButton = $Center/Shell/Panel/Margin/VBox/Music
+@onready var shake_check: CheckButton = $Center/Shell/Panel/Margin/VBox/Shake
+@onready var back_menu: Button = $Center/Shell/Panel/Margin/VBox/BackMenu
+@onready var close_btn: Button = $Center/Shell/Close
 
 
 func _ready() -> void:
 	visible = false
 	panel.add_theme_stylebox_override("panel", UiStyle.glass_panel(UiStyle.CYAN))
-	# 高度随内容，避免底部大块空白
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if back_menu != null:
 		UiStyle.apply_action_button(back_menu, UiStyle.CYAN)
 		back_menu.add_theme_font_size_override("font_size", 17)
+	_style_close_btn()
+	# Shell 高度跟着内容走，Close 才能钉在右上角
+	if panel != null:
+		panel.resized.connect(_fit_shell_to_panel)
+		call_deferred("_fit_shell_to_panel")
 	_sync_from_settings()
 	GameEvents.settings_changed.connect(_sync_from_settings)
+
+
+func _fit_shell_to_panel() -> void:
+	if shell == null or panel == null:
+		return
+	var min_sz: Vector2 = panel.get_combined_minimum_size()
+	var w: float = maxf(420.0, min_sz.x)
+	var h: float = maxf(min_sz.y, 1.0)
+	panel.set_size(Vector2(w, h))
+	panel.position = Vector2.ZERO
+	shell.custom_minimum_size = Vector2(w, h)
+	shell.size = Vector2(w, h)
+	if close_btn != null:
+		close_btn.position = Vector2(w - 34.0, 2.0)
+		close_btn.size = Vector2(32.0, 32.0)
+
+
+func _style_close_btn() -> void:
+	if close_btn == null:
+		return
+	close_btn.flat = true
+	var empty := StyleBoxEmpty.new()
+	close_btn.add_theme_stylebox_override("normal", empty)
+	close_btn.add_theme_stylebox_override("hover", empty)
+	close_btn.add_theme_stylebox_override("pressed", empty)
+	close_btn.add_theme_stylebox_override("focus", empty)
+	close_btn.add_theme_color_override("font_color", Color("#a8b8cc", 0.85))
+	close_btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	close_btn.add_theme_color_override("font_pressed_color", Color("#7ee8ff"))
+	close_btn.add_theme_font_size_override("font_size", 24)
+	close_btn.focus_mode = Control.FOCUS_NONE
+	close_btn.tooltip_text = "关闭"
+	close_btn.z_index = 2
+	close_btn.move_to_front()
+	call_deferred("_fit_shell_to_panel")
 
 
 func toggle() -> void:
@@ -34,6 +75,7 @@ func open_panel() -> void:
 	_sync_from_settings()
 	UiJuice.bring_canvas_front(self)
 	visible = true
+	call_deferred("_fit_shell_to_panel")
 
 
 func close_panel() -> void:
@@ -75,6 +117,10 @@ func _on_music_toggled(toggled: bool) -> void:
 func _on_shake_toggled(toggled: bool) -> void:
 	UserSettings.set_screen_shake(toggled)
 	GameEvents.toast.emit("震屏 %s" % ("开" if toggled else "关"), "ok")
+
+
+func _on_close_pressed() -> void:
+	close_panel()
 
 
 func _on_back_menu_pressed() -> void:

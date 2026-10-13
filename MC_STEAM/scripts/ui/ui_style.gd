@@ -61,18 +61,26 @@ static func glass_chip(accent: Color = COIN) -> StyleBoxFlat:
 	return sb
 
 
-## 标准局内弹窗外壳 — 状态 / 兑换等统一玻璃风
+## 标准局内弹窗外壳（状态 / 兑换 / 工坊）— 保持原深色描边，不跟主菜单玻璃风
 static func favour_popup_frame(accent: Color = GOLD) -> StyleBoxFlat:
-	var sb := glass_panel(accent)
-	sb.bg_color = Color(0.05, 0.08, 0.14, 0.9)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#0a0e14", 0.97)
 	sb.border_width_left = 2
 	sb.border_width_top = 2
 	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color(accent, 0.5).lerp(Color("#c8e8ff"), 0.4)
-	sb.shadow_color = Color("#5a9cff", 0.32)
-	sb.shadow_size = 16
-	sb.shadow_offset = Vector2(0, 5)
+	sb.border_width_bottom = 3
+	sb.border_color = Color(accent, 0.55).lerp(Color("#d0ecff"), 0.45)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.shadow_color = Color("#5c35c3", 0.5)
+	sb.shadow_size = 18
+	sb.shadow_offset = Vector2(0, 6)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
 	return sb
 
 
@@ -109,19 +117,19 @@ static func favour_popup_title_soft() -> StyleBoxFlat:
 	return sb
 
 
-## 弹窗内区块：半透明玻璃卡
-static func soft_card(accent: Color = CYAN) -> StyleBoxFlat:
+## 弹窗内区块：圆角浅底
+static func soft_card(_accent: Color = CYAN) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.14, 0.22, 0.55)
+	sb.bg_color = Color("#121820", 0.9)
 	sb.border_width_left = 1
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.22).lerp(Color(1, 1, 1, 0.08), 0.5)
-	sb.corner_radius_top_left = 12
-	sb.corner_radius_top_right = 12
-	sb.corner_radius_bottom_left = 12
-	sb.corner_radius_bottom_right = 12
+	sb.border_color = Color(1, 1, 1, 0.06)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
 	sb.content_margin_left = 10
 	sb.content_margin_right = 10
 	sb.content_margin_top = 8
@@ -474,46 +482,37 @@ static func coin_pill() -> StyleBoxFlat:
 
 static func action_button(accent: Color = GOLD) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.14, 0.24, 0.42)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.8)
-	sb.corner_radius_top_left = 20
-	sb.corner_radius_top_right = 20
-	sb.corner_radius_bottom_left = 20
-	sb.corner_radius_bottom_right = 20
-	sb.shadow_color = Color(accent, 0.28)
-	sb.shadow_size = 8
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
+	sb.bg_color = Color(accent, 0.22)
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 3
+	sb.border_color = Color(accent, 0.85)
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
 	return sb
 
 
 static func action_button_hover(accent: Color = GOLD) -> StyleBoxFlat:
 	var sb := action_button(accent)
-	sb.bg_color = Color(accent.r, accent.g, accent.b, 0.28)
-	sb.border_color = Color(accent.lightened(0.25), 1.0)
-	sb.shadow_color = Color(accent, 0.42)
-	sb.shadow_size = 12
+	sb.bg_color = Color(accent, 0.38)
 	return sb
 
 
 static func action_button_disabled() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.12, 0.16, 0.45)
-	sb.border_color = Color("#3a4048", 0.6)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.corner_radius_top_left = 20
-	sb.corner_radius_top_right = 20
-	sb.corner_radius_bottom_left = 20
-	sb.corner_radius_bottom_right = 20
+	sb.bg_color = Color("#1a1f28")
+	sb.border_color = Color("#3a4048")
+	sb.border_width_left = 2
+	sb.border_width_top = 2
+	sb.border_width_right = 2
+	sb.border_width_bottom = 2
+	sb.corner_radius_top_left = 8
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	sb.corner_radius_bottom_right = 8
 	return sb
 
 
@@ -717,10 +716,20 @@ static func apply_icon_tool_button(btn: Button, accent: Color = GOLD) -> void:
 
 
 static func apply_icon_only_button(btn: Button) -> void:
-	apply_glass_fab_button(btn, CYAN)
+	var empty := StyleBoxEmpty.new()
+	btn.flat = true
+	btn.text = ""
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("disabled", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_color_override("font_color", Color(1, 1, 1, 0))
+	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 0))
+	btn.modulate = Color.WHITE
 
 
-## 圆形玻璃 FAB（设置 / 状态齿轮等）
+## 圆形玻璃 FAB（仅主菜单等需要时用）
 static func apply_glass_fab_button(btn: Button, accent: Color = CYAN) -> void:
 	btn.flat = true
 	btn.text = ""

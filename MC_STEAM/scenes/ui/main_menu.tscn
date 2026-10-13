@@ -72,7 +72,7 @@ theme_override_constants/separation = 6
 alignment = 1
 
 [node name="MascotHost" type="CenterContainer" parent="Root/Center/Panel/Margin/VBox"]
-custom_minimum_size = Vector2(0, 120)
+custom_minimum_size = Vector2(0, 140)
 layout_mode = 2
 
 [node name="TitleBlock" type="VBoxContainer" parent="Root/Center/Panel/Margin/VBox"]

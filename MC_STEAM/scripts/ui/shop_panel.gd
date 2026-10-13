@@ -16,7 +16,7 @@ const CARD_H := 152
 const GRID_GAP := 16
 
 @onready var panel: PanelContainer = $Panel
-@onready var module_slot: Control = $Panel/Margin/VBox/ModuleSlot
+@onready var module_slot: CenterContainer = $Panel/Margin/VBox/ModuleSlot
 @onready var money_label: Label = $Panel/Margin/VBox/Header/HeaderRow/Money
 @onready var upgrade_popup: Control = $UpgradePopup
 
@@ -51,15 +51,21 @@ func _setup_money_icon() -> void:
 func _style_header() -> void:
 	var title: Label = panel.get_node_or_null("Margin/VBox/Header/HeaderRow/Title") as Label
 	if title != null:
-		title.add_theme_color_override("font_color", UiStyle.GOLD)
+		title.text = "拾光工坊"
+		title.add_theme_color_override("font_color", Color("#e4ecf4"))
 		title.add_theme_font_size_override("font_size", 22)
+		title.add_theme_color_override("font_outline_color", Color("#0a1220", 0.85))
+		title.add_theme_constant_override("outline_size", 3)
 	if money_label != null:
-		money_label.add_theme_color_override("font_color", UiStyle.COIN)
+		money_label.add_theme_color_override("font_color", Color("#f0d878"))
 		money_label.add_theme_font_size_override("font_size", 18)
+		money_label.add_theme_color_override("font_outline_color", Color("#061018", 0.65))
+		money_label.add_theme_constant_override("outline_size", 2)
 
 
 func _apply_panel_style() -> void:
-	panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.GOLD))
+	# 仅工坊：拾光玻璃外壳，不动状态/兑换等
+	panel.add_theme_stylebox_override("panel", UiStyle.shop_popup_frame())
 
 
 func open(game_session: GameSession) -> void:
@@ -111,11 +117,8 @@ func _fit_panel_size() -> void:
 
 
 func _grid_content_size() -> Vector2:
-	var pad_x: float = 20.0
-	var pad_y: float = 16.0
-	var cell_w: float = CARD_W + pad_x
-	var cell_h: float = CARD_H + pad_y
-	return Vector2(cell_w * 2.0 + GRID_GAP, cell_h * 2.0 + GRID_GAP)
+	# 与真实 2×2 卡片尺寸一致，避免多留空白导致“没居中”
+	return Vector2(CARD_W * 2.0 + GRID_GAP, CARD_H * 2.0 + GRID_GAP)
 
 
 func _rebuild() -> void:
@@ -124,12 +127,10 @@ func _rebuild() -> void:
 	if session == null:
 		return
 	money_label.text = UpgradeSystem.fmt_coins(session.money)
-	var grid_size: Vector2 = _grid_content_size()
 	var cards_grid := GridContainer.new()
 	cards_grid.columns = 2
 	cards_grid.add_theme_constant_override("h_separation", GRID_GAP)
 	cards_grid.add_theme_constant_override("v_separation", GRID_GAP)
-	cards_grid.custom_minimum_size = grid_size
 	module_slot.add_child(cards_grid)
 	for mod in SHOP_MODULES:
 		var cat: Dictionary = UpgradeSystem.catalog_entry(str(mod.get("id", "")))
@@ -140,14 +141,30 @@ func _rebuild() -> void:
 
 
 func _center_module_grid() -> void:
-	if module_slot.get_child_count() < 1:
+	# CenterContainer 负责居中；这里只保证槽位高度贴合内容
+	if module_slot == null:
 		return
-	var grid: Control = module_slot.get_child(0) as Control
-	if grid == null:
-		return
-	var gsize: Vector2 = grid.get_combined_minimum_size()
-	grid.size = gsize
-	grid.position = (module_slot.size - gsize) * 0.5
+	var grid_size: Vector2 = _grid_content_size()
+	module_slot.custom_minimum_size = Vector2(grid_size.x, grid_size.y)
+
+
+func _wire_card_preview_hover(card: Control, preview_labels: Array[Label]) -> void:
+	card.mouse_entered.connect(func() -> void:
+		for lab in preview_labels:
+			if is_instance_valid(lab):
+				lab.visible = true
+	)
+	card.mouse_exited.connect(func() -> void:
+		# 移到卡片内按钮时也会 exit，延后判断指针是否仍在卡内
+		await get_tree().process_frame
+		if not is_instance_valid(card):
+			return
+		if card.get_global_rect().has_point(card.get_global_mouse_position()):
+			return
+		for lab in preview_labels:
+			if is_instance_valid(lab):
+				lab.visible = false
+	)
 
 
 func _effect_lines(cat_id: String, lvl: int) -> PackedStringArray:
@@ -215,7 +232,9 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	var name_lbl := Label.new()
 	name_lbl.text = short_label
 	name_lbl.add_theme_font_size_override("font_size", 17)
-	name_lbl.add_theme_color_override("font_color", UiStyle.TEXT)
+	name_lbl.add_theme_color_override("font_color", Color("#f2f7ff"))
+	name_lbl.add_theme_color_override("font_outline_color", Color("#061018", 0.65))
+	name_lbl.add_theme_constant_override("outline_size", 2)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(name_lbl)
 
@@ -238,6 +257,7 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	body.add_theme_constant_override("separation", 3)
 	root.add_child(body)
 	var lines: PackedStringArray = _effect_lines(cat_id, lvl)
+	var preview_labels: Array[Label] = []
 	for i in range(lines.size()):
 		var line := Label.new()
 		line.text = lines[i]
@@ -247,7 +267,15 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 			"font_color",
 			UiStyle.TEXT if i == 0 else UiStyle.TEXT_DIM
 		)
+		var is_preview: bool = (
+			lines[i].begins_with("升级后：") or lines[i].begins_with("下一级：")
+		)
+		if is_preview:
+			line.visible = false
+			preview_labels.append(line)
 		body.add_child(line)
+	if not preview_labels.is_empty():
+		_wire_card_preview_hover(card, preview_labels)
 
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_CENTER

@@ -137,19 +137,45 @@ static func soft_card(_accent: Color = CYAN) -> StyleBoxFlat:
 	return sb
 
 
-## 工坊模块卡：色描边 + 略亮底，四格更分明
+## 仅工坊外壳：低调玻璃（不影响状态/兑换等 favour_popup）
+static func shop_popup_frame() -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.09, 0.14, 0.94)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(GOLD, 0.28).lerp(Color("#9eb8d0"), 0.5)
+	sb.corner_radius_top_left = 14
+	sb.corner_radius_top_right = 14
+	sb.corner_radius_bottom_left = 14
+	sb.corner_radius_bottom_right = 14
+	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.shadow_size = 12
+	sb.shadow_offset = Vector2(0, 4)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	return sb
+
+
+## 仅工坊模块卡：柔和描边，勿过亮
 static func shop_module_card(accent: Color = GOLD) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#161c28", 0.96)
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color(accent, 0.55)
+	sb.bg_color = Color(0.1, 0.13, 0.2, 0.82)
+	sb.border_width_left = 1
+	sb.border_width_top = 1
+	sb.border_width_right = 1
+	sb.border_width_bottom = 1
+	sb.border_color = Color(accent, 0.42)
 	sb.corner_radius_top_left = 12
 	sb.corner_radius_top_right = 12
 	sb.corner_radius_bottom_left = 12
 	sb.corner_radius_bottom_right = 12
+	sb.shadow_color = Color(0, 0, 0, 0.28)
+	sb.shadow_size = 6
+	sb.shadow_offset = Vector2(0, 2)
 	sb.content_margin_left = 12
 	sb.content_margin_right = 12
 	sb.content_margin_top = 10
@@ -576,28 +602,41 @@ static func shop_card_slot() -> StyleBoxFlat:
 
 static func shop_card_upgrade_btn(accent: Color) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(accent, 0.14)
+	sb.bg_color = Color(0.12, 0.16, 0.24, 0.75)
 	sb.border_width_left = 1
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.5)
-	sb.corner_radius_top_left = 8
-	sb.corner_radius_top_right = 8
-	sb.corner_radius_bottom_left = 8
-	sb.corner_radius_bottom_right = 8
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
+	sb.border_color = Color(accent, 0.55)
+	sb.corner_radius_top_left = 18
+	sb.corner_radius_top_right = 18
+	sb.corner_radius_bottom_left = 18
+	sb.corner_radius_bottom_right = 18
+	sb.shadow_color = Color(0, 0, 0, 0.25)
+	sb.shadow_size = 4
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	return sb
+
+
+static func shop_card_upgrade_btn_hover(accent: Color) -> StyleBoxFlat:
+	var sb := shop_card_upgrade_btn(accent)
+	sb.bg_color = Color(accent.r, accent.g, accent.b, 0.18)
+	sb.border_color = Color(accent, 0.75)
 	return sb
 
 
 static func apply_shop_card_button(btn: Button, accent: Color) -> void:
 	btn.add_theme_stylebox_override("normal", shop_card_upgrade_btn(accent))
-	btn.add_theme_stylebox_override("hover", shop_card_upgrade_btn(Color(accent.lightened(0.15), 1.0)))
-	btn.add_theme_stylebox_override("pressed", shop_card_upgrade_btn(accent))
+	btn.add_theme_stylebox_override("hover", shop_card_upgrade_btn_hover(accent))
+	btn.add_theme_stylebox_override("pressed", shop_card_upgrade_btn_hover(accent))
 	btn.add_theme_stylebox_override("disabled", action_button_disabled())
-	btn.add_theme_color_override("font_color", TEXT)
+	btn.add_theme_color_override("font_color", Color("#f2f7ff"))
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_color_override("font_outline_color", Color("#061018", 0.75))
+	btn.add_theme_constant_override("outline_size", 2)
 
 
 static func apply_action_button(btn: Button, accent: Color = GOLD) -> void:

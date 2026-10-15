@@ -114,7 +114,14 @@ func _on_shop_toggled(open: bool) -> void:
 
 
 func _overlay_blocks_play() -> bool:
-	return menu.visible or _shop_open or settings.visible
+	if menu.visible or _shop_open or settings.visible:
+		return true
+	if hud != null:
+		if hud.has_method("is_trade_open") and hud.is_trade_open():
+			return true
+		if hud.has_method("is_status_open") and hud.is_status_open():
+			return true
+	return false
 
 
 func _bind_menu() -> void:
@@ -222,7 +229,7 @@ func _sync_menu_hud_visibility() -> void:
 func _sync_map_pan_capture() -> void:
 	if map_pan_capture == null:
 		return
-	var active: bool = not menu.visible and not _shop_open and not settings.visible
+	var active: bool = not _overlay_blocks_play()
 	map_pan_capture.mouse_filter = (
 		Control.MOUSE_FILTER_STOP if active else Control.MOUSE_FILTER_IGNORE
 	)
@@ -333,6 +340,22 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if _shop_open or settings.visible:
 		return
+	if hud != null and (
+		(hud.has_method("is_trade_open") and hud.is_trade_open())
+		or (hud.has_method("is_status_open") and hud.is_status_open())
+	):
+		# 兑换/状态弹窗打开时不缩放、不移动
+		if (
+			event.is_action_pressed("zoom_in")
+			or event.is_action_pressed("zoom_out")
+			or event.is_action_pressed("move_up")
+			or event.is_action_pressed("move_down")
+			or event.is_action_pressed("move_left")
+			or event.is_action_pressed("move_right")
+			or event.is_action_pressed("absorb")
+		):
+			get_viewport().set_input_as_handled()
+		return
 	if event.is_action_pressed("save_game"):
 		_flush_save()
 		GameEvents.toast.emit("已存档", "ok")
@@ -371,7 +394,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func request_move_to(target: Vector2i) -> void:
-	if menu.visible or _shop_open or settings.visible:
+	if _overlay_blocks_play():
 		return
 	var now: float = Time.get_ticks_msec() / 1000.0
 	if _step_locked:

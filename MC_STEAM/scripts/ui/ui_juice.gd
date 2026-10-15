@@ -109,14 +109,36 @@ static func stagger_children(container: Control, step: float = 0.04, skip: int =
 		if idx < skip:
 			idx += 1
 			continue
-		c.modulate.a = 0.0
-		c.scale = Vector2(0.92, 0.92)
-		var tw: Tween = c.create_tween()
-		tw.tween_interval(float(idx - skip) * step)
-		tw.set_parallel(true)
-		tw.tween_property(c, "modulate:a", 1.0, 0.2).set_trans(Tween.TRANS_SINE)
-		tw.tween_property(c, "scale", Vector2.ONE, 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		_play_pop_in(c, float(idx - skip) * step)
 		idx += 1
+
+
+## 只对可见子节点错落入场（兑换货架用）
+static func stagger_visible_children(container: Control, step: float = 0.045) -> void:
+	if container == null:
+		return
+	var idx: int = 0
+	for child in container.get_children():
+		if not child is Control:
+			continue
+		var c: Control = child as Control
+		if not c.visible:
+			continue
+		_play_pop_in(c, float(idx) * step, 0.86)
+		idx += 1
+
+
+static func _play_pop_in(c: Control, delay: float, from_scale: float = 0.92) -> void:
+	if c.size.length_squared() > 1.0:
+		c.pivot_offset = c.size * 0.5
+	c.modulate.a = 0.0
+	c.scale = Vector2(from_scale, from_scale)
+	var tw: Tween = c.create_tween()
+	if delay > 0.0:
+		tw.tween_interval(delay)
+	tw.set_parallel(true)
+	tw.tween_property(c, "modulate:a", 1.0, 0.22).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(c, "scale", Vector2.ONE, 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 static func icon_hover_pulse(icon_root: Control) -> void:
@@ -137,6 +159,49 @@ static func idle_float(node: Control, amount: float = 4.0, period: float = 1.6) 
 	var tw: Tween = node.create_tween().set_loops()
 	tw.tween_property(node, "position:y", base_y - amount, period * 0.5).set_trans(Tween.TRANS_SINE)
 	tw.tween_property(node, "position:y", base_y + amount * 0.35, period * 0.5).set_trans(Tween.TRANS_SINE)
+
+
+## 控件呼吸光（矿图标凹槽 / 价签）
+static func soft_breathe(node: CanvasItem, peak: float = 1.12, period: float = 1.5) -> void:
+	if node == null:
+		return
+	var tw: Tween = node.create_tween().set_loops()
+	tw.tween_property(node, "modulate", Color(peak, peak, peak, 1.0), period * 0.5).set_trans(Tween.TRANS_SINE)
+	tw.tween_property(node, "modulate", Color.WHITE, period * 0.5).set_trans(Tween.TRANS_SINE)
+
+
+## 货架卡悬停抬起（带稀有度亮边）
+static func wire_hover_lift(card: Control, accent: Color = Color.WHITE) -> void:
+	if card == null or bool(card.get_meta("_hover_lift_wired", false)):
+		return
+	card.set_meta("_hover_lift_wired", true)
+	card.set_meta("hover_accent", accent)
+	card.mouse_filter = Control.MOUSE_FILTER_STOP
+	card.mouse_entered.connect(func() -> void:
+		if not is_instance_valid(card):
+			return
+		if card.size.length_squared() > 1.0:
+			card.pivot_offset = card.size * 0.5
+		var tw: Tween = card.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(card, "scale", Vector2(1.06, 1.06), 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(card, "modulate", Color(1.08, 1.08, 1.05, 1.0), 0.12)
+		if card.has_meta("hover_style") and card is PanelContainer:
+			(card as PanelContainer).add_theme_stylebox_override("panel", card.get_meta("hover_style"))
+	)
+	card.mouse_exited.connect(func() -> void:
+		if not is_instance_valid(card):
+			return
+		# 移到子按钮上时不要误缩回
+		if card.get_global_rect().has_point(card.get_global_mouse_position()):
+			return
+		var tw: Tween = card.create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(card, "scale", Vector2.ONE, 0.14).set_trans(Tween.TRANS_SINE)
+		tw.tween_property(card, "modulate", Color.WHITE, 0.14)
+		if card.has_meta("normal_style") and card is PanelContainer:
+			(card as PanelContainer).add_theme_stylebox_override("panel", card.get_meta("normal_style"))
+	)
 
 
 static func _set_popup_pivot(panel: Control) -> void:

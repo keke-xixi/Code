@@ -8,9 +8,9 @@ const ORE_BAG_FONT := 20
 const ORE_BAG_SWATCH := 36
 const GAME_POPUP_HALF_W := 170.0
 const GAME_POPUP_HALF_H := 192.0
-const TRADE_PANEL_W := 620.0
-const TRADE_GRID_COLS := 3
-const TRADE_CARD_ICON := 48.0
+const TRADE_PANEL_W := 680.0
+const TRADE_GRID_COLS := 4
+const TRADE_CARD_ICON := 56.0
 
 @onready var money_wrap: PanelContainer = $MoneyWrap
 @onready var money_badge: HBoxContainer = $MoneyWrap/MoneyMargin/MoneyBadge
@@ -810,8 +810,8 @@ func _ensure_trade_grid() -> void:
 		var grid := GridContainer.new()
 		grid.name = "TradeList"
 		grid.columns = TRADE_GRID_COLS
-		grid.add_theme_constant_override("h_separation", 12)
-		grid.add_theme_constant_override("v_separation", 12)
+		grid.add_theme_constant_override("h_separation", 14)
+		grid.add_theme_constant_override("v_separation", 16)
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var host: Node = parent
 		var at: int = ore_trade_list.get_index()
@@ -830,8 +830,8 @@ func _ensure_trade_grid() -> void:
 	else:
 		var g: GridContainer = ore_trade_list as GridContainer
 		g.columns = TRADE_GRID_COLS
-		g.add_theme_constant_override("h_separation", 12)
-		g.add_theme_constant_override("v_separation", 12)
+		g.add_theme_constant_override("h_separation", 14)
+		g.add_theme_constant_override("v_separation", 16)
 	ore_trade_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ore_trade_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
@@ -1167,87 +1167,76 @@ func _make_trade_row(type_id: int) -> PanelContainer:
 	card.set_meta("normal_style", normal_sb)
 	card.set_meta("hover_style", hover_sb)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size = Vector2(180, 0)
+	card.custom_minimum_size = Vector2(148, 0)
 	card.add_theme_stylebox_override("panel", normal_sb)
 
 	var col := VBoxContainer.new()
 	col.name = "Col"
-	col.add_theme_constant_override("separation", 6)
+	col.add_theme_constant_override("separation", 5)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(col)
 
-	# 顶部稀有度宝石条
-	var gem := ColorRect.new()
-	gem.name = "GemBar"
-	gem.custom_minimum_size = Vector2(0, 4)
-	gem.color = Color(bar_col, 0.95)
-	gem.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gem.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(gem)
-
-	# 矿图标凹槽 + 呼吸光
-	var icon_well := PanelContainer.new()
-	icon_well.name = "IconWell"
-	icon_well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	icon_well.add_theme_stylebox_override("panel", UiStyle.trade_icon_well(ore_color))
-	col.add_child(icon_well)
+	# 大图标浮在柔光上，不再套方框/顶横线
+	var icon_aura := PanelContainer.new()
+	icon_aura.name = "IconAura"
+	icon_aura.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon_aura.add_theme_stylebox_override("panel", UiStyle.trade_icon_well(ore_color))
+	col.add_child(icon_aura)
 	var icon_center := CenterContainer.new()
-	icon_well.add_child(icon_center)
+	icon_aura.add_child(icon_center)
 	var ore_icon := OreBagIcon.new(type_id, TRADE_CARD_ICON)
 	ore_icon.name = "OreIcon"
 	icon_center.add_child(ore_icon)
-	UiJuice.soft_breathe(icon_well, 1.1, 1.35 + float(type_id) * 0.07)
+	UiJuice.soft_breathe(icon_aura, 1.16, 1.15 + float(type_id) * 0.08)
+	UiJuice.icon_hover_pulse(ore_icon)
 
 	var name_lbl := Label.new()
 	name_lbl.name = "Name"
 	name_lbl.text = str(meta.get("name", ""))
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 16)
+	name_lbl.add_theme_font_size_override("font_size", 15)
 	name_lbl.add_theme_color_override("font_color", ink)
-	name_lbl.add_theme_color_override("font_outline_color", Color("#061018", 0.8))
+	name_lbl.add_theme_color_override("font_outline_color", Color("#061018", 0.85))
 	name_lbl.add_theme_constant_override("outline_size", 2)
 	col.add_child(name_lbl)
 
+	# 数量 + 价格合成一行，去掉价签框
+	var meta_row := HBoxContainer.new()
+	meta_row.name = "MetaRow"
+	meta_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	meta_row.add_theme_constant_override("separation", 6)
+	col.add_child(meta_row)
 	var cnt_lbl := Label.new()
 	cnt_lbl.name = "Count"
-	cnt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	cnt_lbl.add_theme_font_size_override("font_size", 12)
 	cnt_lbl.add_theme_color_override("font_color", UiStyle.ore_count_color(ore_color, ore_glow))
-	col.add_child(cnt_lbl)
-
-	var price_pill := PanelContainer.new()
-	price_pill.name = "PricePill"
-	price_pill.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	price_pill.add_theme_stylebox_override("panel", UiStyle.trade_price_pill())
-	col.add_child(price_pill)
-	var price_box := HBoxContainer.new()
-	price_box.name = "PriceBox"
-	price_box.add_theme_constant_override("separation", 4)
-	price_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	price_pill.add_child(price_box)
-	# favour 金币纹理 + 轻微呼吸
-	price_box.add_child(UiIcons.coin(16.0, true))
+	meta_row.add_child(cnt_lbl)
+	var dot := Label.new()
+	dot.text = "·"
+	dot.add_theme_font_size_override("font_size", 12)
+	dot.add_theme_color_override("font_color", Color(UiStyle.TEXT_DIM, 0.7))
+	meta_row.add_child(dot)
+	meta_row.add_child(UiIcons.coin(14.0, true))
 	var price_lbl := Label.new()
 	price_lbl.name = "Price"
-	price_lbl.add_theme_font_size_override("font_size", 15)
+	price_lbl.add_theme_font_size_override("font_size", 14)
 	price_lbl.add_theme_color_override("font_color", UiStyle.COIN)
-	price_lbl.add_theme_color_override("font_outline_color", Color("#2a1808", 0.8))
+	price_lbl.add_theme_color_override("font_outline_color", Color("#2a1808", 0.75))
 	price_lbl.add_theme_constant_override("outline_size", 2)
-	price_box.add_child(price_lbl)
+	meta_row.add_child(price_lbl)
 
 	var sell_btn := Button.new()
 	sell_btn.name = "SellBtn"
 	sell_btn.focus_mode = Control.FOCUS_NONE
 	sell_btn.tooltip_text = "选择数量兑换"
-	sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sell_btn.custom_minimum_size = Vector2(0, 34)
+	sell_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	sell_btn.custom_minimum_size = Vector2(96, 32)
 	sell_btn.pressed.connect(_request_trade_confirm.bind(type_id))
 	UiStyle.apply_trade_sell_button(sell_btn)
 	_wire_trade_sell_juice(sell_btn)
 	col.add_child(sell_btn)
 
 	UiJuice.wire_hover_lift(card, bar_col)
-	_wire_trade_card_shine(card, bar_col)
 	return card
 
 
@@ -1278,25 +1267,16 @@ func _wire_trade_sell_juice(btn: Button) -> void:
 	)
 
 
-func _wire_trade_card_shine(card: PanelContainer, accent: Color) -> void:
-	# 顶部宝石条偶尔闪一下，增加货架「活」感
-	var gem: ColorRect = card.get_node_or_null("Col/GemBar") as ColorRect
-	if gem == null:
-		return
-	var base: Color = Color(accent, 0.95)
-	var hi: Color = Color(accent.lightened(0.45), 1.0).lerp(Color.WHITE, 0.35)
-	var tw: Tween = gem.create_tween().set_loops()
-	tw.tween_property(gem, "color", hi, 0.55).set_trans(Tween.TRANS_SINE)
-	tw.tween_property(gem, "color", base, 0.85).set_trans(Tween.TRANS_SINE)
-	tw.tween_interval(0.9 + randf() * 1.2)
-
-
 func _update_trade_row(card: PanelContainer, type_id: int, count: int) -> void:
 	var unit: int = _session.ore_unit_sell_price(type_id)
-	var cnt: Label = card.get_node_or_null("Col/Count") as Label
-	var price: Label = card.get_node_or_null("Col/PricePill/PriceBox/Price") as Label
+	var cnt: Label = card.get_node_or_null("Col/MetaRow/Count") as Label
+	if cnt == null:
+		cnt = card.get_node_or_null("Col/Count") as Label
+	var price: Label = card.get_node_or_null("Col/MetaRow/Price") as Label
+	if price == null:
+		price = card.get_node_or_null("Col/PricePill/PriceBox/Price") as Label
 	if cnt != null:
-		cnt.text = "持有 ×%d" % count
+		cnt.text = "×%d" % count
 	if price != null:
 		price.text = _fmt(unit)
 

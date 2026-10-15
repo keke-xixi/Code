@@ -280,26 +280,26 @@ static func apply_menu_button(btn: Button, accent: Color = MENU_AMBER, primary: 
 	btn.add_theme_stylebox_override("disabled", action_button_disabled())
 
 
-## 兑换弹窗：柔金外壳（少硬线）
+## 仅兑换弹窗：柔光浮台外壳（跟货架卡同调，不影响其它 favour/工坊框）
 static func trade_vault_frame() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#0a0e14", 0.94)
-	sb.border_width_left = 2
-	sb.border_width_top = 2
-	sb.border_width_right = 2
-	sb.border_width_bottom = 2
-	sb.border_color = Color("#c48a28", 0.55).lerp(Color("#ffe08a"), 0.2)
-	sb.corner_radius_top_left = 18
-	sb.corner_radius_top_right = 18
-	sb.corner_radius_bottom_left = 18
-	sb.corner_radius_bottom_right = 18
-	sb.shadow_color = Color("#c48a28", 0.28)
-	sb.shadow_size = 20
-	sb.shadow_offset = Vector2(0, 6)
-	sb.content_margin_left = 10
-	sb.content_margin_right = 10
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
+	sb.bg_color = Color("#0c1018", 0.88).lerp(Color("#1a1408"), 0.22)
+	# 无硬描边，靠金色光晕撑外形
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	sb.corner_radius_top_left = 28
+	sb.corner_radius_top_right = 28
+	sb.corner_radius_bottom_left = 28
+	sb.corner_radius_bottom_right = 28
+	sb.shadow_color = Color("#e0a020", 0.42)
+	sb.shadow_size = 28
+	sb.shadow_offset = Vector2(0, 4)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 14
 	return sb
 
 

@@ -8,9 +8,11 @@ const ORE_BAG_FONT := 20
 const ORE_BAG_SWATCH := 36
 const GAME_POPUP_HALF_W := 170.0
 const GAME_POPUP_HALF_H := 192.0
-const TRADE_PANEL_W := 680.0
+const TRADE_PANEL_W := 760.0
 const TRADE_GRID_COLS := 4
 const TRADE_CARD_ICON := 56.0
+const TRADE_GRID_GAP_H := 26
+const TRADE_GRID_GAP_V := 28
 
 @onready var money_wrap: PanelContainer = $MoneyWrap
 @onready var money_badge: HBoxContainer = $MoneyWrap/MoneyMargin/MoneyBadge
@@ -365,13 +367,13 @@ func _style_trade_ui() -> void:
 	_ensure_trade_grid()
 	var trade_margin: MarginContainer = ore_trade_panel.get_node("Margin") as MarginContainer
 	if trade_margin != null:
-		trade_margin.add_theme_constant_override("margin_left", 18)
-		trade_margin.add_theme_constant_override("margin_right", 18)
-		trade_margin.add_theme_constant_override("margin_top", 28)
-		trade_margin.add_theme_constant_override("margin_bottom", 16)
+		trade_margin.add_theme_constant_override("margin_left", 26)
+		trade_margin.add_theme_constant_override("margin_right", 26)
+		trade_margin.add_theme_constant_override("margin_top", 30)
+		trade_margin.add_theme_constant_override("margin_bottom", 24)
 	var trade_vbox: VBoxContainer = ore_trade_panel.get_node("Margin/VBox") as VBoxContainer
 	if trade_vbox != null:
-		trade_vbox.add_theme_constant_override("separation", 12)
+		trade_vbox.add_theme_constant_override("separation", 16)
 	_style_trade_header(trade_vbox)
 	_invalidate_trade_rows()
 	_fit_trade_panel_size()
@@ -810,8 +812,8 @@ func _ensure_trade_grid() -> void:
 		var grid := GridContainer.new()
 		grid.name = "TradeList"
 		grid.columns = TRADE_GRID_COLS
-		grid.add_theme_constant_override("h_separation", 14)
-		grid.add_theme_constant_override("v_separation", 16)
+		grid.add_theme_constant_override("h_separation", TRADE_GRID_GAP_H)
+		grid.add_theme_constant_override("v_separation", TRADE_GRID_GAP_V)
 		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var host: Node = parent
 		var at: int = ore_trade_list.get_index()
@@ -830,8 +832,8 @@ func _ensure_trade_grid() -> void:
 	else:
 		var g: GridContainer = ore_trade_list as GridContainer
 		g.columns = TRADE_GRID_COLS
-		g.add_theme_constant_override("h_separation", 14)
-		g.add_theme_constant_override("v_separation", 16)
+		g.add_theme_constant_override("h_separation", TRADE_GRID_GAP_H)
+		g.add_theme_constant_override("v_separation", TRADE_GRID_GAP_V)
 	ore_trade_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ore_trade_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 
@@ -1323,7 +1325,7 @@ func _refresh_trade_confirm_preview() -> void:
 	var unit: int = _session.ore_unit_sell_price(_pending_trade_type_id)
 	var n: int = clampi(int(ore_trade_confirm_spin.value), 1, maxi(1, _pending_trade_max_count))
 	var est: int = unit * n
-	ore_trade_confirm_text.text = "%s ×%d  →  约 %s 金币" % [str(meta.get("name", "")), n, _fmt(est)]
+	ore_trade_confirm_text.text = "%s 金币" % _fmt(est)
 
 
 func _hide_trade_confirm() -> void:

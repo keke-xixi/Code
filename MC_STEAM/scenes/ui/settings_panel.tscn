@@ -62,10 +62,12 @@ layout_mode = 2
 text = "屏幕震动"
 
 [node name="Sep" type="Control" parent="Center/Shell/Panel/Margin/VBox"]
+visible = false
 custom_minimum_size = Vector2(0, 10)
 layout_mode = 2
 
 [node name="BackMenu" type="Button" parent="Center/Shell/Panel/Margin/VBox"]
+visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(0, 44)
 text = "返回主菜单"

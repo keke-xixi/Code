@@ -280,13 +280,13 @@ static func apply_menu_button(btn: Button, accent: Color = MENU_AMBER, primary: 
 	btn.add_theme_stylebox_override("disabled", action_button_disabled())
 
 
-## 兑换弹窗外壳：与工坊同一套（浅描边 + 紫阴影），内边距略宽
+## 兑换弹窗外壳：紧凑一些，高度跟内容走
 static func trade_vault_frame() -> StyleBoxFlat:
 	var sb := favour_popup_frame(GOLD)
-	sb.content_margin_left = 18
-	sb.content_margin_right = 18
-	sb.content_margin_top = 16
-	sb.content_margin_bottom = 16
+	sb.content_margin_left = 4
+	sb.content_margin_right = 4
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
 	return sb
 
 
@@ -354,24 +354,24 @@ static func ore_count_color(accent: Color, glow: Color = Color(0, 0, 0, 0)) -> C
 	return ore_ink_color(accent, glow).lerp(Color("#dce2ea"), 0.2)
 
 
-## 兑换行：左侧色条为主 + 极淡外框，深色矿也能看见
+## 兑换行：左侧色条 + 轻底，行高更紧凑
 static func trade_ore_slot(accent: Color = GOLD, glow: Color = Color(0, 0, 0, 0)) -> StyleBoxFlat:
 	var bar: Color = trade_slot_accent(accent, glow)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("#151b26", 0.9).lerp(Color(bar, 1.0), 0.12)
-	sb.border_width_left = 5
+	sb.bg_color = Color("#121820", 0.92).lerp(Color(bar, 1.0), 0.1)
+	sb.border_width_left = 4
 	sb.border_width_top = 1
 	sb.border_width_right = 1
 	sb.border_width_bottom = 1
-	sb.border_color = Color(bar, 0.85)
-	sb.corner_radius_top_left = 12
-	sb.corner_radius_top_right = 12
-	sb.corner_radius_bottom_left = 12
-	sb.corner_radius_bottom_right = 12
-	sb.content_margin_left = 16
-	sb.content_margin_right = 14
-	sb.content_margin_top = 14
-	sb.content_margin_bottom = 14
+	sb.border_color = Color(bar, 0.72)
+	sb.corner_radius_top_left = 10
+	sb.corner_radius_top_right = 10
+	sb.corner_radius_bottom_left = 10
+	sb.corner_radius_bottom_right = 10
+	sb.content_margin_left = 12
+	sb.content_margin_right = 10
+	sb.content_margin_top = 10
+	sb.content_margin_bottom = 10
 	return sb
 
 
@@ -765,6 +765,27 @@ static func apply_icon_only_button(btn: Button) -> void:
 	btn.add_theme_stylebox_override("focus", empty)
 	btn.add_theme_color_override("font_color", Color(1, 1, 1, 0))
 	btn.add_theme_color_override("font_hover_color", Color(1, 1, 1, 0))
+	btn.modulate = Color.WHITE
+
+
+## 弹窗右上角 ×（无框、无圆底；钉在 Shell 右上锚点）
+static func apply_corner_close_button(btn: Button) -> void:
+	btn.flat = true
+	btn.text = "×"
+	var empty := StyleBoxEmpty.new()
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_color_override("font_color", Color("#dce6f2", 0.95))
+	btn.add_theme_color_override("font_hover_color", Color.WHITE)
+	btn.add_theme_color_override("font_pressed_color", Color("#7ee8ff"))
+	btn.add_theme_font_size_override("font_size", 24)
+	btn.custom_minimum_size = Vector2(30, 30)
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.tooltip_text = "关闭"
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.z_index = 20
 	btn.modulate = Color.WHITE
 
 

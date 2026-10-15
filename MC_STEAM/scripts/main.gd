@@ -127,6 +127,8 @@ func _bind_menu() -> void:
 		test_btn.pressed.connect(_start_test_account)
 	if settings != null and settings.has_signal("request_main_menu"):
 		settings.request_main_menu.connect(return_to_main_menu)
+	if hud != null and hud.has_signal("request_main_menu"):
+		hud.request_main_menu.connect(return_to_main_menu)
 
 
 func _start_new() -> void:

@@ -17,21 +17,32 @@ func _ready() -> void:
 	visible = false
 	panel.add_theme_stylebox_override("panel", UiStyle.glass_panel(UiStyle.CYAN))
 	panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# 返回主菜单改到局内右上角图标，设置里去掉旧按钮以免占高
 	if back_menu != null:
-		UiStyle.apply_action_button(back_menu, UiStyle.CYAN)
-		back_menu.add_theme_font_size_override("font_size", 17)
+		back_menu.get_parent().remove_child(back_menu)
+		back_menu.queue_free()
+		back_menu = null
+	var sep: Control = panel.get_node_or_null("Margin/VBox/Sep") as Control
+	if sep != null:
+		sep.get_parent().remove_child(sep)
+		sep.queue_free()
 	_style_close_btn()
 	# Shell 高度跟着内容走，Close 才能钉在右上角
-	if panel != null:
-		panel.resized.connect(_fit_shell_to_panel)
-		call_deferred("_fit_shell_to_panel")
+	call_deferred("_fit_shell_later")
 	_sync_from_settings()
 	GameEvents.settings_changed.connect(_sync_from_settings)
 
 
+var _fitting_shell: bool = false
+
+
 func _fit_shell_to_panel() -> void:
-	if shell == null or panel == null:
+	if shell == null or panel == null or _fitting_shell:
 		return
+	_fitting_shell = true
+	# 先清掉可能残留的偏大高度（隐藏返回按钮后第一次打开容易虚高）
+	panel.size = Vector2(420.0, 0.0)
+	panel.reset_size()
 	var min_sz: Vector2 = panel.get_combined_minimum_size()
 	var w: float = maxf(420.0, min_sz.x)
 	var h: float = maxf(min_sz.y, 1.0)
@@ -41,25 +52,22 @@ func _fit_shell_to_panel() -> void:
 	shell.size = Vector2(w, h)
 	if close_btn != null:
 		close_btn.position = Vector2(w - 34.0, 2.0)
-		close_btn.size = Vector2(32.0, 32.0)
+		close_btn.size = Vector2(30.0, 30.0)
+		close_btn.move_to_front()
+	_fitting_shell = false
+
+
+func _fit_shell_later() -> void:
+	_fit_shell_to_panel()
+	if not is_inside_tree():
+		return
+	get_tree().process_frame.connect(_fit_shell_to_panel, CONNECT_ONE_SHOT)
 
 
 func _style_close_btn() -> void:
 	if close_btn == null:
 		return
-	close_btn.flat = true
-	var empty := StyleBoxEmpty.new()
-	close_btn.add_theme_stylebox_override("normal", empty)
-	close_btn.add_theme_stylebox_override("hover", empty)
-	close_btn.add_theme_stylebox_override("pressed", empty)
-	close_btn.add_theme_stylebox_override("focus", empty)
-	close_btn.add_theme_color_override("font_color", Color("#a8b8cc", 0.85))
-	close_btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	close_btn.add_theme_color_override("font_pressed_color", Color("#7ee8ff"))
-	close_btn.add_theme_font_size_override("font_size", 24)
-	close_btn.focus_mode = Control.FOCUS_NONE
-	close_btn.tooltip_text = "关闭"
-	close_btn.z_index = 2
+	UiStyle.apply_corner_close_button(close_btn)
 	close_btn.move_to_front()
 	call_deferred("_fit_shell_to_panel")
 
@@ -75,7 +83,7 @@ func open_panel() -> void:
 	_sync_from_settings()
 	UiJuice.bring_canvas_front(self)
 	visible = true
-	call_deferred("_fit_shell_to_panel")
+	call_deferred("_fit_shell_later")
 
 
 func close_panel() -> void:

@@ -146,8 +146,19 @@ static func _set_popup_pivot(panel: Control) -> void:
 		panel.pivot_offset = Vector2(GAME_POPUP_PIVOT_FALLBACK, GAME_POPUP_PIVOT_FALLBACK)
 
 
-static func _popup_body(panel: PanelContainer) -> Control:
-	var margin: MarginContainer = panel.get_node_or_null("Margin") as MarginContainer
+static func _popup_body(host: Control) -> Control:
+	# 兼容直接传 PanelContainer，或 Shell 包一层的情况
+	var root: Control = host
+	if host != null and not (host is PanelContainer):
+		var nested: PanelContainer = host.get_node_or_null("Panel") as PanelContainer
+		if nested == null:
+			for c in host.get_children():
+				if c is PanelContainer:
+					nested = c as PanelContainer
+					break
+		if nested != null:
+			root = nested
+	var margin: MarginContainer = root.get_node_or_null("Margin") as MarginContainer
 	if margin == null:
 		return null
 	return margin.get_node_or_null("VBox") as Control

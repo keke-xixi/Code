@@ -158,6 +158,21 @@ size_flags_vertical = 8
 theme_override_colors/font_color = Color(0.65, 0.68, 0.75, 1)
 theme_override_font_sizes/font_size = 16
 
+[node name="HomeFab" type="Button" parent="."]
+z_index = 30
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -68.0
+offset_top = 14.0
+offset_right = -16.0
+offset_bottom = 66.0
+grow_horizontal = 0
+focus_mode = 0
+tooltip_text = "返回主菜单"
+theme_override_font_sizes/font_size = 17
+text = "首页"
+
 [node name="StatusFab" type="Button" parent="."]
 z_index = 30
 anchors_preset = 3
@@ -213,6 +228,7 @@ layout_mode = 2
 theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="StatusPanel/Margin/VBox"]
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 21
@@ -384,6 +400,7 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 
 [node name="CloseRow" type="CenterContainer" parent="StatusPanel/Margin/VBox"]
+visible = false
 layout_mode = 2
 
 [node name="Close" type="Button" parent="StatusPanel/Margin/VBox/CloseRow"]
@@ -411,13 +428,14 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -210.0
-offset_top = -340.0
-offset_right = 210.0
-offset_bottom = 340.0
+offset_left = -200.0
+offset_top = 0.0
+offset_right = 200.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 2
-custom_minimum_size = Vector2(420, 680)
+size_flags_vertical = 4
+custom_minimum_size = Vector2(400, 0)
 
 [node name="Margin" type="MarginContainer" parent="OreTradePanel"]
 layout_mode = 2
@@ -469,10 +487,11 @@ vertical_alignment = 1
 
 [node name="TradeList" type="VBoxContainer" parent="OreTradePanel/Margin/VBox"]
 layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/separation = 10
+size_flags_vertical = 0
+theme_override_constants/separation = 8
 
 [node name="CloseRow" type="CenterContainer" parent="OreTradePanel/Margin/VBox"]
+visible = false
 layout_mode = 2
 
 [node name="Close" type="Button" parent="OreTradePanel/Margin/VBox/CloseRow"]

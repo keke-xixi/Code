@@ -1,11 +1,15 @@
 extends CanvasLayer
 
+signal request_main_menu
+
 const BASE_HINT := "WASD · B · O · F5"
 const UPGRADE_READY_HINT := "WASD · B · O · F5 · 可升级"
 const ORE_BAG_FONT := 20
 const ORE_BAG_SWATCH := 36
 const GAME_POPUP_HALF_W := 170.0
 const GAME_POPUP_HALF_H := 192.0
+const TRADE_PANEL_W := 400.0
+const TRADE_LIST_MAX_H := 440.0
 
 @onready var money_wrap: PanelContainer = $MoneyWrap
 @onready var money_badge: HBoxContainer = $MoneyWrap/MoneyMargin/MoneyBadge
@@ -54,6 +58,7 @@ const GAME_POPUP_HALF_H := 192.0
 	$OreTradeConfirmPanel/ConfirmMargin/ConfirmVBox/ConfirmQtyRow/QtyMax
 )
 @onready var status_fab: Button = $StatusFab
+@onready var home_fab: Button = $HomeFab
 @onready var status_backdrop: ColorRect = $StatusBackdrop
 @onready var status_panel: PanelContainer = $StatusPanel
 @onready var status_depth_val: Label = $StatusPanel/Margin/VBox/StatGrid/DepthCell/DM/DV/DepthVal
@@ -90,6 +95,7 @@ var _trade_row_by_type: Dictionary = {}
 var _trade_rows_prewarmed: bool = false
 var _upgrade_ready_notified: bool = false
 var _bootstrapping: bool = false
+var _fitting_popup_shell: bool = false
 
 
 func _ready() -> void:
@@ -112,6 +118,8 @@ func _ready() -> void:
 	absorb_label.visible = false
 	_style_bar()
 	_style_mine_row()
+	_install_panel_corner_close(status_panel, _close_status_panel)
+	_install_panel_corner_close(ore_trade_panel, _close_trade_panel)
 	_style_status_ui()
 	_apply_game_popup_size()
 	_setup_money_badge()
@@ -126,11 +134,6 @@ func _ready() -> void:
 	mine_row.visible = false
 	status_fab.pressed.connect(_toggle_status_panel)
 	status_backdrop.gui_input.connect(_on_status_backdrop_input)
-	var close_btn: Button = status_panel.get_node("Margin/VBox/CloseRow/Close") as Button
-	if close_btn != null:
-		UiStyle.apply_action_button(close_btn, UiStyle.CYAN)
-		close_btn.add_theme_font_size_override("font_size", 17)
-		close_btn.pressed.connect(_close_status_panel)
 	var ok_btn: Button = tutorial_panel.get_node_or_null("Margin/VBox/Ok") as Button
 	if ok_btn != null:
 		UiStyle.apply_action_button(ok_btn, UiStyle.CYAN)
@@ -138,7 +141,6 @@ func _ready() -> void:
 			ok_btn.pressed.connect(_on_tutorial_ok)
 	ore_trade_open.pressed.connect(_open_trade_panel)
 	ore_trade_backdrop.gui_input.connect(_on_trade_backdrop_input)
-	ore_trade_panel.get_node("Margin/VBox/CloseRow/Close").pressed.connect(_close_trade_panel)
 	ore_trade_confirm_cancel.pressed.connect(_hide_trade_confirm)
 	ore_trade_confirm_ok.pressed.connect(_execute_pending_trade)
 	ore_trade_confirm_backdrop.gui_input.connect(_on_trade_confirm_backdrop_input)
@@ -149,6 +151,7 @@ func _ready() -> void:
 	_refresh_status_panel()
 	_start_status_fab_idle()
 	_style_ore_bag()
+	_setup_home_fab()
 
 
 func _start_status_fab_idle() -> void:
@@ -207,45 +210,20 @@ func _style_status_ui() -> void:
 	status_panel.get_node("Margin/VBox/KeysCell").add_theme_stylebox_override(
 		"panel", StyleBoxEmpty.new()
 	)
-	var title: Label = status_panel.get_node("Margin/VBox/Title") as Label
-	if title != null:
-		title.add_theme_color_override("font_color", UiStyle.GOLD)
-		title.add_theme_font_size_override("font_size", 22)
 	var st_vbox: VBoxContainer = status_panel.get_node("Margin/VBox") as VBoxContainer
 	if st_vbox != null:
 		st_vbox.add_theme_constant_override("separation", 10)
-	if st_vbox != null and title != null:
-		var bar: PanelContainer = st_vbox.get_node_or_null("TitleBar") as PanelContainer
-		if bar == null:
-			bar = PanelContainer.new()
-			bar.name = "TitleBar"
-			bar.add_theme_stylebox_override("panel", UiStyle.favour_popup_title_soft())
-			var row := HBoxContainer.new()
-			row.name = "Row"
-			row.add_theme_constant_override("separation", 8)
-			row.alignment = BoxContainer.ALIGNMENT_CENTER
-			bar.add_child(row)
-			row.add_child(UiIcons.status_mark(26.0))
-			title.get_parent().remove_child(title)
-			row.add_child(title)
-			st_vbox.add_child(bar)
-			st_vbox.move_child(bar, 0)
-		else:
-			bar.add_theme_stylebox_override("panel", UiStyle.favour_popup_title_soft())
-			var row2: HBoxContainer = bar.get_node_or_null("Row") as HBoxContainer
-			if row2 != null:
-				for c in row2.get_children():
-					if c != title:
-						c.queue_free()
-				row2.add_child(UiIcons.status_mark(26.0))
-				row2.move_child(row2.get_child(row2.get_child_count() - 1), 0)
+	# 去掉弹窗顶部「状态」标题行，直接从矿层信息开始
+	var title: Label = status_panel.get_node_or_null("Margin/VBox/Title") as Label
+	if title != null:
+		title.visible = false
+	var title_bar: Control = status_panel.get_node_or_null("Margin/VBox/TitleBar") as Control
+	if title_bar != null:
+		title_bar.visible = false
 	if status_title_sub != null:
 		status_title_sub.add_theme_color_override("font_color", UiStyle.CYAN)
 	_style_status_mile_bar()
 	_build_status_key_chips()
-	var close_btn: Button = status_panel.get_node("Margin/VBox/CloseRow/Close") as Button
-	if close_btn != null:
-		UiStyle.apply_action_button(close_btn, UiStyle.CYAN)
 	status_fab.custom_minimum_size = Vector2(56, 56)
 	status_fab.tooltip_text = "状态 · 深度 · 操作"
 	UiStyle.apply_icon_only_button(status_fab)
@@ -334,17 +312,10 @@ func _make_status_key_chip(key: String, desc: String) -> PanelContainer:
 
 func _apply_game_popup_size() -> void:
 	# 状态：宽度固定、高度随内容（避免底部空洞）
-	status_panel.set_anchors_preset(Control.PRESET_CENTER)
-	status_panel.offset_left = -188.0
-	status_panel.offset_right = 188.0
-	status_panel.offset_top = 0.0
-	status_panel.offset_bottom = 0.0
 	status_panel.custom_minimum_size = Vector2(376, 0)
 	status_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	ore_trade_panel.offset_left = -GAME_POPUP_HALF_W
-	ore_trade_panel.offset_right = GAME_POPUP_HALF_W
-	ore_trade_panel.offset_top = -GAME_POPUP_HALF_H
-	ore_trade_panel.offset_bottom = GAME_POPUP_HALF_H
+	_fit_popup_shell(status_panel)
+	_fit_trade_panel_size()
 
 
 func _setup_money_badge() -> void:
@@ -385,113 +356,373 @@ func _style_trade_ui() -> void:
 	_icon_only_hover(ore_trade_open)
 	ore_trade_panel.add_theme_stylebox_override("panel", UiStyle.trade_vault_frame())
 	ore_trade_confirm_panel.add_theme_stylebox_override("panel", UiStyle.trade_vault_frame())
-	# 加大弹窗与留白，缓解拥挤
-	ore_trade_panel.custom_minimum_size = Vector2(420, 680)
-	ore_trade_panel.offset_left = -210.0
-	ore_trade_panel.offset_right = 210.0
-	ore_trade_panel.offset_top = -340.0
-	ore_trade_panel.offset_bottom = 340.0
-	_unwrap_trade_scroll()
+	# 高度跟内容走，避免大片空洞
+	ore_trade_panel.custom_minimum_size = Vector2(TRADE_PANEL_W, 0)
+	ore_trade_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ore_trade_panel.set_anchors_preset(Control.PRESET_CENTER)
+	_ensure_trade_list_scroll()
 	var trade_margin: MarginContainer = ore_trade_panel.get_node("Margin") as MarginContainer
 	if trade_margin != null:
 		trade_margin.add_theme_constant_override("margin_left", 20)
 		trade_margin.add_theme_constant_override("margin_right", 20)
-		trade_margin.add_theme_constant_override("margin_top", 18)
-		trade_margin.add_theme_constant_override("margin_bottom", 18)
-	var trade_title: Label = ore_trade_panel.get_node("Margin/VBox/Title") as Label
-	if trade_title != null:
-		trade_title.add_theme_color_override("font_color", UiStyle.COIN)
-		trade_title.add_theme_font_size_override("font_size", 24)
+		# 顶部多留一点，给右上角 × 呼吸空间
+		trade_margin.add_theme_constant_override("margin_top", 28)
+		trade_margin.add_theme_constant_override("margin_bottom", 16)
 	var trade_vbox: VBoxContainer = ore_trade_panel.get_node("Margin/VBox") as VBoxContainer
 	if trade_vbox != null:
-		trade_vbox.add_theme_constant_override("separation", 14)
-	if trade_vbox != null and trade_vbox.get_node_or_null("TitleBar") == null and trade_title != null:
-		var bar := PanelContainer.new()
-		bar.name = "TitleBar"
-		bar.add_theme_stylebox_override("panel", UiStyle.trade_title_ribbon())
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		bar.add_child(row)
-		var bag: Control = UiIcons.money_hud(26.0, false)
-		bag.name = "TitleBag"
-		row.add_child(bag)
-		trade_title.get_parent().remove_child(trade_title)
-		row.add_child(trade_title)
-		trade_vbox.add_child(bar)
-		trade_vbox.move_child(bar, 0)
-	else:
-		var bar_exist: PanelContainer = trade_vbox.get_node_or_null("TitleBar") as PanelContainer if trade_vbox != null else null
-		if bar_exist != null:
-			bar_exist.add_theme_stylebox_override("panel", UiStyle.trade_title_ribbon())
-			var bar_row: HBoxContainer = bar_exist.get_child(0) as HBoxContainer
-			if bar_row != null and bar_row.get_child_count() >= 1:
-				var first: Node = bar_row.get_child(0)
-				if first != null and first.name != "TitleBag":
-					bar_row.remove_child(first)
-					first.queue_free()
-					var bag2: Control = UiIcons.money_hud(26.0, false)
-					bag2.name = "TitleBag"
-					bar_row.add_child(bag2)
-					bar_row.move_child(bag2, 0)
-	var sub_row: HBoxContainer = ore_trade_panel.get_node_or_null("Margin/VBox/TitleSubRow") as HBoxContainer
-	if sub_row == null:
-		sub_row = ore_trade_panel.get_node_or_null("Margin/VBox/SubChip/ChipCenter/TitleSubRow") as HBoxContainer
-	if sub_row != null:
-		# 副标题收进浅底条，更像任务说明
-		if trade_vbox != null and trade_vbox.get_node_or_null("SubChip") == null:
-			var chip := PanelContainer.new()
-			chip.name = "SubChip"
-			chip.add_theme_stylebox_override("panel", UiStyle.trade_sub_chip())
-			var chip_center := CenterContainer.new()
-			chip_center.name = "ChipCenter"
-			chip.add_child(chip_center)
-			var idx: int = sub_row.get_index()
-			trade_vbox.remove_child(sub_row)
-			chip_center.add_child(sub_row)
-			trade_vbox.add_child(chip)
-			trade_vbox.move_child(chip, idx)
-		else:
-			var chip_exist: PanelContainer = trade_vbox.get_node_or_null("SubChip") as PanelContainer if trade_vbox != null else null
-			if chip_exist != null:
-				chip_exist.add_theme_stylebox_override("panel", UiStyle.trade_sub_chip())
-		var sub_arrow: Label = sub_row.get_node_or_null("SubArrow") as Label
-		if sub_arrow != null:
-			sub_arrow.visible = false
-		var sub_gfx_exist: ExchangeArrow = sub_row.get_node_or_null("SubArrowGfx") as ExchangeArrow
-		if sub_gfx_exist == null and sub_arrow != null:
-			var sub_gfx := ExchangeArrow.new(30.0, 18.0, ExchangeArrow.Style.CHEVRON)
-			sub_gfx.name = "SubArrowGfx"
-			sub_gfx.tint = UiStyle.GOLD.lightened(0.2)
-			sub_row.add_child(sub_gfx)
-			sub_row.move_child(sub_gfx, sub_arrow.get_index())
-		elif sub_gfx_exist != null:
-			sub_gfx_exist.tint = UiStyle.GOLD.lightened(0.2)
-			sub_gfx_exist.queue_redraw()
-		for lab_name in ["SubLeft", "SubGold"]:
-			var lab: Label = sub_row.get_node_or_null(lab_name) as Label
-			if lab != null:
-				lab.add_theme_color_override("font_color", UiStyle.TEXT_DIM.lightened(0.2))
-				lab.add_theme_font_size_override("font_size", 13)
-	var sub_coin: CenterContainer = null
-	if sub_row != null:
-		sub_coin = sub_row.get_node_or_null("SubCoinSlot") as CenterContainer
-	if sub_coin != null:
-		for c in sub_coin.get_children():
-			c.queue_free()
-		sub_coin.add_child(UiIcons.coin(16.0))
-	ore_trade_list.add_theme_constant_override("separation", 14)
+		trade_vbox.add_theme_constant_override("separation", 10)
+	_style_trade_header(trade_vbox)
+	ore_trade_list.add_theme_constant_override("separation", 8)
 	_invalidate_trade_rows()
+	_fit_trade_panel_size()
 	UiStyle.apply_action_button(ore_trade_confirm_cancel, UiStyle.CYAN)
 	UiStyle.apply_action_button(ore_trade_confirm_ok, UiStyle.GOLD)
 	UiStyle.apply_qty_step_button(ore_trade_confirm_qty_minus, UiStyle.CYAN)
 	UiStyle.apply_qty_step_button(ore_trade_confirm_qty_plus, UiStyle.CYAN)
 	UiStyle.apply_action_button(ore_trade_confirm_qty_max, UiStyle.GOLD)
 	_style_trade_confirm_spin()
-	var close_btn: Button = ore_trade_panel.get_node("Margin/VBox/CloseRow/Close") as Button
-	UiStyle.apply_action_button(close_btn, UiStyle.GOLD)
-	close_btn.custom_minimum_size = Vector2(140, 46)
-	close_btn.add_theme_font_size_override("font_size", 17)
+
+
+func _style_trade_header(trade_vbox: VBoxContainer) -> void:
+	if trade_vbox == null:
+		return
+	# 清理旧壳
+	var old_bar: PanelContainer = trade_vbox.get_node_or_null("TitleBar") as PanelContainer
+	var title_row: HBoxContainer = trade_vbox.get_node_or_null("TitleRow") as HBoxContainer
+	var trade_title: Label = trade_vbox.get_node_or_null("Title") as Label
+	if trade_title == null and title_row != null:
+		trade_title = title_row.get_node_or_null("Title") as Label
+	if trade_title == null and old_bar != null:
+		trade_title = old_bar.find_child("Title", true, false) as Label
+	if old_bar != null:
+		if trade_title != null and trade_title.get_parent() != null:
+			trade_title.get_parent().remove_child(trade_title)
+			trade_vbox.add_child(trade_title)
+			trade_vbox.move_child(trade_title, 0)
+		old_bar.queue_free()
+	var old_chip: PanelContainer = trade_vbox.get_node_or_null("SubChip") as PanelContainer
+	var sub_row: HBoxContainer = trade_vbox.get_node_or_null("TitleSubRow") as HBoxContainer
+	if sub_row == null and old_chip != null:
+		sub_row = old_chip.find_child("TitleSubRow", true, false) as HBoxContainer
+	if old_chip != null:
+		if sub_row != null and sub_row.get_parent() != trade_vbox:
+			var chip_idx: int = old_chip.get_index()
+			sub_row.get_parent().remove_child(sub_row)
+			trade_vbox.add_child(sub_row)
+			trade_vbox.move_child(sub_row, chip_idx)
+		old_chip.queue_free()
+	# 标题：居中一行，给右上角 × 留空
+	if title_row == null:
+		title_row = HBoxContainer.new()
+		title_row.name = "TitleRow"
+		title_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		title_row.add_theme_constant_override("separation", 8)
+		trade_vbox.add_child(title_row)
+		trade_vbox.move_child(title_row, 0)
+	else:
+		trade_vbox.move_child(title_row, 0)
+	if trade_title != null and trade_title.get_parent() != title_row:
+		trade_title.get_parent().remove_child(trade_title)
+		title_row.add_child(trade_title)
+	if title_row.get_node_or_null("TitleIcon") == null:
+		var icon: Control = UiIcons.exchange(20.0)
+		icon.name = "TitleIcon"
+		title_row.add_child(icon)
+		title_row.move_child(icon, 0)
+	if trade_title != null:
+		trade_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		trade_title.add_theme_color_override("font_color", Color("#f0f4fa"))
+		trade_title.add_theme_font_size_override("font_size", 20)
+		trade_title.add_theme_color_override("font_outline_color", Color("#0a1220", 0.85))
+		trade_title.add_theme_constant_override("outline_size", 3)
+	# 副标题更轻，并给标题区右侧留缝，避免贴 ×
+	if sub_row != null:
+		sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		sub_row.add_theme_constant_override("separation", 6)
+		var sub_arrow: Label = sub_row.get_node_or_null("SubArrow") as Label
+		if sub_arrow != null:
+			sub_arrow.visible = false
+		var sub_gfx: ExchangeArrow = sub_row.get_node_or_null("SubArrowGfx") as ExchangeArrow
+		if sub_gfx == null and sub_arrow != null:
+			sub_gfx = ExchangeArrow.new(18.0, 12.0, ExchangeArrow.Style.CHEVRON)
+			sub_gfx.name = "SubArrowGfx"
+			sub_row.add_child(sub_gfx)
+			sub_row.move_child(sub_gfx, sub_arrow.get_index())
+		if sub_gfx != null:
+			sub_gfx.tint = Color("#7a8799", 0.95)
+			sub_gfx.queue_redraw()
+		for lab_name in ["SubLeft", "SubGold"]:
+			var lab: Label = sub_row.get_node_or_null(lab_name) as Label
+			if lab != null:
+				lab.add_theme_color_override("font_color", Color("#7a8799"))
+				lab.add_theme_font_size_override("font_size", 12)
+		var sub_coin: CenterContainer = sub_row.get_node_or_null("SubCoinSlot") as CenterContainer
+		if sub_coin != null:
+			for c in sub_coin.get_children():
+				c.queue_free()
+			sub_coin.add_child(UiIcons.coin(13.0))
+
+
+func _setup_home_fab() -> void:
+	if home_fab == null:
+		return
+	home_fab.custom_minimum_size = Vector2(48, 48)
+	home_fab.tooltip_text = "返回主菜单"
+	UiStyle.apply_icon_only_button(home_fab)
+	_set_button_glyph(home_fab, UiIcons.home(40.0))
+	_icon_only_hover(home_fab)
+	if not home_fab.pressed.is_connected(_on_home_fab_pressed):
+		home_fab.pressed.connect(_on_home_fab_pressed)
+
+
+func _on_home_fab_pressed() -> void:
+	home_fab.release_focus()
+	request_main_menu.emit()
+
+
+func _hide_panel_bottom_close(panel: PanelContainer) -> void:
+	# 直接移除，避免 hidden 行仍占最小高度（第一次打开会偏高）
+	var row: Control = panel.get_node_or_null("Margin/VBox/CloseRow") as Control
+	if row != null:
+		row.get_parent().remove_child(row)
+		row.queue_free()
+
+
+func _popup_shell_of(panel: PanelContainer) -> Control:
+	if panel == null:
+		return null
+	var p: Node = panel.get_parent()
+	if p is Control and (p as Control).has_meta("_popup_shell"):
+		return p as Control
+	return null
+
+
+func _popup_center_of(panel: PanelContainer) -> CenterContainer:
+	var shell: Control = _popup_shell_of(panel)
+	if shell == null:
+		return null
+	var p: Node = shell.get_parent()
+	if p is CenterContainer and (p as Control).has_meta("_popup_center"):
+		return p as CenterContainer
+	return null
+
+
+func _sync_popup_host_visible(panel: PanelContainer) -> void:
+	var center: CenterContainer = _popup_center_of(panel)
+	if center != null:
+		center.visible = panel.visible
+		return
+	var shell: Control = _popup_shell_of(panel)
+	if shell != null:
+		shell.visible = panel.visible
+
+
+func _ensure_popup_shell(panel: PanelContainer) -> Control:
+	# 已是「Center + Shell」结构则复用
+	var existing: Control = _popup_shell_of(panel)
+	if existing != null and _popup_center_of(panel) != null:
+		return existing
+	# 旧版只有 Shell（居中锚点）→ 拆掉重建，否则 × 坐标会偏
+	if existing != null:
+		var old_host: Node = existing.get_parent()
+		var old_idx: int = existing.get_index()
+		var keep_z: int = int(existing.get_meta("_popup_z", maxi(panel.z_index, 40)))
+		panel.reparent(old_host)
+		old_host.move_child(panel, old_idx)
+		existing.queue_free()
+		panel.set_meta("_popup_z_keep", keep_z)
+	var host: Node = panel.get_parent()
+	var idx: int = panel.get_index()
+	var keep_z2: int = int(panel.get_meta("_popup_z_keep", maxi(panel.z_index, 40)))
+	var center := CenterContainer.new()
+	center.name = "%sCenter" % panel.name
+	center.set_meta("_popup_center", true)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	center.visible = panel.visible
+	center.z_index = keep_z2
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BOTH
+	var shell := Control.new()
+	shell.name = "%sShell" % panel.name
+	shell.set_meta("_popup_shell", true)
+	shell.set_meta("_popup_z", keep_z2)
+	shell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shell.clip_contents = false
+	host.add_child(center)
+	host.move_child(center, idx)
+	center.add_child(shell)
+	panel.reparent(shell)
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.anchor_right = 0.0
+	panel.anchor_bottom = 0.0
+	panel.offset_left = 0.0
+	panel.offset_top = 0.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
+	panel.z_index = 0
+	return shell
+
+
+func _install_panel_corner_close(panel: PanelContainer, on_close: Callable) -> void:
+	if panel == null:
+		return
+	_hide_panel_bottom_close(panel)
+	var old_layer: Node = panel.get_node_or_null("CornerCloseLayer")
+	if old_layer != null:
+		old_layer.queue_free()
+	var old_inner: Node = panel.get_node_or_null("CornerClose")
+	if old_inner != null:
+		old_inner.queue_free()
+	var old_float: Node = get_node_or_null("%sCornerClose" % panel.name)
+	if old_float != null:
+		old_float.queue_free()
+	var shell: Control = _ensure_popup_shell(panel)
+	var btn: Button = shell.get_node_or_null("CornerClose") as Button
+	if btn == null:
+		btn = Button.new()
+		btn.name = "CornerClose"
+		shell.add_child(btn)
+		btn.pressed.connect(on_close)
+	UiStyle.apply_corner_close_button(btn)
+	if not panel.has_meta("_corner_close_pin"):
+		panel.set_meta("_corner_close_pin", true)
+		panel.visibility_changed.connect(func() -> void:
+			_sync_popup_host_visible(panel)
+			if panel.visible:
+				_fit_popup_shell_later(panel)
+			else:
+				_sync_corner_close(panel)
+		)
+	call_deferred("_fit_popup_shell", panel)
+
+
+func _fit_popup_shell_later(panel: PanelContainer) -> void:
+	# 首次打开时 CenterContainer 要过几帧才定宽，必须延后重钉 ×
+	if not is_inside_tree():
+		_fit_popup_shell(panel)
+		return
+	call_deferred("_fit_popup_shell_stable", panel)
+
+
+func _fit_popup_shell_stable(panel: PanelContainer) -> void:
+	if panel == null or not is_instance_valid(panel):
+		return
+	_fit_popup_shell(panel)
+	await get_tree().process_frame
+	if not is_instance_valid(panel):
+		return
+	_fit_popup_shell(panel)
+	await get_tree().process_frame
+	if not is_instance_valid(panel):
+		return
+	_fit_popup_shell(panel)
+	_pin_corner_close_to_actual(panel)
+
+
+func _pin_corner_close_btn(btn: Button, shell_w: float) -> void:
+	if btn == null:
+		return
+	# 与设置弹窗完全同一套：Shell 本地坐标钉右上角
+	btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	btn.anchor_right = 0.0
+	btn.anchor_bottom = 0.0
+	btn.offset_left = 0.0
+	btn.offset_top = 0.0
+	btn.offset_right = 0.0
+	btn.offset_bottom = 0.0
+	var bw: float = 30.0
+	var bh: float = 30.0
+	var x: float = maxf(shell_w - bw - 2.0, 0.0)
+	btn.position = Vector2(x, 2.0)
+	btn.size = Vector2(bw, bh)
+	btn.z_index = 20
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.modulate = Color.WHITE
+
+
+func _pin_corner_close_to_actual(panel: PanelContainer) -> void:
+	var shell: Control = _popup_shell_of(panel)
+	if shell == null:
+		return
+	var btn: Button = shell.get_node_or_null("CornerClose") as Button
+	if btn == null:
+		return
+	# 用布局后的真实宽度，避免首帧 shell.size 偏小把 × 钉偏
+	var sw: float = maxf(shell.size.x, shell.custom_minimum_size.x)
+	sw = maxf(sw, panel.size.x)
+	sw = maxf(sw, panel.custom_minimum_size.x)
+	if sw < 1.0:
+		return
+	_pin_corner_close_btn(btn, sw)
+	btn.visible = panel.visible
+	btn.move_to_front()
+
+
+func _sync_corner_close(panel: PanelContainer) -> void:
+	_pin_corner_close_to_actual(panel)
+
+
+func _wire_shell_close_resize(panel: PanelContainer, shell: Control) -> void:
+	if shell == null or shell.has_meta("_close_resize_wired"):
+		return
+	shell.set_meta("_close_resize_wired", true)
+	shell.resized.connect(func() -> void:
+		if panel != null and is_instance_valid(panel) and panel.visible:
+			_pin_corner_close_to_actual(panel)
+	)
+
+
+func _fit_popup_shell(panel: PanelContainer) -> void:
+	if panel == null or _fitting_popup_shell:
+		return
+	var shell: Control = _ensure_popup_shell(panel)
+	if shell == null:
+		return
+	var center: CenterContainer = _popup_center_of(panel)
+	_fitting_popup_shell = true
+	var min_w: float = maxf(panel.custom_minimum_size.x, 120.0)
+	panel.size = Vector2(min_w, 0.0)
+	panel.reset_size()
+	var min_sz: Vector2 = panel.get_combined_minimum_size()
+	var w: float = maxf(min_w, min_sz.x)
+	var h: float = maxf(panel.custom_minimum_size.y, min_sz.y)
+	h = maxf(h, 80.0)
+	# CenterContainer 子节点靠 custom_minimum_size 吃尺寸（同设置弹窗）
+	shell.custom_minimum_size = Vector2(w, h)
+	shell.size = Vector2(w, h)
+	panel.position = Vector2.ZERO
+	panel.size = Vector2(w, h)
+	if center != null:
+		center.visible = panel.visible
+		if not center.has_meta("_popup_z"):
+			center.set_meta("_popup_z", int(shell.get_meta("_popup_z", 40)))
+		center.z_index = int(center.get_meta("_popup_z"))
+	_wire_shell_close_resize(panel, shell)
+	var btn: Button = shell.get_node_or_null("CornerClose") as Button
+	_pin_corner_close_btn(btn, w)
+	if btn != null:
+		btn.visible = panel.visible
+		btn.move_to_front()
+	_fitting_popup_shell = false
+	# 布局后再按真实尺寸钉一次
+	call_deferred("_pin_corner_close_to_actual", panel)
+
+
+func _pin_panel_corner_close(panel: PanelContainer) -> void:
+	_fit_popup_shell(panel)
+
+
+func _bring_popup_front(panel: PanelContainer) -> void:
+	var center: CenterContainer = _popup_center_of(panel)
+	if center != null:
+		center.move_to_front()
+		return
+	var shell: Control = _popup_shell_of(panel)
+	if shell != null:
+		shell.move_to_front()
+	else:
+		panel.move_to_front()
 
 
 func _style_trade_confirm_spin() -> void:
@@ -544,20 +775,57 @@ func _invalidate_trade_rows() -> void:
 	_trade_rows_prewarmed = false
 
 
-func _unwrap_trade_scroll() -> void:
+func _ensure_trade_list_scroll() -> void:
 	var parent: Node = ore_trade_list.get_parent()
-	if parent == null or not (parent is ScrollContainer):
+	if parent == null:
 		return
-	var grand: Node = parent.get_parent()
-	if grand == null:
+	var scroll: ScrollContainer
+	if parent is ScrollContainer:
+		scroll = parent as ScrollContainer
+	else:
+		scroll = ScrollContainer.new()
+		scroll.name = "TradeScroll"
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+		var grand: Node = parent
+		var idx: int = ore_trade_list.get_index()
+		grand.remove_child(ore_trade_list)
+		scroll.add_child(ore_trade_list)
+		grand.add_child(scroll)
+		grand.move_child(scroll, idx)
+	ore_trade_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ore_trade_list.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_fit_trade_scroll_height()
+
+
+func _fit_trade_scroll_height() -> void:
+	var scroll: ScrollContainer = ore_trade_list.get_parent() as ScrollContainer
+	if scroll == null:
 		return
-	var idx: int = parent.get_index()
-	parent.remove_child(ore_trade_list)
-	grand.remove_child(parent)
-	parent.queue_free()
-	grand.add_child(ore_trade_list)
-	grand.move_child(ore_trade_list, idx)
-	ore_trade_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var sep: int = ore_trade_list.get_theme_constant("separation")
+	var content_h: float = 0.0
+	var visible_n: int = 0
+	for c in ore_trade_list.get_children():
+		if c is Control and (c as Control).visible:
+			content_h += (c as Control).get_combined_minimum_size().y
+			visible_n += 1
+	if visible_n > 1:
+		content_h += float(sep * (visible_n - 1))
+	content_h = maxf(content_h, 48.0)
+	var h: float = minf(content_h, TRADE_LIST_MAX_H)
+	scroll.custom_minimum_size = Vector2(0, h)
+	scroll.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+
+
+func _fit_trade_panel_size() -> void:
+	if ore_trade_panel == null:
+		return
+	_fit_trade_scroll_height()
+	ore_trade_panel.custom_minimum_size = Vector2(TRADE_PANEL_W, 0)
+	ore_trade_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_fit_popup_shell(ore_trade_panel)
 
 
 func bind_session(game_session: GameSession) -> void:
@@ -648,8 +916,10 @@ func _toggle_status_panel() -> void:
 		_refresh_status_panel()
 		UiJuice.bring_canvas_front(self)
 		status_backdrop.move_to_front()
-		status_panel.move_to_front()
+		_bring_popup_front(status_panel)
 		UiJuice.modal_open(status_panel, status_backdrop, false, true)
+		_sync_popup_host_visible(status_panel)
+		_fit_popup_shell_later(status_panel)
 		status_fab.release_focus()
 
 
@@ -722,14 +992,16 @@ func _open_trade_panel() -> void:
 	_pending_trade_type_id = -1
 	UiJuice.bring_canvas_front(self)
 	ore_trade_backdrop.move_to_front()
-	ore_trade_panel.move_to_front()
+	_bring_popup_front(ore_trade_panel)
 	# 先出壳再刷数，避免首帧卡在建表上
 	UiJuice.modal_show_instant(ore_trade_panel, ore_trade_backdrop)
+	_sync_popup_host_visible(ore_trade_panel)
 	ore_trade_open.release_focus()
 	if _trade_rows_prewarmed:
 		_sync_trade_list()
 	else:
 		call_deferred("_sync_trade_list_after_open")
+	_fit_popup_shell_later(ore_trade_panel)
 
 
 func _sync_trade_list_after_open() -> void:
@@ -827,6 +1099,7 @@ func _sync_trade_list() -> void:
 		empty_lbl.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
 		ore_trade_list.add_child(empty_lbl)
 	empty_lbl.visible = not any
+	_fit_trade_panel_size()
 
 
 func _make_trade_row(type_id: int) -> PanelContainer:
@@ -839,59 +1112,58 @@ func _make_trade_row(type_id: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "Trade_%d" % type_id
 	card.set_meta("type_id", type_id)
-	card.custom_minimum_size = Vector2(0, 64)
+	card.custom_minimum_size = Vector2(0, 52)
 	card.add_theme_stylebox_override("panel", UiStyle.trade_ore_slot(ore_color, ore_glow))
 	var row := HBoxContainer.new()
 	row.name = "Row"
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", 10)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.add_child(row)
 
-	# 去掉图标/价格套娃小框，整行左侧色条 + 淡外框
-	row.add_child(OreBagIcon.new(type_id, 40.0))
+	row.add_child(OreBagIcon.new(type_id, 32.0))
 
 	var name_lbl := Label.new()
 	name_lbl.name = "Name"
 	name_lbl.text = str(meta.get("name", ""))
-	name_lbl.add_theme_font_size_override("font_size", 17)
+	name_lbl.add_theme_font_size_override("font_size", 15)
 	name_lbl.add_theme_color_override("font_color", ink)
-	name_lbl.custom_minimum_size = Vector2(72, 0)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(name_lbl)
 	var cnt_lbl := Label.new()
 	cnt_lbl.name = "Count"
-	cnt_lbl.add_theme_font_size_override("font_size", 16)
+	cnt_lbl.add_theme_font_size_override("font_size", 14)
 	cnt_lbl.add_theme_color_override("font_color", count_col)
-	cnt_lbl.custom_minimum_size = Vector2(48, 0)
+	cnt_lbl.custom_minimum_size = Vector2(40, 0)
+	cnt_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	cnt_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(cnt_lbl)
-	var arrow := ExchangeArrow.new(30.0, 20.0, ExchangeArrow.Style.CHEVRON)
-	arrow.tint = slot_accent.lightened(0.2)
+	var arrow := ExchangeArrow.new(22.0, 14.0, ExchangeArrow.Style.CHEVRON)
+	arrow.tint = slot_accent.lightened(0.15)
 	row.add_child(arrow)
 
 	var price_box := HBoxContainer.new()
 	price_box.name = "PriceBox"
-	price_box.add_theme_constant_override("separation", 6)
-	price_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	price_box.add_theme_constant_override("separation", 4)
 	price_box.alignment = BoxContainer.ALIGNMENT_END
-	price_box.add_child(UiIcons.money_hud(18.0, false))
+	price_box.add_child(UiIcons.money_hud(16.0, false))
 	var price_lbl := Label.new()
 	price_lbl.name = "Price"
-	price_lbl.add_theme_font_size_override("font_size", 16)
+	price_lbl.add_theme_font_size_override("font_size", 15)
 	price_lbl.add_theme_color_override("font_color", UiStyle.COIN)
 	price_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	price_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	price_lbl.custom_minimum_size = Vector2(72, 0)
+	price_lbl.custom_minimum_size = Vector2(56, 0)
 	price_box.add_child(price_lbl)
 	row.add_child(price_box)
 
 	var sell_btn := Button.new()
-	sell_btn.custom_minimum_size = Vector2(42, 42)
+	sell_btn.custom_minimum_size = Vector2(36, 36)
 	sell_btn.focus_mode = Control.FOCUS_NONE
 	sell_btn.tooltip_text = "选择数量兑换"
 	sell_btn.pressed.connect(_request_trade_confirm.bind(type_id))
 	UiStyle.apply_trade_check_button(sell_btn)
-	_set_button_glyph(sell_btn, ExchangeArrow.new(24.0, 24.0, ExchangeArrow.Style.CHECK))
+	_set_button_glyph(sell_btn, ExchangeArrow.new(20.0, 20.0, ExchangeArrow.Style.CHECK))
 	_icon_only_hover(sell_btn)
 	row.add_child(sell_btn)
 	return card

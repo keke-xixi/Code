@@ -52,6 +52,37 @@ class TexGlyph extends Control:
 		tw.tween_property(_inner, "scale", Vector2.ONE, 0.75).set_trans(Tween.TRANS_SINE)
 
 
+## 返回主菜单：小屋图标
+class HomeGlyph extends Control:
+	func _init(size: float = 28.0) -> void:
+		var side: int = maxi(1, int(round(size)))
+		custom_minimum_size = Vector2(side, side)
+		size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func _draw() -> void:
+		var s: float = minf(size.x, size.y)
+		var o := Vector2((size.x - s) * 0.5, (size.y - s) * 0.5)
+		var ink := Color("#e8f0fa")
+		var edge := Color("#0a1220", 0.85)
+		var roof := PackedVector2Array([
+			Vector2(o.x + s * 0.50, o.y + s * 0.16),
+			Vector2(o.x + s * 0.86, o.y + s * 0.46),
+			Vector2(o.x + s * 0.14, o.y + s * 0.46),
+		])
+		draw_colored_polygon(roof, ink)
+		var lw: float = maxf(1.2, s * 0.05)
+		draw_line(roof[0], roof[1], edge, lw, true)
+		draw_line(roof[1], roof[2], edge, lw, true)
+		draw_line(roof[2], roof[0], edge, lw, true)
+		var wall := Rect2(o.x + s * 0.26, o.y + s * 0.44, s * 0.48, s * 0.40)
+		draw_rect(wall, ink, true)
+		draw_rect(wall, edge, false, maxf(1.2, s * 0.05))
+		var door := Rect2(o.x + s * 0.42, o.y + s * 0.58, s * 0.16, s * 0.26)
+		draw_rect(door, Color("#7ee8ff", 0.9), true)
+
+
 ## 矢量背包（无贴图时回退）
 class BagGlyph extends Control:
 	func _init(size: float = 22.0) -> void:
@@ -261,6 +292,10 @@ static func exchange(size: float = 22.0) -> Control:
 
 static func status(size: float = 26.0) -> Control:
 	return TexGlyph.new(_load_tex_key("icon_status"), size, false)
+
+
+static func home(size: float = 28.0) -> Control:
+	return HomeGlyph.new(size)
 
 
 ## 状态弹窗标题旁的清晰小标（非 sz 齿轮）

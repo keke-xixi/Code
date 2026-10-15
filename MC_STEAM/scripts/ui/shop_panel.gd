@@ -22,13 +22,17 @@ const GRID_GAP := 16
 
 var session: GameSession
 var _upgrade_sys: UpgradeSystem = UpgradeSystem.new()
+var _shell: Control
+var _close_btn: Button
 
 
 func _ready() -> void:
 	visible = false
+	_ensure_shell()
 	panel.clip_contents = false
 	_apply_panel_style()
 	_style_header()
+	_install_corner_close()
 	panel.gui_input.connect(_on_panel_gui_input)
 	GameEvents.money_changed.connect(_on_money_changed)
 	GameEvents.ore_stock_changed.connect(_on_ore_stock_changed)
@@ -36,6 +40,61 @@ func _ready() -> void:
 	module_slot.resized.connect(_center_module_grid)
 	_fit_panel_size()
 	_setup_money_icon()
+
+
+func _ensure_shell() -> void:
+	if panel.get_parent() is Control and (panel.get_parent() as Control).has_meta("_popup_shell"):
+		_shell = panel.get_parent() as Control
+		return
+	_shell = Control.new()
+	_shell.name = "Shell"
+	_shell.set_meta("_popup_shell", true)
+	_shell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell.set_anchors_preset(Control.PRESET_CENTER)
+	_shell.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_shell.grow_vertical = Control.GROW_DIRECTION_BOTH
+	add_child(_shell)
+	panel.reparent(_shell)
+	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	panel.anchor_right = 0.0
+	panel.anchor_bottom = 0.0
+	panel.offset_left = 0.0
+	panel.offset_top = 0.0
+	panel.offset_right = 0.0
+	panel.offset_bottom = 0.0
+
+
+func _install_corner_close() -> void:
+	if _shell == null:
+		return
+	var old_layer: Node = panel.get_node_or_null("CornerCloseLayer")
+	if old_layer != null:
+		old_layer.queue_free()
+	_close_btn = _shell.get_node_or_null("CornerClose") as Button
+	if _close_btn == null:
+		_close_btn = Button.new()
+		_close_btn.name = "CornerClose"
+		_shell.add_child(_close_btn)
+		_close_btn.pressed.connect(close_panel)
+	UiStyle.apply_corner_close_button(_close_btn)
+	call_deferred("_fit_shell_close")
+
+
+func _fit_shell_close() -> void:
+	if _shell == null:
+		return
+	var w: float = _shell.size.x
+	var h: float = _shell.size.y
+	if w < 1.0 or h < 1.0:
+		return
+	panel.position = Vector2.ZERO
+	panel.size = Vector2(w, h)
+	if _close_btn != null:
+		_close_btn.visible = visible
+		_close_btn.set_anchors_preset(Control.PRESET_TOP_LEFT)
+		_close_btn.position = Vector2(w - 34.0, 2.0)
+		_close_btn.size = Vector2(30.0, 30.0)
+		_close_btn.move_to_front()
 
 
 func _setup_money_icon() -> void:
@@ -61,6 +120,10 @@ func _style_header() -> void:
 		money_label.add_theme_font_size_override("font_size", 18)
 		money_label.add_theme_color_override("font_outline_color", Color("#061018", 0.65))
 		money_label.add_theme_constant_override("outline_size", 2)
+	var margin: MarginContainer = panel.get_node_or_null("Margin") as MarginContainer
+	if margin != null:
+		margin.add_theme_constant_override("margin_top", 22)
+		margin.add_theme_constant_override("margin_right", 22)
 
 
 func _apply_panel_style() -> void:
@@ -74,9 +137,11 @@ func open(game_session: GameSession) -> void:
 	UiJuice.bring_canvas_front(self)
 	_rebuild()
 	_fit_panel_size()
-	panel.modulate.a = 0.0
-	panel.scale = Vector2(0.94, 0.94)
-	UiJuice.pop_show(panel)
+	var anim_host: Control = _shell if _shell != null else panel
+	anim_host.modulate.a = 0.0
+	anim_host.scale = Vector2(0.94, 0.94)
+	UiJuice.pop_show(anim_host)
+	call_deferred("_fit_shell_close")
 	GameEvents.shop_toggled.emit(true)
 
 
@@ -108,12 +173,21 @@ func _fit_panel_size() -> void:
 	var h: float = grid.y + header_h + vbox_sep + mt + mb + shell_y
 	w = minf(w, vp.x * 0.92)
 	h = minf(h, vp.y * 0.88)
-	panel.offset_left = -w * 0.5
-	panel.offset_right = w * 0.5
-	panel.offset_top = -h * 0.5
-	panel.offset_bottom = h * 0.5
+	if _shell != null:
+		_shell.offset_left = -w * 0.5
+		_shell.offset_right = w * 0.5
+		_shell.offset_top = -h * 0.5
+		_shell.offset_bottom = h * 0.5
+		_shell.custom_minimum_size = Vector2(w, h)
+		_shell.size = Vector2(w, h)
+	else:
+		panel.offset_left = -w * 0.5
+		panel.offset_right = w * 0.5
+		panel.offset_top = -h * 0.5
+		panel.offset_bottom = h * 0.5
 	module_slot.custom_minimum_size = Vector2(0, grid.y)
 	call_deferred("_center_module_grid")
+	call_deferred("_fit_shell_close")
 
 
 func _grid_content_size() -> Vector2:

@@ -137,22 +137,44 @@ static func soft_card(_accent: Color = CYAN) -> StyleBoxFlat:
 	return sb
 
 
-## 仅工坊外壳：低调玻璃（不影响状态/兑换等 favour_popup）
+## 仅工坊外壳：暖金矿井台（对齐兑换，告别青霓虹）
 static func shop_popup_frame() -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.06, 0.09, 0.14, 0.94)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(GOLD, 0.28).lerp(Color("#9eb8d0"), 0.5)
-	sb.corner_radius_top_left = 14
-	sb.corner_radius_top_right = 14
-	sb.corner_radius_bottom_left = 14
-	sb.corner_radius_bottom_right = 14
-	sb.shadow_color = Color(0, 0, 0, 0.45)
+	sb.bg_color = Color("#0e100c", 0.92).lerp(Color("#1a160c"), 0.35)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	sb.corner_radius_top_left = 26
+	sb.corner_radius_top_right = 26
+	sb.corner_radius_bottom_left = 26
+	sb.corner_radius_bottom_right = 26
+	sb.shadow_color = Color("#d4921a", 0.4)
+	sb.shadow_size = 26
+	sb.shadow_offset = Vector2(0, 5)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 14
+	sb.content_margin_bottom = 16
+	return sb
+
+
+## 仅工坊模块卡：统一暖石板（分类色只作轻晕，不做彩虹霓虹边）
+static func shop_module_card(accent: Color = GOLD) -> StyleBoxFlat:
+	var warm: Color = accent.lerp(Color("#c4841a"), 0.7)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("#16120e", 0.88).lerp(Color(warm, 1.0), 0.1)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 0
+	sb.corner_radius_top_left = 18
+	sb.corner_radius_top_right = 18
+	sb.corner_radius_bottom_left = 18
+	sb.corner_radius_bottom_right = 18
+	sb.shadow_color = Color("#3a2a10", 0.55)
 	sb.shadow_size = 12
-	sb.shadow_offset = Vector2(0, 4)
+	sb.shadow_offset = Vector2(0, 3)
 	sb.content_margin_left = 14
 	sb.content_margin_right = 14
 	sb.content_margin_top = 12
@@ -160,26 +182,13 @@ static func shop_popup_frame() -> StyleBoxFlat:
 	return sb
 
 
-## 仅工坊模块卡：柔和描边，勿过亮
-static func shop_module_card(accent: Color = GOLD) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.1, 0.13, 0.2, 0.82)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.42)
-	sb.corner_radius_top_left = 12
-	sb.corner_radius_top_right = 12
-	sb.corner_radius_bottom_left = 12
-	sb.corner_radius_bottom_right = 12
-	sb.shadow_color = Color(0, 0, 0, 0.28)
-	sb.shadow_size = 6
-	sb.shadow_offset = Vector2(0, 2)
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 10
-	sb.content_margin_bottom = 10
+static func shop_module_card_hover(accent: Color = GOLD) -> StyleBoxFlat:
+	var warm: Color = accent.lerp(Color("#e0a020"), 0.55)
+	var sb := shop_module_card(accent)
+	sb.bg_color = Color("#1c1810", 0.92).lerp(Color(warm, 1.0), 0.16)
+	sb.shadow_color = Color("#c48a28", 0.55)
+	sb.shadow_size = 18
+	sb.shadow_offset = Vector2(0, 4)
 	return sb
 
 
@@ -667,31 +676,40 @@ static func shop_card_slot() -> StyleBoxFlat:
 	return sb
 
 
+## 工坊升级钮：黄铜胶囊（跟兑换钮同族）
 static func shop_card_upgrade_btn(accent: Color) -> StyleBoxFlat:
+	var can: bool = accent.get_luminance() > 0.35 or accent.g > 0.45
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.12, 0.16, 0.24, 0.75)
-	sb.border_width_left = 1
-	sb.border_width_top = 1
-	sb.border_width_right = 1
-	sb.border_width_bottom = 1
-	sb.border_color = Color(accent, 0.55)
+	if can:
+		sb.bg_color = Color("#d4921a").lerp(Color(GOLD, 1.0), 0.3)
+		sb.border_color = Color("#5a3208")
+		sb.shadow_color = Color("#c48a28", 0.4)
+	else:
+		sb.bg_color = Color("#2a2418", 0.92).lerp(Color(accent, 1.0), 0.12)
+		sb.border_color = Color("#4a4030", 0.8)
+		sb.shadow_color = Color(0, 0, 0, 0.3)
+	sb.border_width_left = 0
+	sb.border_width_top = 0
+	sb.border_width_right = 0
+	sb.border_width_bottom = 3
 	sb.corner_radius_top_left = 18
 	sb.corner_radius_top_right = 18
 	sb.corner_radius_bottom_left = 18
 	sb.corner_radius_bottom_right = 18
-	sb.shadow_color = Color(0, 0, 0, 0.25)
-	sb.shadow_size = 4
-	sb.content_margin_left = 12
-	sb.content_margin_right = 12
-	sb.content_margin_top = 6
-	sb.content_margin_bottom = 6
+	sb.shadow_size = 6
+	sb.shadow_offset = Vector2(0, 2)
+	sb.content_margin_left = 14
+	sb.content_margin_right = 14
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
 	return sb
 
 
 static func shop_card_upgrade_btn_hover(accent: Color) -> StyleBoxFlat:
 	var sb := shop_card_upgrade_btn(accent)
-	sb.bg_color = Color(accent.r, accent.g, accent.b, 0.18)
-	sb.border_color = Color(accent, 0.75)
+	sb.bg_color = Color("#e8a825").lerp(Color(MENU_AMBER_HI, 1.0), 0.2)
+	sb.border_color = Color("#3a2008")
+	sb.shadow_size = 10
 	return sb
 
 
@@ -700,10 +718,11 @@ static func apply_shop_card_button(btn: Button, accent: Color) -> void:
 	btn.add_theme_stylebox_override("hover", shop_card_upgrade_btn_hover(accent))
 	btn.add_theme_stylebox_override("pressed", shop_card_upgrade_btn_hover(accent))
 	btn.add_theme_stylebox_override("disabled", action_button_disabled())
-	btn.add_theme_color_override("font_color", Color("#f2f7ff"))
-	btn.add_theme_color_override("font_hover_color", Color.WHITE)
-	btn.add_theme_color_override("font_outline_color", Color("#061018", 0.75))
-	btn.add_theme_constant_override("outline_size", 2)
+	var bright: bool = accent.get_luminance() > 0.35 or accent.g > 0.45
+	btn.add_theme_color_override("font_color", Color("#2a1808") if bright else Color("#e8ecf4"))
+	btn.add_theme_color_override("font_hover_color", Color("#1a1004") if bright else Color.WHITE)
+	btn.add_theme_color_override("font_outline_color", Color("#ffe9a8", 0.35) if bright else Color("#061018", 0.75))
+	btn.add_theme_constant_override("outline_size", 1 if bright else 2)
 
 
 static func apply_action_button(btn: Button, accent: Color = GOLD) -> void:

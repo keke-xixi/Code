@@ -11,9 +11,9 @@ const SHOP_MODULES: Array[Dictionary] = [
 	{"id": "detector", "label": "探测升级"},
 ]
 
-const CARD_W := 272
-const CARD_H := 152
-const GRID_GAP := 16
+const CARD_W := 280
+const CARD_H := 156
+const GRID_GAP := 26
 
 @onready var panel: PanelContainer = $Panel
 @onready var module_slot: CenterContainer = $Panel/Margin/VBox/ModuleSlot
@@ -111,9 +111,9 @@ func _style_header() -> void:
 	var title: Label = panel.get_node_or_null("Margin/VBox/Header/HeaderRow/Title") as Label
 	if title != null:
 		title.text = "拾光工坊"
-		title.add_theme_color_override("font_color", Color("#e4ecf4"))
+		title.add_theme_color_override("font_color", Color("#ffe9a0"))
 		title.add_theme_font_size_override("font_size", 22)
-		title.add_theme_color_override("font_outline_color", Color("#0a1220", 0.85))
+		title.add_theme_color_override("font_outline_color", Color("#2a1808", 0.9))
 		title.add_theme_constant_override("outline_size", 3)
 	if money_label != null:
 		money_label.add_theme_color_override("font_color", Color("#f0d878"))
@@ -122,8 +122,13 @@ func _style_header() -> void:
 		money_label.add_theme_constant_override("outline_size", 2)
 	var margin: MarginContainer = panel.get_node_or_null("Margin") as MarginContainer
 	if margin != null:
-		margin.add_theme_constant_override("margin_top", 22)
-		margin.add_theme_constant_override("margin_right", 22)
+		margin.add_theme_constant_override("margin_left", 26)
+		margin.add_theme_constant_override("margin_right", 26)
+		margin.add_theme_constant_override("margin_top", 28)
+		margin.add_theme_constant_override("margin_bottom", 24)
+	var vbox: VBoxContainer = panel.get_node_or_null("Margin/VBox") as VBoxContainer
+	if vbox != null:
+		vbox.add_theme_constant_override("separation", 16)
 
 
 func _apply_panel_style() -> void:
@@ -212,6 +217,13 @@ func _rebuild() -> void:
 			continue
 		cards_grid.add_child(_make_module_card(mod))
 	call_deferred("_center_module_grid")
+	call_deferred("_play_shop_cards_in", cards_grid)
+
+
+func _play_shop_cards_in(grid: GridContainer) -> void:
+	if grid == null or not visible:
+		return
+	UiJuice.stagger_visible_children(grid, 0.05)
 
 
 func _center_module_grid() -> void:
@@ -274,29 +286,45 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	var can_ore: bool = cat_id == "pickaxe" and session.can_afford_pickaxe_ore()
 	var can_any: bool = can_coin or can_ore
 
+	# 统一暖金石板，分类色只留在等级字上，避免四卡彩虹霓虹
+	var pad_accent: Color = UiStyle.GOLD
+	var normal_sb: StyleBoxFlat = UiStyle.shop_module_card(pad_accent)
+	var hover_sb: StyleBoxFlat = UiStyle.shop_module_card_hover(pad_accent)
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(CARD_W, CARD_H)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	card.add_theme_stylebox_override("panel", UiStyle.shop_module_card(UiStyle.OK if can_any else stripe))
+	card.set_meta("normal_style", normal_sb)
+	card.set_meta("hover_style", hover_sb)
+	card.add_theme_stylebox_override("panel", normal_sb)
 	card.tooltip_text = ("可升级 · " + short_label) if can_any else short_label
+	UiJuice.wire_hover_lift(card, pad_accent)
 
 	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 8)
+	root.add_theme_constant_override("separation", 10)
 	card.add_child(root)
 
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 10)
+	head.add_theme_constant_override("separation", 12)
 	root.add_child(head)
 
+	# 图标暖光圈（跟兑换矿图标同思路）
+	var icon_aura := PanelContainer.new()
+	icon_aura.add_theme_stylebox_override("panel", UiStyle.trade_icon_well(UiStyle.GOLD))
+	head.add_child(icon_aura)
+	var icon_center := CenterContainer.new()
+	icon_aura.add_child(icon_center)
 	var icon_lbl := Label.new()
 	icon_lbl.text = icon
-	icon_lbl.add_theme_font_size_override("font_size", 30)
-	head.add_child(icon_lbl)
+	icon_lbl.add_theme_font_size_override("font_size", 28)
+	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	icon_lbl.custom_minimum_size = Vector2(44, 44)
+	icon_center.add_child(icon_lbl)
 
 	var title_col := VBoxContainer.new()
 	title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_col.add_theme_constant_override("separation", 2)
+	title_col.add_theme_constant_override("separation", 3)
 	head.add_child(title_col)
 
 	var name_row := HBoxContainer.new()
@@ -306,8 +334,8 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	var name_lbl := Label.new()
 	name_lbl.text = short_label
 	name_lbl.add_theme_font_size_override("font_size", 17)
-	name_lbl.add_theme_color_override("font_color", Color("#f2f7ff"))
-	name_lbl.add_theme_color_override("font_outline_color", Color("#061018", 0.65))
+	name_lbl.add_theme_color_override("font_color", Color("#f5ecd8"))
+	name_lbl.add_theme_color_override("font_outline_color", Color("#1a1208", 0.8))
 	name_lbl.add_theme_constant_override("outline_size", 2)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_row.add_child(name_lbl)
@@ -316,14 +344,14 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 		var tip := Label.new()
 		tip.text = "可升级"
 		tip.add_theme_font_size_override("font_size", 12)
-		tip.add_theme_color_override("font_color", UiStyle.OK)
+		tip.add_theme_color_override("font_color", UiStyle.COIN)
 		tip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_row.add_child(tip)
 
 	var lv_chip := Label.new()
 	lv_chip.text = "Lv.%d" % lvl
 	lv_chip.add_theme_font_size_override("font_size", 13)
-	lv_chip.add_theme_color_override("font_color", stripe.lightened(0.25))
+	lv_chip.add_theme_color_override("font_color", stripe.lerp(UiStyle.COIN, 0.45).lightened(0.15))
 	title_col.add_child(lv_chip)
 
 	var body := VBoxContainer.new()
@@ -374,7 +402,7 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 		coin_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		coin_btn.custom_minimum_size = Vector2(0, 40)
 		coin_btn.add_theme_font_size_override("font_size", 15)
-		UiStyle.apply_shop_card_button(coin_btn, UiStyle.OK if can_coin else stripe)
+		UiStyle.apply_shop_card_button(coin_btn, UiStyle.GOLD if can_coin else UiStyle.TEXT_DIM)
 		coin_btn.pressed.connect(_buy.bind(cat_id, false))
 		foot.add_child(coin_btn)
 		if cat_id == "pickaxe":
@@ -392,7 +420,7 @@ func _make_ore_pay_button(cat_id: String, can_ore: bool) -> Button:
 	ore_btn.text = ""
 	ore_btn.tooltip_text = ("可升级 · 用 1×%s" % ore_name) if can_ore else ("用 1×%s 升级" % ore_name)
 	ore_btn.custom_minimum_size = Vector2(56, 40)
-	UiStyle.apply_shop_card_button(ore_btn, UiStyle.OK if can_ore else ore_col)
+	UiStyle.apply_shop_card_button(ore_btn, UiStyle.GOLD if can_ore else ore_col.lerp(UiStyle.GOLD, 0.5))
 	ore_btn.modulate = Color(1, 1, 1, 1.0) if can_ore else Color(1, 1, 1, 0.72)
 	ore_btn.pressed.connect(_buy.bind(cat_id, true))
 	var wrap := CenterContainer.new()

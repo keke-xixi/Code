@@ -80,7 +80,7 @@ static func rarity_meets(ore_rarity: String, min_rarity: String) -> bool:
 
 static func pickaxe_display_name(level: int) -> String:
 	if level <= 0:
-		return "无镐"
+		return "烂稿"
 	var names: Array[String] = ["泥稿", "石稿", "铁稿", "金稿", "星稿"]
 	return names[mini(level - 1, names.size() - 1)]
 

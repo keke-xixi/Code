@@ -11,7 +11,7 @@ extends CanvasLayer
 var _sub_tween: Tween
 var _sub_shown: bool = false
 ## 上线前改 false 即可隐藏右下角测试入口
-const SHOW_DEV_TEST := true
+const SHOW_DEV_TEST := false
 
 @onready var _btn_continue: Button = $Root/Center/Panel/Margin/VBox/Continue
 @onready var _btn_new: Button = $Root/Center/Panel/Margin/VBox/HeroStage/NewGame

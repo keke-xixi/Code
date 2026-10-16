@@ -450,7 +450,7 @@ func _emit_stats() -> void:
 
 func emit_gear() -> void:
 	var lv: int = int(owned_upgrades.get("pickaxe", 0))
-	var pick_name: String = UpgradeSystem.pickaxe_display_name(lv) if lv > 0 else "无镐"
+	var pick_name: String = UpgradeSystem.pickaxe_display_name(lv)
 	var dirt_sec: float = GameData.ore_mine_sec(1, lv)
 	GameEvents.gear_changed.emit(pick_name, dirt_sec, lv)
 	_emit_tool_hints()

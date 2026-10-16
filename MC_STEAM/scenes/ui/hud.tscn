@@ -137,7 +137,7 @@ visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 17
-text = "⛏ 无镐 · 土 1.5s · 稀矿更慢"
+text = "⛏ 烂稿 · 土 1.5s · 稀矿更慢"
 
 [node name="Absorb" type="Label" parent="Margin/VBox"]
 visible = false
@@ -349,7 +349,7 @@ theme_override_constants/separation = 10
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-text = "⛏ 无镐"
+text = "⛏ 烂稿"
 vertical_alignment = 1
 
 [node name="PickLv" type="Label" parent="StatusPanel/Margin/VBox/GearCell/GM/GV/GH"]
@@ -390,7 +390,7 @@ visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.72, 0.75, 0.82, 1)
 theme_override_font_sizes/font_size = 14
-text = "WASD · B · O · F5"
+text = "WASD · B · O"
 horizontal_alignment = 1
 autowrap_mode = 2
 
@@ -749,7 +749,7 @@ text = "B 商店 · 镐可用矿石或金币升级"
 [node name="L3" type="Label" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
-text = "O 设置 · F5 存档"
+text = "O 设置"
 
 [node name="Ok" type="Button" parent="TutorialPanel/Margin/VBox"]
 layout_mode = 2

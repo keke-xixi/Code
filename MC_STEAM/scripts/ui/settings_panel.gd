@@ -26,6 +26,13 @@ func _ready() -> void:
 	if sep != null:
 		sep.get_parent().remove_child(sep)
 		sep.queue_free()
+	# 上线隐藏调试透视；已打开的存档也关掉
+	if ore_check != null:
+		ore_check.get_parent().remove_child(ore_check)
+		ore_check.queue_free()
+		ore_check = null
+	if UserSettings.show_ore_preview:
+		UserSettings.set_show_ore_preview(false)
 	_style_close_btn()
 	# Shell 高度跟着内容走，Close 才能钉在右上角
 	call_deferred("_fit_shell_later")
@@ -91,14 +98,19 @@ func close_panel() -> void:
 
 
 func _sync_from_settings() -> void:
+	var checks: Array[CheckButton] = []
 	for cb in [ore_check, instant_check, sfx_check, music_check, shake_check]:
+		if cb != null and is_instance_valid(cb):
+			checks.append(cb)
+	for cb in checks:
 		cb.set_block_signals(true)
-	ore_check.button_pressed = UserSettings.show_ore_preview
+	if ore_check != null and is_instance_valid(ore_check):
+		ore_check.button_pressed = UserSettings.show_ore_preview
 	instant_check.button_pressed = UserSettings.instant_mine_on_break
 	sfx_check.button_pressed = UserSettings.sfx_enabled
 	music_check.button_pressed = UserSettings.music_enabled
 	shake_check.button_pressed = UserSettings.screen_shake
-	for cb in [ore_check, instant_check, sfx_check, music_check, shake_check]:
+	for cb in checks:
 		cb.set_block_signals(false)
 
 

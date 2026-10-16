@@ -338,6 +338,13 @@ func _unhandled_input(event: InputEvent) -> void:
 			shop.open(session)
 		_sync_map_pan_capture()
 		return
+	if event.is_action_pressed("toggle_trade"):
+		if settings.visible or _shop_open:
+			return
+		if hud != null and hud.has_method("_open_trade_panel"):
+			hud.call("_open_trade_panel")
+		_sync_map_pan_capture()
+		return
 	if _shop_open or settings.visible:
 		return
 	if hud != null and (

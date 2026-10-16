@@ -18,13 +18,20 @@ const SUIT_L := Color("#5c7a9e")
 const HELMET := Color("#f0a020")
 const VISOR := Color("#7ee8ff")
 const HANDLE := Color("#6b4f3a")
-const PICK_HEAD := Color("#8a9098")
-const PICK_EDGE := Color("#c8cdd4")
+
+var _pick_lv: int = 0
 
 
 func _ready() -> void:
 	scale = Vector2(0.72, 0.72)
 	set_process(false)
+	if not GameEvents.gear_changed.is_connected(_on_gear):
+		GameEvents.gear_changed.connect(_on_gear)
+
+
+func _on_gear(_pickaxe_name: String, _dirt_sec: float, pickaxe_level: int) -> void:
+	_pick_lv = pickaxe_level
+	queue_redraw()
 
 
 func move_and_mine(
@@ -196,6 +203,12 @@ func _draw_pick_arm(dir: Vector2, dig: float) -> void:
 	draw_line(grip, tip, INK, 5.0)
 	draw_line(grip, tip, HANDLE, 3.5)
 
+	var pal: Dictionary = _pick_palette()
+	var head_col: Color = pal["head"]
+	var edge_col: Color = pal["edge"]
+	var glow_col: Color = pal["glow"]
+	var glow_a: float = float(pal["glow_a"])
+
 	var head_ang: float = arm_ang + PI * 0.5
 	var head_w: float = 11.0 + dig * 2.0
 	var head_c: Vector2 = tip + Vector2(cos(arm_ang), sin(arm_ang)) * 4.0
@@ -203,8 +216,10 @@ func _draw_pick_arm(dir: Vector2, dig: float) -> void:
 	var p2: Vector2 = head_c - Vector2(cos(head_ang), sin(head_ang)) * head_w * 0.5
 	var p3: Vector2 = head_c + Vector2(cos(arm_ang), sin(arm_ang)) * 7.0
 	var pts := PackedVector2Array([p1, p2, p3])
-	draw_colored_polygon(pts, PICK_HEAD)
-	draw_polyline(pts, PICK_EDGE, 1.5, true)
+	draw_circle(head_c, 10.0 + float(_pick_lv) * 1.2, Color(glow_col, glow_a * 0.55))
+	draw_circle(p3, 6.0 + float(_pick_lv) * 0.8, Color(glow_col, glow_a))
+	draw_colored_polygon(pts, head_col)
+	draw_polyline(pts, edge_col, 1.5, true)
 
 	if _pick_swing > 0.45:
 		var spark: Vector2 = p3 + Vector2(cos(arm_ang), sin(arm_ang)) * 3.0
@@ -225,3 +240,19 @@ func _facing_vec() -> Vector2:
 	if _facing == Vector2i(1, 0):
 		return Vector2(1, 0)
 	return Vector2(0, 1)
+
+
+func _pick_palette() -> Dictionary:
+	match _pick_lv:
+		0:
+			return {"head": Color("#8a4e28"), "edge": Color("#e0a060"), "glow": Color("#ffb060"), "glow_a": 0.28}
+		1:
+			return {"head": Color("#a56b32"), "edge": Color("#ffd0a0"), "glow": Color("#ffc070"), "glow_a": 0.4}
+		2:
+			return {"head": Color("#8e98a6"), "edge": Color("#eef2f6"), "glow": Color("#d8e4f0"), "glow_a": 0.48}
+		3:
+			return {"head": Color("#6a94b8"), "edge": Color("#e8f6ff"), "glow": Color("#8ec8ff"), "glow_a": 0.62}
+		4:
+			return {"head": Color("#e0a018"), "edge": Color("#fff0b0"), "glow": Color("#ffd24a"), "glow_a": 0.75}
+		_:
+			return {"head": Color("#7eb8ff"), "edge": Color("#f6f2ff"), "glow": Color("#c8a0ff"), "glow_a": 0.88}

@@ -2,8 +2,8 @@ extends CanvasLayer
 
 signal request_main_menu
 
-const BASE_HINT := "WASD · B · O · F5"
-const UPGRADE_READY_HINT := "WASD · B · O · F5 · 可升级"
+const BASE_HINT := "WASD · B · O"
+const UPGRADE_READY_HINT := "WASD · B · O · 可升级"
 const ORE_BAG_FONT := 20
 const ORE_BAG_SWATCH := 36
 const GAME_POPUP_HALF_W := 170.0
@@ -84,7 +84,7 @@ var _depth_num: int = 0
 var _max_depth_seen: int = 0
 var _milestone_text: String = "10"
 var _milestone_target: int = 10
-var _pick_name: String = "无镐"
+var _pick_name: String = "烂稿"
 var _pick_lv: int = 0
 var _dirt_mine_sec: float = 1.0
 var _layer_title: String = "地表"
@@ -266,7 +266,7 @@ func _build_status_key_chips() -> void:
 		["鼠标", "点邻格"],
 		["B", "工坊"],
 		["O", "设置"],
-		["F5", "存档"],
+		["C", "兑换"],
 	]
 	if _absorb_radius > 0:
 		items.append(["E", "吸纳"])

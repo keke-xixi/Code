@@ -38,7 +38,7 @@ const ORE_TYPES: Dictionary = {
 }
 
 
-## pickaxe_level: 0=无镐(更慢) 1=泥稿(泥土约1s) 每升1级速度×2
+## pickaxe_level: 0=烂稿(更慢) 1=泥稿(泥土约1s) 每升1级速度×2
 func ore_mine_sec(type_id: int, pickaxe_level: int = 0) -> float:
 	var meta: Dictionary = ore_meta(type_id)
 	var base: float = float(meta.get("mine_sec", 1.0))

@@ -12,17 +12,17 @@ const CATALOG: Array[Dictionary] = [
 	},
 	{
 		"id": "auto_bag",
-		"name": "自动矿袋",
-		"desc": "凿开入账",
+		"name": "周围拾取",
+		"desc": "捡起周围还没拿走的矿",
 		"prices": [800, 3500, 12000, 45000, 150000],
-		"auto_on_break": true,
+		"pickup_radius": [1, 2, 3, 4, 6],
 	},
 	{
 		"id": "pickup",
-		"name": "磁力拾取",
-		"desc": "移动捡暴露矿",
+		"name": "挖掘范围",
+		"desc": "一镐挖开更多格",
 		"prices": [1200, 6000, 22000, 80000, 250000],
-		"pickup_radius": [1, 2, 3, 4, 6],
+		"mine_reach": [2, 3, 4, 5, 6],
 	},
 	{
 		"id": "blast",
@@ -150,11 +150,14 @@ static func confirm_delta(cat_id: String, from_level: int) -> String:
 			var nxt_s: float = GameData.ore_mine_sec(1, next_lv)
 			return "挖土 %.1fs → %.1fs" % [now_s, nxt_s]
 		"auto_bag":
-			return "凿开后自动入账"
-		"pickup":
-			return "拾取范围 %d → %d 格" % [
+			return "周围拾取 %d → %d 格" % [
 				_level_int(cat_id, "pickup_radius", from_level),
 				_level_int(cat_id, "pickup_radius", next_lv),
+			]
+		"pickup":
+			return "挖掘范围 %d → %d 格" % [
+				mine_reach_at(from_level),
+				mine_reach_at(next_lv),
 			]
 		"detector":
 			return "探测范围 %d → %d 格" % [
@@ -163,6 +166,13 @@ static func confirm_delta(cat_id: String, from_level: int) -> String:
 			]
 		_:
 			return short_effect(cat_id, next_lv)
+
+
+## 未升级时只挖脚下这一格；升级后是能连带挖开的格数（含这一格）
+static func mine_reach_at(level: int) -> int:
+	if level <= 0:
+		return 1
+	return _level_int("pickup", "mine_reach", level)
 
 
 static func _level_int(cat_id: String, key: String, level: int) -> int:
@@ -181,10 +191,9 @@ static func short_effect(cat_id: String, level: int) -> String:
 		"pickaxe":
 			return "挖土约 %.1fs · 更快一镐" % GameData.ore_mine_sec(1, level)
 		"auto_bag":
-			return "凿开就进账"
+			return "周围 %d 格没拿走的矿会捡起" % _level_int(cat_id, "pickup_radius", level)
 		"pickup":
-			var radii: Array = catalog_entry(cat_id).get("pickup_radius", [])
-			return "自动捡周围 %d 格" % int(radii[mini(level - 1, radii.size() - 1)])
+			return "挖掘范围 %d 格" % mine_reach_at(level)
 		"blast":
 			var br: Array = catalog_entry(cat_id).get("bonus_break_radius", [])
 			return "连带震碎 %d 格" % int(br[mini(level - 1, br.size() - 1)])
@@ -266,6 +275,10 @@ func compute(owned: Dictionary) -> Dictionary:
 		if cat.has("pickup_radius"):
 			var radii: Array = cat.get("pickup_radius", [])
 			fx["pickup_radius"] = maxi(int(fx.get("pickup_radius", 0)), int(radii[idx]))
+		if cat.has("mine_reach"):
+			var reaches: Array = cat.get("mine_reach", [])
+			var extra: int = maxi(0, int(reaches[idx]) - 1)
+			fx["bonus_break_radius"] = maxi(int(fx.get("bonus_break_radius", 0)), extra)
 		if cat.has("bonus_break_radius"):
 			var br: Array = cat.get("bonus_break_radius", [])
 			fx["bonus_break_radius"] = maxi(int(fx.get("bonus_break_radius", 0)), int(br[idx]))

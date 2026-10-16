@@ -322,7 +322,10 @@ func _apply_game_popup_size() -> void:
 
 
 func _setup_money_badge() -> void:
-	money_wrap.add_theme_stylebox_override("panel", UiStyle.glass_chip(UiStyle.COIN))
+	# 只去掉外框，钱袋和数字留在左上角
+	var empty := StyleBoxEmpty.new()
+	money_wrap.add_theme_stylebox_override("panel", empty)
+	money_wrap.visible = true
 	var slot: Control = money_badge.get_node_or_null("CoinSlot") as Control
 	if slot == null:
 		slot = CenterContainer.new()
@@ -452,44 +455,45 @@ func _style_trade_header(trade_vbox: VBoxContainer) -> void:
 		trade_title.add_theme_font_size_override("font_size", 22)
 		trade_title.add_theme_color_override("font_outline_color", Color("#2a1808", 0.9))
 		trade_title.add_theme_constant_override("outline_size", 3)
+	# 副标题「背包矿石 → 金币」冗余，直接隐藏
 	if sub_row != null:
-		if sub_row.get_parent() != ribbon_box:
-			if sub_row.get_parent() != null:
-				sub_row.get_parent().remove_child(sub_row)
-			ribbon_box.add_child(sub_row)
-		sub_row.alignment = BoxContainer.ALIGNMENT_CENTER
-		sub_row.add_theme_constant_override("separation", 6)
-		var sub_arrow: Label = sub_row.get_node_or_null("SubArrow") as Label
-		if sub_arrow != null:
-			sub_arrow.visible = false
-		var sub_gfx: ExchangeArrow = sub_row.get_node_or_null("SubArrowGfx") as ExchangeArrow
-		if sub_gfx == null and sub_arrow != null:
-			sub_gfx = ExchangeArrow.new(16.0, 10.0, ExchangeArrow.Style.CHEVRON)
-			sub_gfx.name = "SubArrowGfx"
-			sub_row.add_child(sub_gfx)
-			sub_row.move_child(sub_gfx, sub_arrow.get_index())
-		if sub_gfx != null:
-			sub_gfx.tint = UiStyle.TEXT_DIM
-			sub_gfx.queue_redraw()
-		for lab_name in ["SubLeft", "SubGold"]:
-			var lab: Label = sub_row.get_node_or_null(lab_name) as Label
-			if lab != null:
-				lab.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
-				lab.add_theme_font_size_override("font_size", 12)
-		var sub_coin: CenterContainer = sub_row.get_node_or_null("SubCoinSlot") as CenterContainer
-		if sub_coin != null:
-			for c in sub_coin.get_children():
-				c.queue_free()
-			sub_coin.add_child(UiIcons.coin(13.0))
+		sub_row.visible = false
+	var orphan_sub: HBoxContainer = ribbon_box.get_node_or_null("TitleSubRow") as HBoxContainer
+	if orphan_sub != null:
+		orphan_sub.visible = false
 
 
 func _setup_home_fab() -> void:
 	if home_fab == null:
 		return
-	home_fab.custom_minimum_size = Vector2(48, 48)
-	home_fab.tooltip_text = "返回主菜单"
-	UiStyle.apply_icon_only_button(home_fab)
-	_set_button_glyph(home_fab, UiIcons.home(40.0))
+	home_fab.custom_minimum_size = Vector2(52, 52)
+	home_fab.tooltip_text = "返回地图"
+	# 暖金圆底，跟右下设置钮同量级可见性
+	var chip := StyleBoxFlat.new()
+	chip.bg_color = Color("#1a1408", 0.82)
+	chip.border_width_left = 2
+	chip.border_width_top = 2
+	chip.border_width_right = 2
+	chip.border_width_bottom = 3
+	chip.border_color = Color(UiStyle.GOLD, 0.75)
+	chip.corner_radius_top_left = 26
+	chip.corner_radius_top_right = 26
+	chip.corner_radius_bottom_left = 26
+	chip.corner_radius_bottom_right = 26
+	chip.shadow_color = Color(UiStyle.GOLD, 0.35)
+	chip.shadow_size = 8
+	chip.shadow_offset = Vector2(0, 2)
+	var chip_h := chip.duplicate() as StyleBoxFlat
+	chip_h.bg_color = Color("#2a1e0c", 0.92)
+	chip_h.border_color = Color(UiStyle.COIN, 0.95)
+	chip_h.shadow_size = 12
+	home_fab.flat = false
+	home_fab.text = ""
+	home_fab.add_theme_stylebox_override("normal", chip)
+	home_fab.add_theme_stylebox_override("hover", chip_h)
+	home_fab.add_theme_stylebox_override("pressed", chip_h)
+	home_fab.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	_set_button_glyph(home_fab, UiIcons.home(34.0))
 	_icon_only_hover(home_fab)
 	if not home_fab.pressed.is_connected(_on_home_fab_pressed):
 		home_fab.pressed.connect(_on_home_fab_pressed)
@@ -605,6 +609,8 @@ func _install_panel_corner_close(panel: PanelContainer, on_close: Callable) -> v
 		shell.add_child(btn)
 		btn.pressed.connect(on_close)
 	UiStyle.apply_corner_close_button(btn)
+	if panel == ore_trade_panel:
+		btn.set_meta("_close_nudge", Vector2(-10.0, 8.0))
 	if not panel.has_meta("_corner_close_pin"):
 		panel.set_meta("_corner_close_pin", true)
 		panel.visibility_changed.connect(func() -> void:
@@ -654,7 +660,8 @@ func _pin_corner_close_btn(btn: Button, shell_w: float) -> void:
 	var bw: float = 30.0
 	var bh: float = 30.0
 	var x: float = maxf(shell_w - bw - 2.0, 0.0)
-	btn.position = Vector2(x, 2.0)
+	var nudge: Vector2 = btn.get_meta("_close_nudge", Vector2.ZERO) as Vector2
+	btn.position = Vector2(x, 2.0) + nudge
 	btn.size = Vector2(bw, bh)
 	btn.z_index = 20
 	btn.mouse_filter = Control.MOUSE_FILTER_STOP

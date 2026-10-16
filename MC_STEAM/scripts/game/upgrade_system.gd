@@ -141,6 +141,39 @@ static func fail_popup(reason: String, cat_id: String, owned: Dictionary, money:
 	}
 
 
+## 确认框一句：当前数值 → 升级后数值
+static func confirm_delta(cat_id: String, from_level: int) -> String:
+	var next_lv: int = from_level + 1
+	match cat_id:
+		"pickaxe":
+			var now_s: float = GameData.ore_mine_sec(1, from_level)
+			var nxt_s: float = GameData.ore_mine_sec(1, next_lv)
+			return "挖土 %.1fs → %.1fs" % [now_s, nxt_s]
+		"auto_bag":
+			return "凿开后自动入账"
+		"pickup":
+			return "拾取范围 %d → %d 格" % [
+				_level_int(cat_id, "pickup_radius", from_level),
+				_level_int(cat_id, "pickup_radius", next_lv),
+			]
+		"detector":
+			return "探测范围 %d → %d 格" % [
+				_level_int(cat_id, "detector_radius", from_level),
+				_level_int(cat_id, "detector_radius", next_lv),
+			]
+		_:
+			return short_effect(cat_id, next_lv)
+
+
+static func _level_int(cat_id: String, key: String, level: int) -> int:
+	if level <= 0:
+		return 0
+	var arr: Array = catalog_entry(cat_id).get(key, [])
+	if arr.is_empty():
+		return 0
+	return int(arr[mini(level - 1, arr.size() - 1)])
+
+
 static func short_effect(cat_id: String, level: int) -> String:
 	if level < 1:
 		return ""

@@ -12,7 +12,7 @@ const SHOP_MODULES: Array[Dictionary] = [
 ]
 
 const CARD_W := 280
-const CARD_H := 156
+const CARD_H := 118
 const GRID_GAP := 26
 
 @onready var panel: PanelContainer = $Panel
@@ -24,6 +24,8 @@ var session: GameSession
 var _upgrade_sys: UpgradeSystem = UpgradeSystem.new()
 var _shell: Control
 var _close_btn: Button
+var _pending_buy_cat: String = ""
+var _pending_buy_ore: bool = false
 
 
 func _ready() -> void:
@@ -40,6 +42,10 @@ func _ready() -> void:
 	module_slot.resized.connect(_center_module_grid)
 	_fit_panel_size()
 	_setup_money_icon()
+	if upgrade_popup.has_signal("confirmed"):
+		upgrade_popup.confirmed.connect(_on_upgrade_confirmed)
+	if upgrade_popup.has_signal("dismissed"):
+		upgrade_popup.dismissed.connect(_on_upgrade_dismissed)
 
 
 func _ensure_shell() -> void:
@@ -110,7 +116,7 @@ func _setup_money_icon() -> void:
 func _style_header() -> void:
 	var title: Label = panel.get_node_or_null("Margin/VBox/Header/HeaderRow/Title") as Label
 	if title != null:
-		title.text = "拾光工坊"
+		title.text = "工坊"
 		title.add_theme_color_override("font_color", Color("#ffe9a0"))
 		title.add_theme_font_size_override("font_size", 22)
 		title.add_theme_color_override("font_outline_color", Color("#2a1808", 0.9))
@@ -234,47 +240,6 @@ func _center_module_grid() -> void:
 	module_slot.custom_minimum_size = Vector2(grid_size.x, grid_size.y)
 
 
-func _wire_card_preview_hover(card: Control, preview_labels: Array[Label]) -> void:
-	card.mouse_entered.connect(func() -> void:
-		for lab in preview_labels:
-			if is_instance_valid(lab):
-				lab.visible = true
-	)
-	card.mouse_exited.connect(func() -> void:
-		# 移到卡片内按钮时也会 exit，延后判断指针是否仍在卡内
-		await get_tree().process_frame
-		if not is_instance_valid(card):
-			return
-		if card.get_global_rect().has_point(card.get_global_mouse_position()):
-			return
-		for lab in preview_labels:
-			if is_instance_valid(lab):
-				lab.visible = false
-	)
-
-
-func _effect_lines(cat_id: String, lvl: int) -> PackedStringArray:
-	var cat: Dictionary = UpgradeSystem.catalog_entry(cat_id)
-	var base_desc: String = str(cat.get("desc", ""))
-	var lines: PackedStringArray = PackedStringArray()
-	if lvl <= 0:
-		lines.append(base_desc)
-		var preview: String = UpgradeSystem.short_effect(cat_id, 1)
-		if not preview.is_empty():
-			lines.append("升级后：%s" % preview)
-	else:
-		var cur: String = UpgradeSystem.short_effect(cat_id, lvl)
-		lines.append(cur if not cur.is_empty() else base_desc)
-		var price: int = _upgrade_sys.next_price(cat_id, session.owned_upgrades)
-		if price >= 0:
-			var nxt: String = UpgradeSystem.short_effect(cat_id, lvl + 1)
-			if not nxt.is_empty():
-				lines.append("下一级：%s" % nxt)
-		else:
-			lines.append("已满级")
-	return lines
-
-
 func _make_module_card(mod: Dictionary) -> PanelContainer:
 	var cat_id: String = str(mod.get("id", ""))
 	var short_label: String = str(mod.get("label", ""))
@@ -286,33 +251,34 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	var can_ore: bool = cat_id == "pickaxe" and session.can_afford_pickaxe_ore()
 	var can_any: bool = can_coin or can_ore
 
-	# 统一暖金石板，分类色只留在等级字上，避免四卡彩虹霓虹
+	# 统一暖金石板；效果文案只在确认框里出现，卡片无悬停动画
 	var pad_accent: Color = UiStyle.GOLD
 	var normal_sb: StyleBoxFlat = UiStyle.shop_module_card(pad_accent)
-	var hover_sb: StyleBoxFlat = UiStyle.shop_module_card_hover(pad_accent)
 	var card := PanelContainer.new()
 	card.custom_minimum_size = Vector2(CARD_W, CARD_H)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	card.set_meta("normal_style", normal_sb)
-	card.set_meta("hover_style", hover_sb)
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_theme_stylebox_override("panel", normal_sb)
 	card.tooltip_text = ("可升级 · " + short_label) if can_any else short_label
-	UiJuice.wire_hover_lift(card, pad_accent)
 
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 10)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.add_child(root)
 
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(head)
 
 	# 图标暖光圈（跟兑换矿图标同思路）
 	var icon_aura := PanelContainer.new()
+	icon_aura.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_aura.add_theme_stylebox_override("panel", UiStyle.trade_icon_well(UiStyle.GOLD))
 	head.add_child(icon_aura)
 	var icon_center := CenterContainer.new()
+	icon_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_aura.add_child(icon_center)
 	var icon_lbl := Label.new()
 	icon_lbl.text = icon
@@ -320,15 +286,18 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_lbl.custom_minimum_size = Vector2(44, 44)
+	icon_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_center.add_child(icon_lbl)
 
 	var title_col := VBoxContainer.new()
 	title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_col.add_theme_constant_override("separation", 3)
+	title_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(title_col)
 
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_col.add_child(name_row)
 
 	var name_lbl := Label.new()
@@ -338,6 +307,7 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 	name_lbl.add_theme_color_override("font_outline_color", Color("#1a1208", 0.8))
 	name_lbl.add_theme_constant_override("outline_size", 2)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_lbl)
 
 	if can_any:
@@ -346,38 +316,20 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 		tip.add_theme_font_size_override("font_size", 12)
 		tip.add_theme_color_override("font_color", UiStyle.COIN)
 		tip.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		tip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		name_row.add_child(tip)
 
 	var lv_chip := Label.new()
 	lv_chip.text = "Lv.%d" % lvl
 	lv_chip.add_theme_font_size_override("font_size", 13)
 	lv_chip.add_theme_color_override("font_color", stripe.lerp(UiStyle.COIN, 0.45).lightened(0.15))
+	lv_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title_col.add_child(lv_chip)
 
-	var body := VBoxContainer.new()
-	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("separation", 3)
-	root.add_child(body)
-	var lines: PackedStringArray = _effect_lines(cat_id, lvl)
-	var preview_labels: Array[Label] = []
-	for i in range(lines.size()):
-		var line := Label.new()
-		line.text = lines[i]
-		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		line.add_theme_font_size_override("font_size", 13 if i == 0 else 12)
-		line.add_theme_color_override(
-			"font_color",
-			UiStyle.TEXT if i == 0 else UiStyle.TEXT_DIM
-		)
-		var is_preview: bool = (
-			lines[i].begins_with("升级后：") or lines[i].begins_with("下一级：")
-		)
-		if is_preview:
-			line.visible = false
-			preview_labels.append(line)
-		body.add_child(line)
-	if not preview_labels.is_empty():
-		_wire_card_preview_hover(card, preview_labels)
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(spacer)
 
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -403,7 +355,7 @@ func _make_module_card(mod: Dictionary) -> PanelContainer:
 		coin_btn.custom_minimum_size = Vector2(0, 40)
 		coin_btn.add_theme_font_size_override("font_size", 15)
 		UiStyle.apply_shop_card_button(coin_btn, UiStyle.GOLD if can_coin else UiStyle.TEXT_DIM)
-		coin_btn.pressed.connect(_buy.bind(cat_id, false))
+		coin_btn.pressed.connect(_request_buy.bind(cat_id, false))
 		foot.add_child(coin_btn)
 		if cat_id == "pickaxe":
 			foot.add_child(_make_ore_pay_button(cat_id, can_ore))
@@ -422,7 +374,7 @@ func _make_ore_pay_button(cat_id: String, can_ore: bool) -> Button:
 	ore_btn.custom_minimum_size = Vector2(56, 40)
 	UiStyle.apply_shop_card_button(ore_btn, UiStyle.GOLD if can_ore else ore_col.lerp(UiStyle.GOLD, 0.5))
 	ore_btn.modulate = Color(1, 1, 1, 1.0) if can_ore else Color(1, 1, 1, 0.72)
-	ore_btn.pressed.connect(_buy.bind(cat_id, true))
+	ore_btn.pressed.connect(_request_buy.bind(cat_id, true))
 	var wrap := CenterContainer.new()
 	wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
 	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -435,11 +387,57 @@ func _make_ore_pay_button(cat_id: String, can_ore: bool) -> Button:
 	row.add_child(OreBagIcon.new(ore_type, 28.0))
 	var qty := Label.new()
 	qty.text = "×1"
-	qty.add_theme_font_size_override("font_size", 13)
-	qty.add_theme_color_override("font_color", UiStyle.OK if can_ore else UiStyle.TEXT)
+	qty.add_theme_font_size_override("font_size", 15)
+	qty.add_theme_color_override("font_color", UiStyle.COIN if can_ore else Color("#e8ecf4"))
+	qty.add_theme_color_override("font_outline_color", Color("#1a1208", 0.9))
+	qty.add_theme_constant_override("outline_size", 2)
 	qty.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(qty)
 	return ore_btn
+
+
+func _request_buy(cat_id: String, use_ore: bool) -> void:
+	## 四模块都先确认；效果说明只出现在确认框
+	_pending_buy_cat = cat_id
+	_pending_buy_ore = use_ore
+	upgrade_popup.show_confirm(_upgrade_confirm_info(cat_id, use_ore))
+
+
+func _upgrade_confirm_info(cat_id: String, use_ore: bool) -> Dictionary:
+	var lvl: int = int(session.owned_upgrades.get(cat_id, 0))
+	var next_lv: int = lvl + 1
+	var name: String = UpgradeSystem.display_name_for(cat_id, next_lv)
+	var info: Dictionary = {
+		"kind": "confirm",
+		"icon": UpgradeSystem.icon_for(cat_id),
+		"title": "确认升级",
+		"badge": "%s  Lv.%d" % [name, next_lv],
+		"tagline": UpgradeSystem.confirm_delta(cat_id, lvl),
+		"cost": 0,
+		"paid_ore": 0,
+		"cost_line": "",
+	}
+	if use_ore and cat_id == "pickaxe":
+		var ore_type: int = UpgradeSystem.pickaxe_ore_for_next_level(session.owned_upgrades)
+		info["paid_ore"] = ore_type
+	else:
+		info["cost"] = _upgrade_sys.next_price(cat_id, session.owned_upgrades)
+	return info
+
+
+func _on_upgrade_confirmed() -> void:
+	var cat_id: String = _pending_buy_cat
+	var use_ore: bool = _pending_buy_ore
+	_pending_buy_cat = ""
+	_pending_buy_ore = false
+	if cat_id.is_empty():
+		return
+	_buy(cat_id, use_ore)
+
+
+func _on_upgrade_dismissed() -> void:
+	_pending_buy_cat = ""
+	_pending_buy_ore = false
 
 
 func _buy(cat_id: String, use_ore: bool) -> void:
@@ -470,6 +468,8 @@ func _buy(cat_id: String, use_ore: bool) -> void:
 		elif reason != "金币不足" and not reason.is_empty():
 			tip = reason
 		GameEvents.toast.emit(tip, "warn")
+		if upgrade_popup.visible:
+			upgrade_popup.hide_popup()
 	_rebuild()
 	_fit_panel_size()
 

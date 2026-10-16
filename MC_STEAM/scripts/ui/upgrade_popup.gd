@@ -1,6 +1,7 @@
 extends Control
 
 signal dismissed
+signal confirmed
 
 @onready var _dim: ColorRect = $Dim
 @onready var _panel: PanelContainer = $Center/Panel
@@ -16,14 +17,40 @@ signal dismissed
 @onready var _ok: Button = $Center/Panel/Margin/VBox/OkBtn
 
 var _anim: Tween
+var _mode: String = "info" ## "info" | "confirm"
+var _btn_row: HBoxContainer
+var _cancel: Button
 
 
 func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	_ok.pressed.connect(hide_popup)
+	_ensure_btn_row()
+	_ok.pressed.connect(_on_ok_pressed)
+	_cancel.pressed.connect(hide_popup)
 	_dim.gui_input.connect(_on_dim_input)
 	_apply_base_style()
+
+
+func _ensure_btn_row() -> void:
+	if _btn_row != null:
+		return
+	var vbox: VBoxContainer = _ok.get_parent() as VBoxContainer
+	_btn_row = HBoxContainer.new()
+	_btn_row.name = "BtnRow"
+	_btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_btn_row.add_theme_constant_override("separation", 10)
+	vbox.add_child(_btn_row)
+	vbox.move_child(_btn_row, _ok.get_index())
+	_ok.reparent(_btn_row)
+	_cancel = Button.new()
+	_cancel.name = "CancelBtn"
+	_cancel.text = "取消"
+	_cancel.visible = false
+	_cancel.custom_minimum_size = Vector2(120, 44)
+	_cancel.add_theme_font_size_override("font_size", 17)
+	_btn_row.add_child(_cancel)
+	_btn_row.move_child(_cancel, 0)
 
 
 func _apply_base_style() -> void:
@@ -39,9 +66,14 @@ func _apply_base_style() -> void:
 	UiStyle.apply_action_button(_ok, UiStyle.GOLD)
 	_ok.custom_minimum_size = Vector2(200, 44)
 	_ok.text = "好的"
+	if _cancel != null:
+		UiStyle.apply_action_button(_cancel, UiStyle.CYAN)
+		_cancel.custom_minimum_size = Vector2(120, 44)
 
 
 func show_info(info: Dictionary) -> void:
+	_mode = "info"
+	_set_cancel_visible(false)
 	var kind: String = str(info.get("kind", "ok"))
 	var accent: Color = UiStyle.GOLD if kind == "ok" else UiStyle.WARN
 	var title: String = str(info.get("title", ""))
@@ -62,10 +94,66 @@ func show_info(info: Dictionary) -> void:
 	_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(accent))
 	_icon_wrap.add_theme_stylebox_override("panel", _icon_plate_style(accent))
 	UiStyle.apply_action_button(_ok, accent)
+	_ok.custom_minimum_size = Vector2(200, 44)
 	_ok.text = "好的" if kind == "ok" else "知道了"
 	_fill_cost_row(info, kind)
+	_present()
+
+
+func show_confirm(info: Dictionary) -> void:
+	_mode = "confirm"
+	_set_cancel_visible(true)
+	var accent: Color = UiStyle.GOLD
+	_ribbon.text = str(info.get("title", "确认升级"))
+	_ribbon.add_theme_color_override("font_color", UiStyle.COIN)
+	_icon.text = str(info.get("icon", "⛏"))
+	_badge.text = str(info.get("badge", ""))
+	_tagline.text = str(info.get("tagline", info.get("hint", "")))
+	_badge.add_theme_color_override("font_color", UiStyle.TEXT)
+	_tagline.add_theme_color_override("font_color", Color("#f5ecd8"))
+	_tagline.add_theme_font_size_override("font_size", 16)
+	_panel.add_theme_stylebox_override("panel", _confirm_frame())
+	_icon_wrap.add_theme_stylebox_override("panel", _icon_plate_style(accent))
+	_ribbon_wrap.add_theme_stylebox_override("panel", _confirm_title())
+	UiStyle.apply_action_button(_ok, accent)
+	UiStyle.apply_action_button(_cancel, UiStyle.CYAN)
+	_ok.custom_minimum_size = Vector2(140, 44)
+	_cancel.custom_minimum_size = Vector2(120, 44)
+	_ok.text = "确认"
+	_fill_cost_row(info, "confirm")
+	_present()
+
+
+func _confirm_frame() -> StyleBoxFlat:
+	var sb := UiStyle.favour_popup_frame(UiStyle.GOLD)
+	sb.bg_color = Color("#16120e", 0.97)
+	sb.border_color = Color(UiStyle.GOLD, 0.72)
+	sb.shadow_color = Color("#c48a28", 0.38)
+	sb.shadow_size = 14
+	sb.shadow_offset = Vector2(0, 4)
+	sb.corner_radius_top_left = 16
+	sb.corner_radius_top_right = 16
+	sb.corner_radius_bottom_left = 16
+	sb.corner_radius_bottom_right = 16
+	return sb
+
+
+func _confirm_title() -> StyleBoxFlat:
+	var sb := UiStyle.favour_popup_title_soft()
+	sb.bg_color = Color(0, 0, 0, 0)
+	return sb
+
+
+func _present() -> void:
+	# 工坊 Shell 后挂载，需提到最前，否则确认窗被盖住看不见
+	move_to_front()
 	visible = true
 	_play_in()
+
+
+func _set_cancel_visible(on: bool) -> void:
+	if _cancel != null:
+		_cancel.visible = on
 
 
 func _fill_cost_row(info: Dictionary, kind: String) -> void:
@@ -81,18 +169,36 @@ func _fill_cost_row(info: Dictionary, kind: String) -> void:
 	if paid_ore > 0:
 		_cost_icon_host.add_child(OreBagIcon.new(paid_ore, 26.0))
 		var ore_name: String = str(GameData.ore_meta(paid_ore).get("name", ""))
-		_cost.text = ("-1×%s" if kind == "ok" else "需要 1×%s") % ore_name
+		if kind == "ok":
+			_cost.text = "-1×%s" % ore_name
+		else:
+			_cost.text = "消耗 1×%s" % ore_name
 	elif cost_coins > 0:
 		_cost_icon_host.add_child(UiIcons.money_hud(22.0, false))
-		_cost.text = ("-%s" if kind == "ok" else "需要 %s") % UpgradeSystem.fmt_coins(cost_coins)
+		if kind == "ok":
+			_cost.text = "-%s" % UpgradeSystem.fmt_coins(cost_coins)
+		else:
+			_cost.text = "消耗 %s" % UpgradeSystem.fmt_coins(cost_coins)
 	else:
 		_cost.text = cost_line
-	_cost.add_theme_color_override("font_color", UiStyle.COIN if kind == "ok" else UiStyle.TEXT_DIM)
+	_cost.add_theme_color_override("font_color", UiStyle.COIN if kind != "warn" else UiStyle.TEXT_DIM)
+
+
+func _on_ok_pressed() -> void:
+	if _mode == "confirm":
+		_mode = "info"
+		_set_cancel_visible(false)
+		# 买家立刻 show_info 复用本窗，不再先关再开
+		confirmed.emit()
+		return
+	hide_popup()
 
 
 func hide_popup() -> void:
 	if not visible:
 		return
+	_mode = "info"
+	_set_cancel_visible(false)
 	if _anim != null and _anim.is_valid():
 		_anim.kill()
 	_anim = create_tween()

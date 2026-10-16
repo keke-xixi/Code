@@ -47,7 +47,7 @@ alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.941, 0.627, 0.125, 1)
 theme_override_font_sizes/font_size = 22
-text = "拾光工坊"
+text = "工坊"
 horizontal_alignment = 1
 
 [node name="Money" type="Label" parent="Panel/Margin/VBox/Header/HeaderRow"]

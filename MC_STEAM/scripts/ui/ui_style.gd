@@ -350,8 +350,8 @@ static func trade_icon_well(accent: Color = GOLD) -> StyleBoxFlat:
 	sb.corner_radius_top_right = 40
 	sb.corner_radius_bottom_left = 40
 	sb.corner_radius_bottom_right = 40
-	sb.shadow_color = Color(bar, 0.55)
-	sb.shadow_size = 14
+	sb.shadow_color = Color(bar, 0.16)
+	sb.shadow_size = 8
 	sb.shadow_offset = Vector2(0, 0)
 	sb.content_margin_left = 6
 	sb.content_margin_right = 6
@@ -407,8 +407,8 @@ static func trade_ore_slot(accent: Color = GOLD, glow: Color = Color(0, 0, 0, 0)
 	sb.corner_radius_top_right = 22
 	sb.corner_radius_bottom_left = 22
 	sb.corner_radius_bottom_right = 22
-	sb.shadow_color = Color(bar, 0.55)
-	sb.shadow_size = 18
+	sb.shadow_color = Color(bar, 0.14)
+	sb.shadow_size = 8
 	sb.shadow_offset = Vector2(0, 2)
 	sb.content_margin_left = 12
 	sb.content_margin_right = 12
@@ -421,8 +421,8 @@ static func trade_ore_slot_hover(accent: Color = GOLD, glow: Color = Color(0, 0,
 	var bar: Color = trade_slot_accent(accent, glow)
 	var sb := trade_ore_slot(accent, glow)
 	sb.bg_color = Color("#161a28", 0.82).lerp(Color(bar, 1.0), 0.28)
-	sb.shadow_color = Color(bar, 0.85)
-	sb.shadow_size = 26
+	sb.shadow_color = Color(bar, 0.22)
+	sb.shadow_size = 10
 	sb.shadow_offset = Vector2(0, 4)
 	return sb
 

@@ -85,3 +85,5 @@ MC_STEAM/
 ## 导出
 
 在 Godot 中 **项目 → 导出** 添加 Windows Desktop；Steam 包再叠加 Steamworks SDK / GodotSteam。
+
+**Steam 上架逐步说明**（GodotSteam、成就 ID 对照、导出项、steamcmd）：见 [`docs/STEAM_RELEASE.md`](docs/STEAM_RELEASE.md)。

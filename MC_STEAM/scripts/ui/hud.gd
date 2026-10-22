@@ -6,8 +6,11 @@ const BASE_HINT := "WASD · B · O"
 const UPGRADE_READY_HINT := "WASD · B · O · 可升级"
 const ORE_BAG_FONT := 20
 const ORE_BAG_SWATCH := 36
+const ORE_BAG_W_EXPANDED := 232.0
+const ORE_BAG_W_COLLAPSED := 54.0
 const GAME_POPUP_HALF_W := 170.0
 const GAME_POPUP_HALF_H := 192.0
+const STATUS_POPUP_MIN_W := 420.0
 const TRADE_PANEL_W := 760.0
 const TRADE_GRID_COLS := 4
 const TRADE_CARD_ICON := 56.0
@@ -34,6 +37,10 @@ const TRADE_GRID_GAP_V := 28
 @onready var mine_bar: ProgressBar = $MineRow/Margin/VBox/BarWrap/MineBar
 @onready var mine_pct: Label = $MineRow/Margin/VBox/BarWrap/MinePct
 @onready var tutorial_panel: PanelContainer = $TutorialPanel
+@onready var ore_bag: MarginContainer = $OreBag
+@onready var ore_bag_title: Label = $OreBag/VBox/TitleRow/Title
+@onready var ore_bag_title_row: HBoxContainer = $OreBag/VBox/TitleRow
+@onready var ore_bag_title_spacer: Control = $OreBag/VBox/TitleRow/TitleSpacer
 @onready var ore_trade_open: Button = $OreBag/VBox/TitleRow/TradeOpen
 @onready var ore_list: VBoxContainer = $OreBag/VBox/List
 @onready var ore_trade_backdrop: ColorRect = $OreTradeBackdrop
@@ -99,6 +106,7 @@ var _trade_rows_prewarmed: bool = false
 var _upgrade_ready_notified: bool = false
 var _bootstrapping: bool = false
 var _fitting_popup_shell: bool = false
+var _ore_bag_collapse_btn: Button
 
 
 func _ready() -> void:
@@ -154,6 +162,7 @@ func _ready() -> void:
 	_refresh_status_panel()
 	_start_status_fab_idle()
 	_style_ore_bag()
+	_setup_ore_bag_collapse()
 	_setup_home_fab()
 
 
@@ -197,6 +206,69 @@ func _style_ore_bag() -> void:
 		ore_list.add_theme_constant_override("separation", 6)
 
 
+func _setup_ore_bag_collapse() -> void:
+	if ore_bag_title_row == null:
+		return
+	if ore_bag_title_row.get_node_or_null("BagCollapse") == null:
+		_ore_bag_collapse_btn = Button.new()
+		_ore_bag_collapse_btn.name = "BagCollapse"
+		_ore_bag_collapse_btn.custom_minimum_size = Vector2(28, 28)
+		_ore_bag_collapse_btn.focus_mode = Control.FOCUS_NONE
+		_ore_bag_collapse_btn.tooltip_text = "收起/展开背包（C 兑换）"
+		_style_bag_collapse_button(_ore_bag_collapse_btn)
+		_ore_bag_collapse_btn.pressed.connect(_toggle_ore_bag_collapsed)
+		ore_bag_title_row.add_child(_ore_bag_collapse_btn)
+		var insert_at: int = ore_bag_title_row.get_child_count() - 1
+		if ore_trade_open != null:
+			insert_at = ore_trade_open.get_index()
+		ore_bag_title_row.move_child(_ore_bag_collapse_btn, insert_at)
+	else:
+		_ore_bag_collapse_btn = ore_bag_title_row.get_node("BagCollapse") as Button
+		_style_bag_collapse_button(_ore_bag_collapse_btn)
+	_apply_ore_bag_collapsed(UserSettings.ore_bag_collapsed, false)
+
+
+func _style_bag_collapse_button(btn: Button) -> void:
+	var empty := StyleBoxEmpty.new()
+	btn.flat = true
+	btn.add_theme_stylebox_override("normal", empty)
+	btn.add_theme_stylebox_override("hover", empty)
+	btn.add_theme_stylebox_override("pressed", empty)
+	btn.add_theme_stylebox_override("focus", empty)
+	btn.add_theme_stylebox_override("disabled", empty)
+	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_color_override("font_color", Color("#7eb8dc"))
+	btn.add_theme_color_override("font_hover_color", Color("#e8f4ff"))
+	btn.add_theme_color_override("font_pressed_color", Color("#5a9ec4"))
+	_icon_only_hover(btn)
+
+
+func _toggle_ore_bag_collapsed() -> void:
+	_apply_ore_bag_collapsed(not UserSettings.ore_bag_collapsed, true)
+
+
+func _apply_ore_bag_collapsed(collapsed: bool, animate: bool) -> void:
+	UserSettings.set_ore_bag_collapsed(collapsed)
+	if ore_list != null:
+		ore_list.visible = not collapsed
+	if ore_bag_title != null:
+		ore_bag_title.visible = not collapsed
+	if ore_bag_title_spacer != null:
+		ore_bag_title_spacer.visible = not collapsed
+	if _ore_bag_collapse_btn != null:
+		_ore_bag_collapse_btn.text = "▶" if collapsed else "◀"
+	var target_right: float = 16.0 + (ORE_BAG_W_COLLAPSED if collapsed else ORE_BAG_W_EXPANDED)
+	if ore_bag == null:
+		return
+	if animate:
+		var tween := create_tween()
+		tween.set_trans(Tween.TRANS_QUAD)
+		tween.set_ease(Tween.EASE_OUT)
+		tween.tween_property(ore_bag, "offset_right", target_right, 0.16)
+	else:
+		ore_bag.offset_right = target_right
+
+
 func _style_status_ui() -> void:
 	status_panel.add_theme_stylebox_override("panel", UiStyle.favour_popup_frame(UiStyle.CYAN))
 	# 区块用轻卡片，去掉左侧色条 / 硬分隔线
@@ -215,7 +287,9 @@ func _style_status_ui() -> void:
 	)
 	var st_vbox: VBoxContainer = status_panel.get_node("Margin/VBox") as VBoxContainer
 	if st_vbox != null:
-		st_vbox.add_theme_constant_override("separation", 10)
+		st_vbox.add_theme_constant_override("separation", 12)
+	if status_title_sub != null:
+		status_title_sub.add_theme_font_size_override("font_size", 17)
 	# 去掉弹窗顶部「状态」标题行，直接从矿层信息开始
 	var title: Label = status_panel.get_node_or_null("Margin/VBox/Title") as Label
 	if title != null:
@@ -302,12 +376,12 @@ func _make_status_key_chip(key: String, desc: String) -> PanelContainer:
 	chip.add_child(row)
 	var k := Label.new()
 	k.text = key
-	k.add_theme_font_size_override("font_size", 13)
+	k.add_theme_font_size_override("font_size", 14)
 	k.add_theme_color_override("font_color", UiStyle.COIN)
 	row.add_child(k)
 	var d := Label.new()
 	d.text = desc
-	d.add_theme_font_size_override("font_size", 12)
+	d.add_theme_font_size_override("font_size", 13)
 	d.add_theme_color_override("font_color", UiStyle.TEXT_DIM)
 	row.add_child(d)
 	return chip
@@ -315,7 +389,7 @@ func _make_status_key_chip(key: String, desc: String) -> PanelContainer:
 
 func _apply_game_popup_size() -> void:
 	# 状态：宽度固定、高度随内容（避免底部空洞）
-	status_panel.custom_minimum_size = Vector2(376, 0)
+	status_panel.custom_minimum_size = Vector2(STATUS_POPUP_MIN_W, 0)
 	status_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_fit_popup_shell(status_panel)
 	_fit_trade_panel_size()
@@ -356,10 +430,9 @@ func _set_button_glyph(btn: Button, icon: Control) -> void:
 
 
 func _style_trade_ui() -> void:
-	ore_trade_open.custom_minimum_size = Vector2(52, 52)
-	UiStyle.apply_icon_only_button(ore_trade_open)
-	_set_button_glyph(ore_trade_open, UiIcons.exchange(40.0))
-	_icon_only_hover(ore_trade_open)
+	# 兑换改 C 键；背包标题旁不再显示钱包/兑换图标
+	ore_trade_open.visible = false
+	ore_trade_open.disabled = true
 	ore_trade_panel.add_theme_stylebox_override("panel", UiStyle.trade_vault_frame())
 	ore_trade_confirm_panel.add_theme_stylebox_override("panel", UiStyle.trade_vault_frame())
 	ore_trade_panel.custom_minimum_size = Vector2(TRADE_PANEL_W, 0)

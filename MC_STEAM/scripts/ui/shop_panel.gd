@@ -387,9 +387,14 @@ func _make_ore_pay_button(cat_id: String, can_ore: bool) -> Button:
 	row.add_child(OreBagIcon.new(ore_type, 28.0))
 	var qty := Label.new()
 	qty.text = "×1"
-	qty.add_theme_font_size_override("font_size", 15)
-	qty.add_theme_color_override("font_color", UiStyle.COIN if can_ore else Color("#e8ecf4"))
-	qty.add_theme_color_override("font_outline_color", Color("#1a1208", 0.9))
+	qty.add_theme_font_size_override("font_size", 16)
+	# 与黄铜升级钮同系深字，避免 ×1 在金色底上发虚
+	if can_ore:
+		qty.add_theme_color_override("font_color", Color("#2a1808"))
+		qty.add_theme_color_override("font_outline_color", Color("#ffe9a8", 0.45))
+	else:
+		qty.add_theme_color_override("font_color", Color("#3d2a14"))
+		qty.add_theme_color_override("font_outline_color", Color("#1a1208", 0.75))
 	qty.add_theme_constant_override("outline_size", 2)
 	qty.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(qty)

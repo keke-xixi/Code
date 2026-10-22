@@ -62,24 +62,55 @@ static func draw_rock_shell(
 
 static func draw_exposed(canvas: CanvasItem, inner: Rect2, meta: Dictionary, type_id: int, grid_pos: Vector2i) -> void:
 	var glow: Color = meta.get("glow", Color.WHITE)
+	var bright: float = ore_world_brightness(type_id)
 	canvas.draw_rect(inner.grow(-1), Color("#1c1816"), true)
-	canvas.draw_rect(inner.grow(-2), Color("#252018").lerp(glow, 0.12), true)
-	draw_gem(canvas, inner, meta, 1.0, type_id)
+	canvas.draw_rect(inner.grow(-2), Color("#252018").lerp(glow, 0.12 * bright), true)
+	_draw_world_ore_icon(canvas, inner, type_id, meta, 1.0, bright)
 	if type_id == 1:
 		_draw_dirt_crumbs(canvas, inner, _hash_pos(grid_pos), 4)
 
 
+## 地图格内亮度：矿种 id 越高越亮（与背包图标一致）
+static func ore_world_brightness(type_id: int) -> float:
+	return clampf(0.78 + float(maxi(1, type_id) - 1) * 0.055, 0.78, 1.28)
+
+
+static func _draw_world_ore_icon(
+	canvas: CanvasItem,
+	inner: Rect2,
+	type_id: int,
+	meta: Dictionary,
+	alpha: float,
+	brightness: float,
+) -> void:
+	var pad: Rect2 = inner.grow(-7)
+	var glow: Color = meta.get("glow", Color.WHITE)
+	if type_id >= 3 and alpha > 0.2:
+		canvas.draw_rect(pad.grow(2), Color(glow, 0.09 * alpha * maxf(0.0, brightness - 0.72)), true)
+	draw_bag_icon(canvas, pad, type_id)
+	_apply_world_brightness_tint(canvas, pad, brightness, alpha)
+
+
+static func _apply_world_brightness_tint(
+	canvas: CanvasItem,
+	pad: Rect2,
+	brightness: float,
+	alpha: float,
+) -> void:
+	if brightness > 1.02:
+		var c: Vector2 = pad.get_center()
+		var r: float = minf(pad.size.x, pad.size.y) * 0.38
+		canvas.draw_circle(c, r, Color(1, 1, 1, (brightness - 1.0) * 0.32 * alpha))
+	elif brightness < 0.9:
+		canvas.draw_rect(pad, Color(0, 0, 0, (0.9 - brightness) * 0.45 * alpha), true)
+
+
 static func draw_gem(canvas: CanvasItem, inner: Rect2, meta: Dictionary, alpha: float, type_id: int = 0) -> void:
-	if alpha >= 0.85 and type_id > 2:
-		var tex: Texture2D = texture_for_ui(type_id)
-		if tex != null:
-			var pad: Rect2 = inner.grow(-5)
-			canvas.draw_texture_rect(tex, pad, false, Color(1, 1, 1, alpha))
-			if type_id == 5:
-				_draw_sparkle_triangles(canvas, inner.get_center() + Vector2(0, -inner.size.y * 0.22), alpha)
-			return
-	if alpha >= 0.85 and type_id <= 2:
-		draw_ui_icon(canvas, inner, type_id)
+	if type_id <= 0:
+		type_id = 1
+	var bright: float = ore_world_brightness(type_id)
+	if alpha >= 0.15:
+		_draw_world_ore_icon(canvas, inner, type_id, meta, alpha, bright * 0.88 + 0.12)
 		return
 
 	var ore_color: Color = meta.get("color", Color.GRAY)

@@ -9,6 +9,7 @@ var sfx_enabled: bool = true
 var music_enabled: bool = true
 var screen_shake: bool = true
 var tutorial_dismissed: bool = false
+var ore_bag_collapsed: bool = false
 
 
 func _ready() -> void:
@@ -32,6 +33,7 @@ func load_settings() -> void:
 	music_enabled = bool(d.get("music_enabled", true))
 	screen_shake = bool(d.get("screen_shake", true))
 	tutorial_dismissed = bool(d.get("tutorial_dismissed", false))
+	ore_bag_collapsed = bool(d.get("ore_bag_collapsed", false))
 
 
 func save_settings() -> void:
@@ -42,6 +44,7 @@ func save_settings() -> void:
 		"music_enabled": music_enabled,
 		"screen_shake": screen_shake,
 		"tutorial_dismissed": tutorial_dismissed,
+		"ore_bag_collapsed": ore_bag_collapsed,
 	}
 	var f := FileAccess.open(PATH, FileAccess.WRITE)
 	if f == null:
@@ -82,4 +85,9 @@ func set_screen_shake(v: bool) -> void:
 
 func dismiss_tutorial() -> void:
 	tutorial_dismissed = true
+	save_settings()
+
+
+func set_ore_bag_collapsed(v: bool) -> void:
+	ore_bag_collapsed = v
 	save_settings()
